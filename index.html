@@ -9,6 +9,8 @@
 <meta name="apple-mobile-web-app-title" content="The Chute">
 <meta name="theme-color" content="#0E1F35">
 <meta name="color-scheme" content="dark only">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
 <title>The Chute</title>
 <link rel="icon" href="favicon.png" sizes="64x64">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -381,6 +383,7 @@ pre.out{
 (function(){
 'use strict';
 
+var BUILD='b4';
 var KEY='chute.v1';
 var S=null, raf=null, wake=null, freshIdx=-1, sheetPlace=-1;
 
@@ -710,10 +713,13 @@ function renderResults(){
      '<button id="copyChat">Copy for chat</button>'+
      '<button id="copyCsv">Copy CSV</button></div>';
   h+='<div class="sect">Full field</div><pre class="out">'+esc(buildCsv())+'</pre>';
+  h+='<div class="copyrow" style="padding-top:0"><button id="doneBtn">Done, back to setup</button></div>';
+  h+='<div class="sect" style="padding-bottom:18px">Build '+BUILD+'</div>';
 
   $('resultBody').innerHTML=h;
   $('copyChat').addEventListener('click',function(){ copyOut(buildChat(), this); });
   $('copyCsv').addEventListener('click',function(){ copyOut(buildCsv(), this); });
+  $('doneBtn').addEventListener('click',function(){ discardRace(this); });
 }
 
 function buildCsv(){
@@ -859,20 +865,20 @@ $('backTiming').addEventListener('click',function(){
 });
 $('toResults').addEventListener('click',function(){ show('results'); });
 $('backRecon').addEventListener('click',function(){ show('recon'); });
-var armDiscard=null;
-$('newRace').addEventListener('click',function(){
-  var b=this;
+var armDiscard=null, armLabel='';
+function discardRace(b){
   if(armDiscard!==b){
-    armDiscard=b; b.textContent='Discard this race?';
-    setTimeout(function(){ if(armDiscard===b){ armDiscard=null; b.textContent='New race'; } },4000);
+    armDiscard=b; armLabel=b.textContent; b.textContent='Tap again to discard';
+    setTimeout(function(){ if(armDiscard===b){ armDiscard=null; b.textContent=armLabel; } },4000);
     return;
   }
-  armDiscard=null; b.textContent='New race';
+  armDiscard=null; b.textContent=armLabel;
   try{ localStorage.removeItem(KEY); }catch(e){}
   S=null; show('setup'); hintRoster();
   $('rdate').value=todayStr();
   $('setupRestore').textContent='';
-});
+}
+$('newRace').addEventListener('click',function(){ discardRace(this); });
 $('segOurs').addEventListener('click',function(){ setRecon(false); });
 $('segAll').addEventListener('click',function(){ setRecon(true); });
 function setRecon(all){
