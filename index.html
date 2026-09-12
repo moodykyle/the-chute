@@ -4,10 +4,30 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Chute</title>
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="The Chute">
+<meta name="theme-color" content="#0C2340">
+<title>The Chute</title>
+<link rel="icon" href="favicon.png" sizes="64x64">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600&family=Saira+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600&family=Saira+Condensed:wght@500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<script>
+(function(){
+  var base=location.href.replace(/[^/]*$/,'');
+  var manifest={name:'The Chute',short_name:'The Chute',description:'Cross country race timing',
+    start_url:base,display:'standalone',orientation:'portrait',
+    background_color:'#0C2340',theme_color:'#0C2340',
+    icons:[{src:base+'icon-192.png',sizes:'192x192',type:'image/png'},
+           {src:base+'icon-512.png',sizes:'512x512',type:'image/png'}]};
+  var l=document.createElement('link');
+  l.rel='manifest';
+  l.href=URL.createObjectURL(new Blob([JSON.stringify(manifest)],{type:'application/json'}));
+  document.head.appendChild(l);
+})();
+</script>
 <style>
 :root{
   --field:#EFF2EC;
@@ -58,6 +78,28 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
 .num{font-family:'Saira Condensed','Saira Condensed Fallback',system-ui,sans-serif;font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
 
 .app{display:flex;flex-direction:column;height:100dvh;max-width:560px;margin:0 auto;position:relative}
+
+#splash{
+  position:fixed;inset:0;z-index:9999;background:#0C2340;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;
+  transition:opacity .38s ease;
+}
+#splash.out{opacity:0;pointer-events:none}
+.spl-mark{width:min(74vw,290px);height:auto;overflow:visible}
+.spl-word{text-align:center;line-height:1}
+.spl-the{font-family:'Saira',system-ui,sans-serif;font-weight:400;font-size:13px;
+  letter-spacing:.44em;text-indent:.44em;color:#8FA6BD}
+.spl-chute{font-family:'Bebas Neue','Saira Condensed',system-ui,sans-serif;
+  font-size:46px;letter-spacing:.06em;line-height:.9;margin-top:4px;color:#FFFFFF}
+@keyframes splFly{0%{transform:translateX(-56%)}74%{transform:translateX(2.5%)}100%{transform:translateX(0)}}
+@keyframes splLand{from{opacity:0;transform:scale(.84)}to{opacity:1;transform:scale(1)}}
+@keyframes splFade{from{opacity:0}to{opacity:1}}
+.spl-arrow{animation:splFly .58s cubic-bezier(.16,.84,.32,1) backwards}
+.spl-xc{animation:splLand .3s ease-out .46s backwards;transform-origin:128px 46px}
+.spl-word{animation:splFade .42s ease-out .72s backwards}
+@media (prefers-reduced-motion:reduce){
+  .spl-arrow,.spl-xc,.spl-word{animation:none}
+}
 .screen{display:none;flex-direction:column;flex:1;min-height:0}
 .screen.on{display:flex}
 
@@ -222,6 +264,19 @@ pre.out{
 </style>
 </head>
 <body>
+<div id="splash">
+<svg class="spl-mark" viewBox="0 0 258 92" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+<g class="spl-arrow">
+<path d="M6 26 L24 46 L6 66" fill="none" stroke="#C8102E" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M28 26 L46 46 L28 66" fill="none" stroke="#C8102E" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="40" y1="46" x2="214" y2="46" stroke="#C8102E" stroke-width="8" stroke-linecap="round"/>
+<polygon points="212,26 252,46 212,66" fill="#C8102E"/>
+</g>
+<path class="spl-xc" d="M109.321 45.471999999999994 101.335 22.89999999999999H108.991L113.875 37.81599999999999H114.00699999999999L119.023 22.89999999999999H125.887L117.901 45.471999999999994L126.28299999999999 69.1H118.627L113.347 52.995999999999995H113.21499999999999L107.803 69.1H100.939Z M132.753 58.407999999999994V33.59199999999999Q132.753 28.179999999999993 135.492 25.209999999999994Q138.231 22.239999999999995 143.445 22.239999999999995Q148.659 22.239999999999995 151.398 25.209999999999994Q154.137 28.179999999999993 154.137 33.59199999999999V38.47599999999999H147.273V33.129999999999995Q147.273 28.83999999999999 143.64299999999997 28.83999999999999Q140.01299999999998 28.83999999999999 140.01299999999998 33.129999999999995V58.93599999999999Q140.01299999999998 63.16 143.64299999999997 63.16Q147.273 63.16 147.273 58.93599999999999V51.873999999999995H154.137V58.407999999999994Q154.137 63.81999999999999 151.398 66.78999999999999Q148.659 69.75999999999999 143.445 69.75999999999999Q138.231 69.75999999999999 135.492 66.78999999999999Q132.753 63.81999999999999 132.753 58.407999999999994Z" fill="#FFFFFF" stroke="#0C2340" stroke-width="2.6" stroke-linejoin="round" paint-order="stroke"/>
+</svg>
+  <div class="spl-word"><div class="spl-the">THE</div><div class="spl-chute">CHUTE</div></div>
+</div>
+
 <div class="app">
 
 <!-- SETUP -->
@@ -851,6 +906,25 @@ document.addEventListener('keydown',function(e){
     if(e.code==='Backspace'){ e.preventDefault(); undo(); }
   }
 });
+
+/* ---------- splash ----------
+   The Turn holds its splash until auth and data land. This app loads nothing,
+   so the splash covers no work: short floor, tap to skip, once per session. */
+(function splash(){
+  var el=$('splash'); if(!el) return;
+  var seen=false;
+  try{ seen=sessionStorage.getItem('chute.splash')==='1'; }catch(e){}
+  if(seen){ el.remove(); return; }
+  try{ sessionStorage.setItem('chute.splash','1'); }catch(e){}
+  var done=false;
+  function out(){
+    if(done) return; done=true;
+    el.classList.add('out');
+    setTimeout(function(){ el.remove(); }, 400);
+  }
+  el.addEventListener('click',out);
+  setTimeout(out,1250);
+})();
 
 /* ---------- restore ---------- */
 (function restore(){

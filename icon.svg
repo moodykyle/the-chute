@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 130 130" role="img" aria-label="The Chute">
+<defs><clipPath id="ci"><rect width="130" height="130" rx="28"/></clipPath></defs>
+<rect width="130" height="130" rx="28" fill="#0C2340"/>
+<g clip-path="url(#ci)"><path d="M-12 51 L3 65 L-12 79" fill="none" stroke="#C8102E" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M5 51 L20 65 L5 79" fill="none" stroke="#C8102E" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="14" y1="65" x2="96" y2="65" stroke="#C8102E" stroke-width="7" stroke-linecap="round"/>
+<polygon points="94,50 120,65 94,80" fill="#C8102E"/><path d="M44.11 64.52 36.85 44.0H43.809999999999995L48.25 57.56H48.37L52.92999999999999 44.0H59.17L51.91 64.52L59.53 86.0H52.56999999999999L47.769999999999996 71.36H47.65L42.73 86.0H36.489999999999995Z M65.23 76.28V53.72Q65.23 48.800000000000004 67.72 46.1Q70.21 43.4 74.95 43.4Q79.69 43.4 82.18 46.1Q84.67 48.800000000000004 84.67 53.72V58.16H78.42999999999999V53.300000000000004Q78.42999999999999 49.4 75.13 49.4Q71.83 49.4 71.83 53.300000000000004V76.76Q71.83 80.6 75.13 80.6Q78.42999999999999 80.6 78.42999999999999 76.76V70.34H84.67V76.28Q84.67 81.2 82.18 83.9Q79.69 86.6 74.95 86.6Q70.21 86.6 67.72 83.9Q65.23 81.2 65.23 76.28Z" fill="#FFFFFF" stroke="#0C2340" stroke-width="2.2" stroke-linejoin="round" paint-order="stroke"/></g></svg>
