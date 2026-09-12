@@ -7,7 +7,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="The Chute">
-<meta name="theme-color" content="#0C2340">
+<meta name="theme-color" content="#0E1F35">
+<meta name="color-scheme" content="dark only">
 <title>The Chute</title>
 <link rel="icon" href="favicon.png" sizes="64x64">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -30,37 +31,17 @@
 </script>
 <style>
 :root{
-  --field:#EFF2EC;
-  --chalk:#FFFFFF;
-  --ink:#17241B;
-  --ink-soft:#5C6A5F;
-  --rule:#CBD3C6;
-  --tape:#D93A1E;
-  --home:#1D4E6B;
-  --home-wash:#E3EDF3;
+  --field:#0E1F35;
+  --chalk:#182B44;
+  --ink:#EAF0F6;
+  --ink-soft:#90A4BB;
+  --rule:#263A54;
+  --tape:#F2664E;
+  --red:#C8102E;
+  --home-wash:#1C3450;
+  --navy:#0C2340;
 }
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --field:#0F1611;
-    --chalk:#1A241D;
-    --ink:#E8EEE7;
-    --ink-soft:#93A396;
-    --rule:#2C3A30;
-    --tape:#FF6647;
-    --home:#6FB2D6;
-    --home-wash:#15303F;
-  }
-}
-:root[data-theme="dark"]{
-  --field:#0F1611;
-  --chalk:#1A241D;
-  --ink:#E8EEE7;
-  --ink-soft:#93A396;
-  --rule:#2C3A30;
-  --tape:#FF6647;
-  --home:#6FB2D6;
-  --home-wash:#15303F;
-}
+color-scheme: dark;
 
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
@@ -77,12 +58,15 @@ body{
 button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;touch-action:manipulation}
 .num{font-family:'Saira Condensed','Saira Condensed Fallback',system-ui,sans-serif;font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
 
-.app{display:flex;flex-direction:column;height:100dvh;max-width:560px;margin:0 auto;position:relative}
+.app{
+  display:flex;flex-direction:column;height:100dvh;max-width:560px;margin:0 auto;position:relative;
+  padding-top:env(safe-area-inset-top);
+}
 
 #splash{
   position:fixed;inset:0;z-index:9999;background:#0C2340;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;
-  transition:opacity .38s ease;
+  transition:opacity .46s ease;
 }
 #splash.out{opacity:0;pointer-events:none}
 .spl-mark{width:min(74vw,290px);height:auto;overflow:visible}
@@ -94,9 +78,9 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
 @keyframes splFly{0%{transform:translateX(-56%)}74%{transform:translateX(2.5%)}100%{transform:translateX(0)}}
 @keyframes splLand{from{opacity:0;transform:scale(.84)}to{opacity:1;transform:scale(1)}}
 @keyframes splFade{from{opacity:0}to{opacity:1}}
-.spl-arrow{animation:splFly .66s cubic-bezier(.16,.84,.32,1) backwards}
-.spl-xc{animation:splLand .34s ease-out .54s backwards;transform-origin:128px 46px}
-.spl-word{animation:splFade .48s ease-out .9s backwards}
+.spl-arrow{animation:splFly .78s cubic-bezier(.16,.84,.32,1) backwards}
+.spl-xc{animation:splLand .38s ease-out .66s backwards;transform-origin:128px 46px}
+.spl-word{animation:splFade .55s ease-out 1.08s backwards}
 @media (prefers-reduced-motion:reduce){
   .spl-arrow,.spl-xc,.spl-word{animation:none}
 }
@@ -107,10 +91,14 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
 .bar{
   display:flex;align-items:center;justify-content:space-between;gap:12px;
   padding:14px 16px;border-bottom:1px solid var(--rule);flex:0 0 auto;
+  min-height:56px;
 }
 .bar h1{font-size:17px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bar .count{font-size:15px;color:var(--ink-soft);white-space:nowrap}
-.linkbtn{font-size:15px;color:var(--ink-soft);text-decoration:underline;text-underline-offset:3px;padding:6px 2px}
+.linkbtn{
+  font-size:15px;color:var(--ink-soft);text-decoration:underline;text-underline-offset:3px;
+  padding:11px 8px;margin:-11px -8px;min-height:44px;display:inline-flex;align-items:center;
+}
 .linkbtn:focus-visible,button:focus-visible{outline:2px solid var(--tape);outline-offset:2px;border-radius:4px}
 
 .pad{padding:20px 16px}
@@ -125,7 +113,7 @@ input[type=text],input[type=date],textarea{
   padding:12px 13px;font:inherit;font-size:16px;
 }
 textarea{min-height:190px;resize:vertical;line-height:1.7}
-input:focus,textarea:focus{outline:2px solid var(--home);outline-offset:-1px;border-color:transparent}
+input:focus,textarea:focus{outline:2px solid var(--tape);outline-offset:-1px;border-color:transparent}
 .field{margin-bottom:20px}
 input[type=date]{min-height:47px;-webkit-appearance:none;appearance:none}
 .hint{font-size:13px;color:var(--ink-soft);margin-top:7px;line-height:1.45}
@@ -133,27 +121,27 @@ input[type=date]{min-height:47px;-webkit-appearance:none;appearance:none}
   display:block;width:100%;text-align:left;background:var(--chalk);
   border:1px solid var(--rule);border-radius:8px;padding:13px;
 }
-.card:active{border-color:var(--home)}
+.card:active{border-color:var(--tape)}
 .card-main{display:block;font-size:16px;font-weight:600}
 .card-main.empty{font-weight:400;color:var(--ink-soft)}
 .card-sub{display:block;font-size:13px;color:var(--ink-soft);margin-top:3px}
-.hint.good{color:var(--home)}
+.hint.good{color:var(--tape)}
 .copyrow{display:flex;gap:9px;padding:14px 16px 18px}
 .copyrow button{
   flex:1;padding:14px 10px;border-radius:9px;border:1px solid var(--rule);
   background:var(--chalk);font-size:15px;font-weight:600;
 }
-.copyrow button:active{background:var(--home);border-color:var(--home);color:#fff}
+.copyrow button:active{background:var(--red);border-color:var(--red);color:#fff}
 .divider{padding:13px 16px 7px;font-size:13px;color:var(--ink-soft);border-top:1px solid var(--rule)}
 .seg{display:flex;gap:8px}
 .seg button{
   flex:1;padding:11px;border:1px solid var(--rule);border-radius:8px;
   background:var(--chalk);font-size:15px;font-weight:500;color:var(--ink-soft);
 }
-.seg button[aria-pressed=true]{background:var(--home);border-color:var(--home);color:#fff}
+.seg button[aria-pressed=true]{background:var(--red);border-color:var(--red);color:#fff}
 
 .primary{
-  width:100%;padding:17px;border-radius:10px;background:var(--ink);color:var(--field);
+  width:100%;padding:17px;border-radius:10px;background:var(--red);color:#fff;
   font-size:17px;font-weight:600;letter-spacing:-.01em;
 }
 .primary.tape{background:var(--tape);color:#fff}
@@ -166,7 +154,7 @@ input[type=date]{min-height:47px;-webkit-appearance:none;appearance:none}
 .armed-sub{font-size:15px;color:var(--ink-soft);margin-bottom:40px}
 .gun{
   width:min(74vw,270px);aspect-ratio:1;margin:0 auto;border-radius:50%;
-  background:var(--tape);color:#fff;font-size:34px;font-weight:700;letter-spacing:.01em;
+  background:var(--red);color:#fff;font-size:34px;font-weight:700;letter-spacing:.01em;
   box-shadow:0 10px 0 rgba(0,0,0,.12);
 }
 .gun:active{transform:translateY(4px);box-shadow:0 6px 0 rgba(0,0,0,.12)}
@@ -189,34 +177,22 @@ input[type=date]{min-height:47px;-webkit-appearance:none;appearance:none}
 .row .who.anon{color:var(--ink-soft)}
 .row .tm{font-size:17px;font-weight:600;color:var(--ink-soft)}
 .row.home{background:var(--home-wash)}
-.row.home .pl,.row.home .who{color:var(--home)}
+.row.home .pl{color:var(--tape)}
+.row.home .who{color:var(--ink)}
 .row.home .who{font-weight:600}
 @keyframes land{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
 .row.fresh{animation:land .16s ease-out}
 @media (prefers-reduced-motion:reduce){.row.fresh{animation:none}}
 
-.chips{
-  flex:0 0 auto;display:flex;gap:7px;overflow-x:auto;padding:10px 16px;
-  border-top:1px solid var(--rule);scrollbar-width:none;
-}
-.chips::-webkit-scrollbar{display:none}
-.chip{
-  flex:0 0 auto;padding:12px 15px;border-radius:999px;border:2px solid var(--home);
-  color:var(--home);background:var(--chalk);font-size:16px;font-weight:600;white-space:nowrap;
-}
-.chip:active{background:var(--home);color:#fff}
-.chip.done{border-color:var(--rule);color:var(--ink-soft);opacity:.45;font-weight:400}
-.chips-empty{flex:0 0 auto;padding:12px 16px;border-top:1px solid var(--rule);font-size:14px;color:var(--ink-soft)}
-
 .deck{flex:0 0 auto;padding:10px 16px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--rule)}
 .tap{
-  width:100%;height:clamp(76px,12vh,102px);border-radius:12px;
-  background:var(--ink);color:var(--field);font-size:21px;font-weight:600;letter-spacing:-.01em;
+  width:100%;height:clamp(88px,14vh,118px);border-radius:12px;
+  background:var(--chalk);color:var(--ink);border:1px solid var(--rule);font-size:21px;font-weight:600;letter-spacing:-.01em;
 }
-.tap:active{background:var(--tape);color:#fff}
+.tap:active{background:var(--rule)}
 .tap-home{
-  width:100%;height:clamp(76px,12vh,102px);border-radius:12px;margin-bottom:10px;
-  background:var(--home);color:#fff;font-size:21px;font-weight:600;letter-spacing:-.01em;
+  width:100%;height:clamp(88px,14vh,118px);border-radius:12px;margin-bottom:10px;
+  background:var(--red);color:#fff;font-size:21px;font-weight:600;letter-spacing:-.01em;
 }
 .tap-home:active{filter:brightness(1.3)}
 .row .who.pending,.rrow .who.pending{font-weight:600;font-style:italic}
@@ -232,7 +208,17 @@ input[type=date]{min-height:47px;-webkit-appearance:none;appearance:none}
 .rrow .who.anon{color:var(--ink-soft)}
 .rrow .tm{font-size:16px;font-weight:600;color:var(--ink-soft)}
 .rrow.home{background:var(--home-wash)}
-.rrow.home .pl,.rrow.home .who{color:var(--home)}
+.seg2{display:flex;gap:8px;padding:12px 16px;border-bottom:1px solid var(--rule)}
+.seg2 button{
+  flex:1;padding:9px;border:1px solid var(--rule);border-radius:8px;
+  background:var(--chalk);font-size:14px;font-weight:500;color:var(--ink-soft);
+}
+.seg2 button[aria-pressed=true]{background:var(--red);border-color:var(--red);color:#fff}
+.wheel{padding:4px 0 10px}
+.opt{scroll-snap-align:center}
+.sheet-in .scroll{scroll-snap-type:y proximity}
+.rrow.home .pl{color:var(--tape)}
+.rrow.home .who{color:var(--ink)}
 
 .score{padding:22px 16px;border-bottom:1px solid var(--rule)}
 .score .big{font-size:66px;font-weight:700;line-height:1;letter-spacing:-.03em}
@@ -253,12 +239,13 @@ pre.out{
 .sheet.on{display:flex}
 .sheet-in{
   width:100%;max-width:560px;background:var(--field);border-radius:14px 14px 0 0;
-  max-height:82dvh;display:flex;flex-direction:column;
+  max-height:calc(88dvh - env(safe-area-inset-top));display:flex;flex-direction:column;
   padding-bottom:env(safe-area-inset-bottom);
 }
 .sheet-in .bar{border-bottom:1px solid var(--rule)}
-.opt{width:100%;padding:15px 16px;border-bottom:1px solid var(--rule);text-align:left;font-size:17px}
-.opt.home{color:var(--home);font-weight:600}
+.opt{width:100%;padding:17px 16px;border-bottom:1px solid var(--rule);text-align:left;font-size:18px}
+.opt:active{background:var(--home-wash)}
+.opt.home{color:var(--ink);font-weight:600}
 .opt.taken{color:var(--ink-soft);font-weight:400}
 .opt small{display:block;font-size:13px;color:var(--ink-soft);font-weight:400}
 </style>
@@ -350,7 +337,6 @@ pre.out{
   </div>
   <div class="clockwrap"><div class="clock num" id="clock">0:00<span class="ms">.0</span></div></div>
   <div class="chute" id="chute"></div>
-  <div class="chips" id="chips"></div>
   <div class="deck">
     <button class="tap-home" id="tapHome">Peachtree MS Finisher</button>
     <button class="tap" id="tap">Field Finisher</button>
@@ -368,7 +354,7 @@ pre.out{
     <span class="count" id="reconFinal"></span>
     <button class="linkbtn" id="toResults">Results</button>
   </div>
-  <div class="note">Tap any place to name the runner. Places never change, so you can do this after the race. If someone is still on the course, reopen the clock and their time stays correct.</div>
+  <div class="seg2"><button type="button" id="segOurs" aria-pressed="true">Ours</button><button type="button" id="segAll" aria-pressed="false">Full field</button></div>
   <div class="scroll" id="reconList"></div>
 </section>
 
@@ -543,7 +529,7 @@ function startRace(){
   save(); keepAwake();
   $('timeName').textContent=S.name;
   $('tapHome').textContent=S.team+' Finisher';
-  show('timing'); renderChute(); renderChips(); renderCount();
+  show('timing'); renderChute(); renderCount();
 }
 function record(runnerId,home){
   if(S.t0Mono==null || S.endedMs!=null) return;
@@ -552,13 +538,13 @@ function record(runnerId,home){
   save();
   freshIdx=S.fin.length-1;
   if(navigator.vibrate) try{ navigator.vibrate(home||runnerId!=null?[14,30,14]:18); }catch(e){}
-  renderChute(); renderChips(); renderCount();
+  renderChute(); renderCount();
 }
 function undo(){
   if(!S.fin.length) return;
   S.fin.pop(); save(); freshIdx=-1;
   if(navigator.vibrate) try{ navigator.vibrate([12,40,12]); }catch(e){}
-  renderChute(); renderChips(); renderCount();
+  renderChute(); renderCount();
 }
 function nameOf(id){
   if(id==null) return null;
@@ -595,53 +581,45 @@ function renderChute(){
   c.scrollTop=0;
 }
 
-function renderChips(){
-  var c=$('chips'); c.innerHTML='';
-  if(!S.roster.length){
-    c.className='chips-empty';
-    c.textContent='No roster yet. Use the '+S.team+' button and name them after the race.';
-    return;
-  }
-  c.className='chips';
-  var any=false;
-  byExpected(S.roster.filter(function(r){ return inDivision(r) && !isTaken(r.id); }))
-    .forEach(function(r){
-      any=true;
-      var b=document.createElement('button');
-      b.className='chip';
-      b.textContent=r.name;
-      b.addEventListener('click',function(){ record(r.id,true); });
-      c.appendChild(b);
-    });
-  if(!any){
-    c.className='chips-empty';
-    c.textContent='All '+S.division.toLowerCase()+' on the roster are in.';
-  }
-}
-
+var reconAll=false;
 function renderRecon(){
   var c=$('reconList'); c.innerHTML='';
   if(!S.fin.length){
     c.innerHTML='<div class="note">No finishers recorded.</div>';
     return;
   }
+  var shown=0, unnamed=0;
   S.fin.forEach(function(f,i){
+    if(!reconAll && !f.h) return;
+    shown++;
     var nm=nameOf(f.r);
-    var who = nm ? esc(nm) : (f.h ? esc(S.team)+', needs a name' : 'Not one of ours');
+    if(f.h && !nm) unnamed++;
+    var who = nm ? esc(nm) : (f.h ? 'Tap to name' : 'Field');
     var cls = nm ? '' : (f.h ? ' pending' : ' anon');
     var b=document.createElement('button');
     b.className='rrow'+(f.h?' home':'');
     b.innerHTML='<span class="pl num">'+(i+1)+'</span>'+
       '<span class="who'+cls+'">'+who+'</span>'+
-      '<span class="tm num">'+fmt(f.ms,3)+'</span>';
+      '<span class="tm num">'+fmt(f.ms,1)+'</span>';
     b.addEventListener('click',function(){ openSheet(i); });
     c.appendChild(b);
   });
+  if(!shown){
+    c.innerHTML='<div class="note">No '+esc(S.team)+' finishers recorded.</div>';
+    return;
+  }
+  var n=document.createElement('div');
+  n.className='note';
+  n.textContent = reconAll
+    ? 'Every place in the race, in order. Field runners hold a place and need no name.'
+    : (unnamed ? unnamed+' still need a name. Work down the list in order.'
+               : 'All named. Places and times never change, only who ran them.');
+  c.appendChild(n);
 }
 
 function openSheet(i){
   sheetPlace=i;
-  $('sheetTitle').textContent='Place '+(i+1)+' at '+fmt(S.fin[i].ms,1);
+  $('sheetTitle').textContent='Place '+(i+1)+' \u00b7 '+fmt(S.fin[i].ms,1);
   var l=$('sheetList'); l.innerHTML='';
   var keep=document.createElement('button');
   keep.className='opt home'; keep.textContent=S.team+', name later';
@@ -877,7 +855,7 @@ $('undo').addEventListener('click',undo);
 $('stop').addEventListener('click',function(){ endRace(); show('recon'); });
 $('backTiming').addEventListener('click',function(){
   reopenRace(); keepAwake();
-  show('timing'); renderChute(); renderChips(); renderCount();
+  show('timing'); renderChute(); renderCount();
 });
 $('toResults').addEventListener('click',function(){ show('results'); });
 $('backRecon').addEventListener('click',function(){ show('recon'); });
@@ -895,6 +873,14 @@ $('newRace').addEventListener('click',function(){
   $('rdate').value=todayStr();
   $('setupRestore').textContent='';
 });
+$('segOurs').addEventListener('click',function(){ setRecon(false); });
+$('segAll').addEventListener('click',function(){ setRecon(true); });
+function setRecon(all){
+  reconAll=all;
+  $('segOurs').setAttribute('aria-pressed',String(!all));
+  $('segAll').setAttribute('aria-pressed',String(all));
+  renderRecon();
+}
 $('sheetClose').addEventListener('click',function(){ $('sheet').classList.remove('on'); });
 $('sheet').addEventListener('click',function(e){ if(e.target===this) this.classList.remove('on'); });
 
@@ -914,7 +900,7 @@ document.addEventListener('keydown',function(e){
   // Animation settles at ~1.38s. SPLASH_MS is total time on screen, so the
   // difference is how long the finished mark rests before it leaves. Below
   // about 1.8s it reads as a flash rather than a greeting.
-  var SPLASH_MS=2400;
+  var SPLASH_MS=3200;
   var el=$('splash'); if(!el) return;
   var seen=false;
   try{ seen=sessionStorage.getItem('chute.splash')==='1'; }catch(e){}
@@ -924,7 +910,7 @@ document.addEventListener('keydown',function(e){
   function out(){
     if(done) return; done=true;
     el.classList.add('out');
-    setTimeout(function(){ el.remove(); }, 400);
+    setTimeout(function(){ el.remove(); }, 480);
   }
   el.addEventListener('click',out);
   setTimeout(out,SPLASH_MS);
@@ -981,7 +967,7 @@ document.addEventListener('keydown',function(e){
       x.setAttribute('aria-pressed', String(x.dataset.g===gender));
     });
     $('timeName').textContent=S.name;
-    if(S.screen==='timing'){ keepAwake(); show('timing'); renderChute(); renderChips(); renderCount(); return; }
+    if(S.screen==='timing'){ keepAwake(); show('timing'); renderChute(); renderCount(); return; }
     show(S.screen||'armed');
     $('setupRestore').textContent='';
   }
