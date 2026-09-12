@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Chute</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600&family=Saira+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --field:#EFF2EC;
+  --chalk:#FFFFFF;
+  --ink:#17241B;
+  --ink-soft:#5C6A5F;
+  --rule:#CBD3C6;
+  --tape:#D93A1E;
+  --home:#1D4E6B;
+  --home-wash:#E3EDF3;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --field:#0F1611;
+    --chalk:#1A241D;
+    --ink:#E8EEE7;
+    --ink-soft:#93A396;
+    --rule:#2C3A30;
+    --tape:#FF6647;
+    --home:#6FB2D6;
+    --home-wash:#15303F;
+  }
+}
+:root[data-theme="dark"]{
+  --field:#0F1611;
+  --chalk:#1A241D;
+  --ink:#E8EEE7;
+  --ink-soft:#93A396;
+  --rule:#2C3A30;
+  --tape:#FF6647;
+  --home:#6FB2D6;
+  --home-wash:#15303F;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--field);
+  color:var(--ink);
+  font-family:'Saira',system-ui,-apple-system,'Segoe UI',sans-serif;
+  font-size:16px;
+  line-height:1.4;
+  -webkit-font-smoothing:antialiased;
+  -webkit-tap-highlight-color:transparent;
+  overscroll-behavior:none;
+}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;touch-action:manipulation}
+.num{font-family:'Saira Condensed','Saira Condensed Fallback',system-ui,sans-serif;font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+
+.app{display:flex;flex-direction:column;height:100dvh;max-width:560px;margin:0 auto;position:relative}
+.screen{display:none;flex-direction:column;flex:1;min-height:0}
+.screen.on{display:flex}
+
+/* ---------- shared bits ---------- */
+.bar{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:14px 16px;border-bottom:1px solid var(--rule);flex:0 0 auto;
+}
+.bar h1{font-size:17px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar .count{font-size:15px;color:var(--ink-soft);white-space:nowrap}
+.linkbtn{font-size:15px;color:var(--ink-soft);text-decoration:underline;text-underline-offset:3px;padding:6px 2px}
+.linkbtn:focus-visible,button:focus-visible{outline:2px solid var(--tape);outline-offset:2px;border-radius:4px}
+
+.pad{padding:20px 16px}
+.scroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
+
+/* ---------- setup ---------- */
+.lede{font-size:15px;color:var(--ink-soft);margin-bottom:22px;max-width:46ch}
+label{display:block;font-size:14px;color:var(--ink-soft);margin-bottom:6px}
+input[type=text],input[type=date],textarea{
+  width:100%;background:var(--chalk);color:var(--ink);
+  border:1px solid var(--rule);border-radius:8px;
+  padding:12px 13px;font:inherit;font-size:16px;
+}
+textarea{min-height:190px;resize:vertical;line-height:1.7}
+input:focus,textarea:focus{outline:2px solid var(--home);outline-offset:-1px;border-color:transparent}
+.field{margin-bottom:20px}
+input[type=date]{min-height:47px;-webkit-appearance:none;appearance:none}
+.hint{font-size:13px;color:var(--ink-soft);margin-top:7px;line-height:1.45}
+.card{
+  display:block;width:100%;text-align:left;background:var(--chalk);
+  border:1px solid var(--rule);border-radius:8px;padding:13px;
+}
+.card:active{border-color:var(--home)}
+.card-main{display:block;font-size:16px;font-weight:600}
+.card-main.empty{font-weight:400;color:var(--ink-soft)}
+.card-sub{display:block;font-size:13px;color:var(--ink-soft);margin-top:3px}
+.hint.good{color:var(--home)}
+.copyrow{display:flex;gap:9px;padding:14px 16px 18px}
+.copyrow button{
+  flex:1;padding:14px 10px;border-radius:9px;border:1px solid var(--rule);
+  background:var(--chalk);font-size:15px;font-weight:600;
+}
+.copyrow button:active{background:var(--home);border-color:var(--home);color:#fff}
+.divider{padding:13px 16px 7px;font-size:13px;color:var(--ink-soft);border-top:1px solid var(--rule)}
+.seg{display:flex;gap:8px}
+.seg button{
+  flex:1;padding:11px;border:1px solid var(--rule);border-radius:8px;
+  background:var(--chalk);font-size:15px;font-weight:500;color:var(--ink-soft);
+}
+.seg button[aria-pressed=true]{background:var(--home);border-color:var(--home);color:#fff}
+
+.primary{
+  width:100%;padding:17px;border-radius:10px;background:var(--ink);color:var(--field);
+  font-size:17px;font-weight:600;letter-spacing:-.01em;
+}
+.primary.tape{background:var(--tape);color:#fff}
+.primary:disabled{opacity:.35}
+.foot{flex:0 0 auto;padding:16px 16px calc(16px + env(safe-area-inset-bottom));border-top:1px solid var(--rule)}
+
+/* ---------- armed ---------- */
+#armed .pad{flex:1;display:flex;flex-direction:column;justify-content:center;text-align:center}
+.armed-name{font-size:30px;font-weight:600;letter-spacing:-.02em;margin-bottom:6px}
+.armed-sub{font-size:15px;color:var(--ink-soft);margin-bottom:40px}
+.gun{
+  width:min(74vw,270px);aspect-ratio:1;margin:0 auto;border-radius:50%;
+  background:var(--tape);color:#fff;font-size:34px;font-weight:700;letter-spacing:.01em;
+  box-shadow:0 10px 0 rgba(0,0,0,.12);
+}
+.gun:active{transform:translateY(4px);box-shadow:0 6px 0 rgba(0,0,0,.12)}
+
+/* ---------- timing ---------- */
+.clockwrap{
+  flex:0 0 auto;padding:16px 16px 14px;text-align:center;border-bottom:1px solid var(--rule);
+}
+.clock{font-size:clamp(52px,17vw,82px);font-weight:700;line-height:.95;letter-spacing:-.02em;color:var(--tape)}
+.clock .ms{font-size:.52em;color:var(--ink-soft);margin-left:2px}
+
+.chute{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;padding:0}
+.row{
+  display:grid;grid-template-columns:52px 1fr auto;align-items:baseline;gap:10px;
+  padding:9px 16px;border-bottom:1px solid var(--rule);
+}
+.chute .row{border-bottom:1px solid var(--rule);border-top:none}
+.row .pl{font-size:25px;font-weight:700;line-height:1;text-align:right}
+.row .who{font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .who.anon{color:var(--ink-soft)}
+.row .tm{font-size:17px;font-weight:600;color:var(--ink-soft)}
+.row.home{background:var(--home-wash)}
+.row.home .pl,.row.home .who{color:var(--home)}
+.row.home .who{font-weight:600}
+@keyframes land{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+.row.fresh{animation:land .16s ease-out}
+@media (prefers-reduced-motion:reduce){.row.fresh{animation:none}}
+
+.chips{
+  flex:0 0 auto;display:flex;gap:7px;overflow-x:auto;padding:10px 16px;
+  border-top:1px solid var(--rule);scrollbar-width:none;
+}
+.chips::-webkit-scrollbar{display:none}
+.chip{
+  flex:0 0 auto;padding:12px 15px;border-radius:999px;border:2px solid var(--home);
+  color:var(--home);background:var(--chalk);font-size:16px;font-weight:600;white-space:nowrap;
+}
+.chip:active{background:var(--home);color:#fff}
+.chip.done{border-color:var(--rule);color:var(--ink-soft);opacity:.45;font-weight:400}
+.chips-empty{flex:0 0 auto;padding:12px 16px;border-top:1px solid var(--rule);font-size:14px;color:var(--ink-soft)}
+
+.deck{flex:0 0 auto;padding:10px 16px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--rule)}
+.tap{
+  width:100%;height:clamp(76px,12vh,102px);border-radius:12px;
+  background:var(--ink);color:var(--field);font-size:21px;font-weight:600;letter-spacing:-.01em;
+}
+.tap:active{background:var(--tape);color:#fff}
+.tap-home{
+  width:100%;height:clamp(76px,12vh,102px);border-radius:12px;margin-bottom:10px;
+  background:var(--home);color:#fff;font-size:21px;font-weight:600;letter-spacing:-.01em;
+}
+.tap-home:active{filter:brightness(1.3)}
+.row .who.pending,.rrow .who.pending{font-weight:600;font-style:italic}
+.deck-row{display:flex;align-items:center;justify-content:space-between;margin-top:9px}
+
+/* ---------- reconcile / results ---------- */
+.rrow{
+  display:grid;grid-template-columns:52px 1fr auto;align-items:center;gap:10px;
+  width:100%;padding:12px 16px;border-bottom:1px solid var(--rule);text-align:left;
+}
+.rrow .pl{font-size:23px;font-weight:700;text-align:right}
+.rrow .who{font-size:16px}
+.rrow .who.anon{color:var(--ink-soft)}
+.rrow .tm{font-size:16px;font-weight:600;color:var(--ink-soft)}
+.rrow.home{background:var(--home-wash)}
+.rrow.home .pl,.rrow.home .who{color:var(--home)}
+
+.score{padding:22px 16px;border-bottom:1px solid var(--rule)}
+.score .big{font-size:66px;font-weight:700;line-height:1;letter-spacing:-.03em}
+.score .cap{font-size:15px;color:var(--ink-soft);margin-top:4px}
+.note{padding:14px 16px;font-size:14px;line-height:1.5;color:var(--ink-soft);border-bottom:1px solid var(--rule)}
+.sect{padding:16px 16px 6px;font-size:14px;color:var(--ink-soft)}
+pre.out{
+  margin:0 16px 16px;padding:12px;background:var(--chalk);border:1px solid var(--rule);
+  border-radius:8px;font-size:12px;line-height:1.6;overflow-x:auto;white-space:pre;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+
+/* ---------- sheet ---------- */
+.sheet{
+  position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;
+  align-items:flex-end;justify-content:center;z-index:20;
+}
+.sheet.on{display:flex}
+.sheet-in{
+  width:100%;max-width:560px;background:var(--field);border-radius:14px 14px 0 0;
+  max-height:82dvh;display:flex;flex-direction:column;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+.sheet-in .bar{border-bottom:1px solid var(--rule)}
+.opt{width:100%;padding:15px 16px;border-bottom:1px solid var(--rule);text-align:left;font-size:17px}
+.opt.home{color:var(--home);font-weight:600}
+.opt.taken{color:var(--ink-soft);font-weight:400}
+.opt small{display:block;font-size:13px;color:var(--ink-soft);font-weight:400}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- SETUP -->
+<section class="screen on" id="setup">
+  <div class="bar"><h1>Chute</h1><span class="count" id="setupRestore"></span></div>
+  <div class="scroll pad">
+    <p class="lede">Tap once for every runner who crosses the line. Tap a name when it is one of yours. Everyone else just holds a place number.</p>
+    <div class="field">
+      <label for="rname">Race</label>
+      <input type="text" id="rname" placeholder="Chamblee Invitational" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="rdate">Date</label>
+      <input type="date" id="rdate">
+    </div>
+    <div class="field">
+      <label for="team">Your team</label>
+      <input type="text" id="team" placeholder="Peachtree MS" value="Peachtree MS" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>Division</label>
+      <div class="seg" id="seg">
+        <button type="button" data-g="Girls" aria-pressed="true">Girls</button>
+        <button type="button" data-g="Boys" aria-pressed="false">Boys</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Roster</label>
+      <button class="card" id="openRoster">
+        <span class="card-main" id="rosterSummary">No roster loaded</span>
+        <span class="card-sub" id="rosterAvail">Tap to load it once, it stays for the season</span>
+      </button>
+    </div>
+  </div>
+  <div class="foot"><button class="primary" id="toArmed">Set up race</button></div>
+</section>
+
+<!-- ROSTER -->
+<section class="screen" id="rosterEdit">
+  <div class="bar"><h1>Roster</h1><button class="linkbtn" id="rosterDone">Done</button></div>
+  <div class="scroll pad">
+    <p class="lede">Loaded once and reused for every race. Name then grade, listed roughly fastest first. After the first race the picker reorders itself by actual finish times.</p>
+    <div class="field">
+      <label for="rosterG">Girls, one per line, fastest first</label>
+      <textarea id="rosterG" spellcheck="false" autocapitalize="words" placeholder="Sarah Jones, 8&#10;Ava Miller, 7&#10;Maya Patel, 6"></textarea>
+      <div class="hint" id="hintG">Not loaded.</div>
+    </div>
+    <div class="field">
+      <label for="rosterB">Boys, one per line, fastest first</label>
+      <textarea id="rosterB" spellcheck="false" autocapitalize="words" placeholder="Ben Carter, 8&#10;Chris Doyle, 6&#10;Eli Nguyen, 7"></textarea>
+      <div class="hint" id="hintB">Not loaded.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ARMED -->
+<section class="screen" id="armed">
+  <div class="bar"><button class="linkbtn" id="backSetup">Edit race</button><span class="count" id="armedCount"></span></div>
+  <div class="pad">
+    <div class="armed-name" id="armedName"></div>
+    <div class="armed-sub">Hold the phone in your dominant hand and put your thumb on the button.</div>
+    <button class="gun" id="gun">Start</button>
+  </div>
+</section>
+
+<!-- TIMING -->
+<section class="screen" id="timing">
+  <div class="bar">
+    <h1 id="timeName"></h1>
+    <span class="count" id="finCount">0 in</span>
+  </div>
+  <div class="clockwrap"><div class="clock num" id="clock">0:00<span class="ms">.0</span></div></div>
+  <div class="chute" id="chute"></div>
+  <div class="chips" id="chips"></div>
+  <div class="deck">
+    <button class="tap-home" id="tapHome">Peachtree MS Finisher</button>
+    <button class="tap" id="tap">Field Finisher</button>
+    <div class="deck-row">
+      <button class="linkbtn" id="undo">Undo last</button>
+      <button class="linkbtn" id="stop">End race</button>
+    </div>
+  </div>
+</section>
+
+<!-- RECONCILE -->
+<section class="screen" id="recon">
+  <div class="bar">
+    <button class="linkbtn" id="backTiming">Reopen clock</button>
+    <span class="count" id="reconFinal"></span>
+    <button class="linkbtn" id="toResults">Results</button>
+  </div>
+  <div class="note">Tap any place to name the runner. Places never change, so you can do this after the race. If someone is still on the course, reopen the clock and their time stays correct.</div>
+  <div class="scroll" id="reconList"></div>
+</section>
+
+<!-- RESULTS -->
+<section class="screen" id="results">
+  <div class="bar">
+    <button class="linkbtn" id="backRecon">Fix names</button>
+    <button class="linkbtn" id="newRace">New race</button>
+  </div>
+  <div class="scroll" id="resultBody"></div>
+</section>
+
+</div>
+
+<!-- ASSIGN SHEET -->
+<div class="sheet" id="sheet">
+  <div class="sheet-in">
+    <div class="bar"><h1 id="sheetTitle">Place</h1><button class="linkbtn" id="sheetClose">Close</button></div>
+    <div class="scroll" id="sheetList"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+var KEY='chute.v1';
+var S=null, raf=null, wake=null, freshIdx=-1, sheetPlace=-1;
+
+/* ---------- storage ---------- */
+function save(){ try{ localStorage.setItem(KEY,JSON.stringify(S)); }catch(e){} }
+function load(){
+  try{ var r=localStorage.getItem(KEY); return r?JSON.parse(r):null; }catch(e){ return null; }
+}
+
+/* ---------- time ---------- */
+function now(){ return performance.now(); }
+function elapsed(){
+  if(!S||S.t0Mono==null) return 0;
+  if(S.endedMs!=null) return S.endedMs;
+  var e = now()-S.t0Mono;
+  return e<0?0:e;
+}
+function endRace(){ S.endedMs=elapsed(); save(); }
+function reopenRace(){ S.endedMs=null; save(); }
+function fmt(ms,prec){
+  if(ms==null) return '';
+  var t=Math.max(0,ms), cs=Math.floor(t%1000), s=Math.floor(t/1000);
+  var m=Math.floor(s/60); s=s%60;
+  var frac = prec===3 ? ('.'+String(cs).padStart(3,'0')) : ('.'+Math.floor(cs/100));
+  return m+':'+String(s).padStart(2,'0')+frac;
+}
+
+/* ---------- dom ---------- */
+function $(id){ return document.getElementById(id); }
+function show(id){
+  var all=document.querySelectorAll('.screen');
+  for(var i=0;i<all.length;i++) all[i].classList.toggle('on', all[i].id===id);
+  if(S && id!=='rosterEdit' && id!=='setup') { S.screen=id; save(); }
+  if(id==='timing') startClock(); else stopClock();
+  if(id==='recon'){
+    renderRecon();
+    $('reconFinal').textContent=(S.endedMs!=null?'Final ':'Running ')+fmt(elapsed(),1);
+  }
+  if(id==='results') renderResults();
+  if(id==='armed'){
+    $('armedName').textContent=S.name;
+    $('armedCount').textContent=fmtDate(S.date)+' \u00b7 '+
+      S.roster.filter(inDivision).length+' runners';
+  }
+}
+
+/* ---------- wake lock ---------- */
+function keepAwake(){
+  if(!('wakeLock' in navigator)) return;
+  navigator.wakeLock.request('screen').then(function(w){ wake=w; }).catch(function(){});
+}
+document.addEventListener('visibilitychange',function(){
+  if(document.visibilityState==='visible' && S && S.t0Mono!=null && S.screen==='timing') keepAwake();
+});
+
+/* ---------- clock ---------- */
+function startClock(){
+  if(raf) return;
+  (function loop(){
+    var ms=elapsed(), t=fmt(ms,1), i=t.indexOf('.');
+    $('clock').innerHTML = t.slice(0,i)+'<span class="ms">'+t.slice(i)+'</span>';
+    raf=requestAnimationFrame(loop);
+  })();
+}
+function stopClock(){ if(raf){ cancelAnimationFrame(raf); raf=null; } }
+
+/* ---------- race actions ---------- */
+function parseList(text,g){
+  var out=[];
+  text.split('\n').forEach(function(line){
+    var l=line.trim();
+    if(!l) return;
+    var gr=null;
+    var m=l.match(/[,\s]+([5-8])(?:st|nd|rd|th)?\s*$/i);
+    if(m){ gr=parseInt(m[1],10); l=l.slice(0,m.index).trim(); }
+    // tolerate a leftover division letter from the old single-list format
+    l=l.replace(/[,\s]+(male|female|girl|boy|[mfgb])\s*$/i,'').trim();
+    if(l) out.push({name:l, g:g, grade:gr, ord:out.length});
+  });
+  return out;
+}
+function gradeTag(r){ return r && r.grade ? r.grade+'th' : ''; }
+function buildRoster(){
+  var g=parseList(txt(RKEY_G),'F'), b=parseList(txt(RKEY_B),'M'), id=0;
+  return g.concat(b).map(function(r){ r.id=id++; return r; });
+}
+function txt(k){ try{ return localStorage.getItem(k)||''; }catch(e){ return ''; } }
+
+/* local date only. toISOString would roll an evening race to the next day */
+function todayStr(){
+  var d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+var MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function fmtDate(iso,withYear){
+  if(!iso) return '';
+  var p=iso.split('-');
+  if(p.length!==3) return iso;
+  return MON[parseInt(p[1],10)-1]+' '+parseInt(p[2],10)+(withYear?', '+p[0]:'');
+}
+
+function divCode(){ return S && S.division==='Boys' ? 'M' : 'F'; }
+function inDivision(r){ return r.g===divCode(); }
+
+/* prior finishes, keyed by division and normalised name so edits do not orphan them */
+var HIST={};
+function loadHist(){
+  try{ HIST=JSON.parse(localStorage.getItem(HKEY)||'{}'); }catch(e){ HIST={}; }
+}
+function histKey(r){ return r.g+'|'+r.name.trim().toLowerCase().replace(/\s+/g,' '); }
+function priorOf(r){ return HIST[histKey(r)]||null; }
+function commitHistory(){
+  var h={}; for(var k in HIST) h[k]=HIST[k];
+  S.fin.forEach(function(f,i){
+    if(f.r==null) return;
+    var r=runnerById(f.r); if(!r) return;
+    h[histKey(r)]={ms:Math.round(f.ms), place:i+1, race:S.name, date:S.date, at:Date.now()};
+  });
+  HIST=h;
+  try{ localStorage.setItem(HKEY,JSON.stringify(h)); }catch(e){}
+}
+function runnerById(id){
+  for(var i=0;i<S.roster.length;i++) if(S.roster[i].id===id) return S.roster[i];
+  return null;
+}
+/* expected finish order: last race time first, then the order they were typed */
+function byExpected(list){
+  return list.slice().sort(function(a,b){
+    var pa=priorOf(a), pb=priorOf(b);
+    if(pa&&pb) return pa.ms-pb.ms;
+    if(pa) return -1;
+    if(pb) return 1;
+    return a.ord-b.ord;
+  });
+}
+
+function newRace(name,date,division,team,roster){
+  S={
+    name:name, date:date, division:division, team:team, roster:roster,
+    t0Wall:null, t0Mono:null, fin:[], screen:'armed'
+  };
+  save();
+}
+function startRace(){
+  S.t0Wall=Date.now(); S.t0Mono=now(); S.fin=[]; S.endedMs=null;
+  save(); keepAwake();
+  $('timeName').textContent=S.name;
+  $('tapHome').textContent=S.team+' Finisher';
+  show('timing'); renderChute(); renderChips(); renderCount();
+}
+function record(runnerId,home){
+  if(S.t0Mono==null || S.endedMs!=null) return;
+  var ms=elapsed();
+  S.fin.push({ms:ms, r:(runnerId==null?null:runnerId), h:(runnerId!=null||home===true)});
+  save();
+  freshIdx=S.fin.length-1;
+  if(navigator.vibrate) try{ navigator.vibrate(home||runnerId!=null?[14,30,14]:18); }catch(e){}
+  renderChute(); renderChips(); renderCount();
+}
+function undo(){
+  if(!S.fin.length) return;
+  S.fin.pop(); save(); freshIdx=-1;
+  if(navigator.vibrate) try{ navigator.vibrate([12,40,12]); }catch(e){}
+  renderChute(); renderChips(); renderCount();
+}
+function nameOf(id){
+  if(id==null) return null;
+  for(var i=0;i<S.roster.length;i++) if(S.roster[i].id===id) return S.roster[i].name;
+  return null;
+}
+function isTaken(id){
+  for(var i=0;i<S.fin.length;i++) if(S.fin[i].r===id) return true;
+  return false;
+}
+function ourCount(){
+  var n=0; for(var i=0;i<S.fin.length;i++) if(S.fin[i].h) n++; return n;
+}
+
+/* ---------- renders ---------- */
+function renderCount(){
+  $('finCount').textContent=S.fin.length+' in, '+ourCount()+' ours';
+}
+
+function renderChute(){
+  var c=$('chute'); c.innerHTML='';
+  var stop=Math.max(0,S.fin.length-40);
+  for(var i=S.fin.length-1;i>=stop;i--){
+    var f=S.fin[i], nm=nameOf(f.r);
+    var who = nm ? esc(nm) : (f.h ? esc(S.team) : '&#183;');
+    var cls = nm ? '' : (f.h ? ' pending' : ' anon');
+    var d=document.createElement('div');
+    d.className='row'+(f.h?' home':'')+(i===freshIdx?' fresh':'');
+    d.innerHTML='<span class="pl num">'+(i+1)+'</span>'+
+      '<span class="who'+cls+'">'+who+'</span>'+
+      '<span class="tm num">'+fmt(f.ms,1)+'</span>';
+    c.appendChild(d);
+  }
+  c.scrollTop=0;
+}
+
+function renderChips(){
+  var c=$('chips'); c.innerHTML='';
+  if(!S.roster.length){
+    c.className='chips-empty';
+    c.textContent='No roster yet. Use the '+S.team+' button and name them after the race.';
+    return;
+  }
+  c.className='chips';
+  var any=false;
+  byExpected(S.roster.filter(function(r){ return inDivision(r) && !isTaken(r.id); }))
+    .forEach(function(r){
+      any=true;
+      var b=document.createElement('button');
+      b.className='chip';
+      b.textContent=r.name;
+      b.addEventListener('click',function(){ record(r.id,true); });
+      c.appendChild(b);
+    });
+  if(!any){
+    c.className='chips-empty';
+    c.textContent='All '+S.division.toLowerCase()+' on the roster are in.';
+  }
+}
+
+function renderRecon(){
+  var c=$('reconList'); c.innerHTML='';
+  if(!S.fin.length){
+    c.innerHTML='<div class="note">No finishers recorded.</div>';
+    return;
+  }
+  S.fin.forEach(function(f,i){
+    var nm=nameOf(f.r);
+    var who = nm ? esc(nm) : (f.h ? esc(S.team)+', needs a name' : 'Not one of ours');
+    var cls = nm ? '' : (f.h ? ' pending' : ' anon');
+    var b=document.createElement('button');
+    b.className='rrow'+(f.h?' home':'');
+    b.innerHTML='<span class="pl num">'+(i+1)+'</span>'+
+      '<span class="who'+cls+'">'+who+'</span>'+
+      '<span class="tm num">'+fmt(f.ms,3)+'</span>';
+    b.addEventListener('click',function(){ openSheet(i); });
+    c.appendChild(b);
+  });
+}
+
+function openSheet(i){
+  sheetPlace=i;
+  $('sheetTitle').textContent='Place '+(i+1)+' at '+fmt(S.fin[i].ms,1);
+  var l=$('sheetList'); l.innerHTML='';
+  var keep=document.createElement('button');
+  keep.className='opt home'; keep.textContent=S.team+', name later';
+  keep.addEventListener('click',function(){ assign(null,true); });
+  l.appendChild(keep);
+  var none=document.createElement('button');
+  none.className='opt'; none.textContent='Not one of ours';
+  none.addEventListener('click',function(){ assign(null,false); });
+  l.appendChild(none);
+
+  // only runners not already placed somewhere else, in expected finish order
+  var here=[], other=[];
+  S.roster.forEach(function(r){
+    if(isTaken(r.id) && S.fin[i].r!==r.id) return;
+    (inDivision(r)?here:other).push(r);
+  });
+  here=byExpected(here); other=byExpected(other);
+  function addOpt(r){
+    var b=document.createElement('button');
+    b.className='opt home';
+    var p=priorOf(r), parts=[];
+    if(gradeTag(r)) parts.push(gradeTag(r));
+    if(S.fin[i].r===r.id) parts.push('currently assigned here');
+    else if(p) parts.push((p.date?fmtDate(p.date)+': ':'last race ')+fmt(p.ms,1)+', place '+p.place);
+    var sub=parts.join(', ');
+    b.innerHTML=esc(r.name)+(sub?'<small>'+esc(sub)+'</small>':'');
+    b.addEventListener('click',function(){ assign(r.id,true); });
+    l.appendChild(b);
+  }
+  if(!here.length && !other.length){
+    var d=document.createElement('div');
+    d.className='divider';
+    d.textContent='Every runner on the roster is already placed.';
+    l.appendChild(d);
+  }
+  here.forEach(addOpt);
+  if(other.length){
+    var h=document.createElement('div');
+    h.className='divider';
+    h.textContent='Other division';
+    l.appendChild(h);
+    other.forEach(addOpt);
+  }
+  $('sheet').classList.add('on');
+}
+function assign(id,home){
+  if(id!=null) for(var j=0;j<S.fin.length;j++) if(S.fin[j].r===id){ S.fin[j].r=null; }
+  S.fin[sheetPlace].r=id;
+  S.fin[sheetPlace].h=(id!=null)||home===true;
+  save(); $('sheet').classList.remove('on'); renderRecon();
+}
+
+function renderResults(){
+  commitHistory();
+  var ours=[];
+  S.fin.forEach(function(f,i){
+    if(!f.h) return;
+    var run=runnerById(f.r);
+    ours.push({place:i+1, ms:f.ms, name:nameOf(f.r), grade:run?run.grade:null});
+  });
+  var top5=ours.slice(0,5);
+  var score=top5.reduce(function(a,b){return a+b.place;},0);
+  var complete=ours.length>=5;
+  var unnamed=ours.filter(function(r){return !r.name;}).length;
+
+  var h='';
+  h+='<div class="score"><div class="big num">'+(complete?score:'&#183;')+'</div>'+
+     '<div class="cap">'+(complete
+        ? esc(S.team)+' team score, places '+top5.map(function(r){return r.place;}).join(' + ')
+        : 'Need 5 finishers to score. You have '+ours.length+'.')+'</div></div>';
+
+  h+='<div class="note">Places are raw order across the whole field. If any other team ran fewer than five, official scoring removes their runners first and these totals will shift.'+
+     (unnamed?' '+unnamed+' of your places still need a name, but the score above is already final.':'')+'</div>';
+
+  h+='<div class="sect">'+ours.length+' '+esc(S.team)+' finishers'+
+     (S.date?' \u00b7 '+esc(fmtDate(S.date,true)):'')+'</div>';
+  ours.forEach(function(r,i){
+    var tags=[];
+    if(r.grade) tags.push(r.grade+'th');
+    if(i>=5) tags.push('displacer');
+    h+='<div class="rrow home"><span class="pl num">'+r.place+'</span>'+
+       '<span class="who'+(r.name?'':' pending')+'">'+(r.name?esc(r.name):'needs a name')+
+       (tags.length?' <small style="color:var(--ink-soft)">'+tags.join(', ')+'</small>':'')+'</span>'+
+       '<span class="tm num">'+fmt(r.ms,3)+'</span></div>';
+  });
+
+  h+='<div class="copyrow">'+
+     '<button id="copyChat">Copy for chat</button>'+
+     '<button id="copyCsv">Copy CSV</button></div>';
+  h+='<div class="sect">Full field</div><pre class="out">'+esc(buildCsv())+'</pre>';
+
+  $('resultBody').innerHTML=h;
+  $('copyChat').addEventListener('click',function(){ copyOut(buildChat(), this); });
+  $('copyCsv').addEventListener('click',function(){ copyOut(buildCsv(), this); });
+}
+
+function buildCsv(){
+  var out='date,meet,division,place,time,team,runner,grade\n';
+  var meet=S.name.replace(/, (Girls|Boys)$/,'');
+  S.fin.forEach(function(f,i){
+    var r=runnerById(f.r);
+    out+=csvCell(S.date||'')+','+csvCell(meet)+','+csvCell(S.division)+','+
+         (i+1)+','+fmt(f.ms,3)+','+csvCell(f.h?S.team:'')+','+csvCell(nameOf(f.r)||'')+
+         ','+(r&&r.grade?r.grade:'')+'\n';
+  });
+  return out;
+}
+function csvCell(v){
+  v=String(v);
+  return /[",\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v;
+}
+function buildChat(){
+  var ours=[];
+  S.fin.forEach(function(f,i){
+    if(!f.h) return;
+    var run=runnerById(f.r);
+    ours.push({place:i+1, ms:f.ms, name:nameOf(f.r), grade:run?run.grade:null});
+  });
+  var top5=ours.slice(0,5);
+  var w=0; ours.forEach(function(r){ w=Math.max(w,(r.name||'needs a name').length); });
+
+  var out=S.team+' '+S.division+', '+S.name.replace(/, (Girls|Boys)$/,'')+'\n';
+  out+=fmtDate(S.date,true)+'\n';
+  out+=S.fin.length+' in the field\n';
+  if(ours.length>=5){
+    out+='Team score '+top5.reduce(function(a,b){return a+b.place;},0)+
+         ' ('+top5.map(function(r){return r.place;}).join(' + ')+')\n';
+  }
+  out+='\n';
+  ours.forEach(function(r,i){
+    var nm=(r.name||'needs a name');
+    out+=String(r.place).padStart(3,' ')+'  '+nm+' '.repeat(w-nm.length+2)+
+         (r.grade?r.grade+'th  ':'     ')+fmt(r.ms,1)+
+         (i>4?'  (displacer)':'')+'\n';
+  });
+  return out;
+}
+function copyOut(text,btn){
+  var label=btn.textContent;
+  function done(ok){
+    btn.textContent = ok ? 'Copied' : 'Select the text below';
+    setTimeout(function(){ btn.textContent=label; }, 1600);
+  }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){done(true);},function(){fallback(text,done);});
+  } else fallback(text,done);
+}
+function fallback(text,done){
+  try{
+    var ta=document.createElement('textarea');
+    ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    var ok=document.execCommand('copy');
+    document.body.removeChild(ta); done(ok);
+  }catch(e){ done(false); }
+}
+
+function esc(s){
+  return String(s).replace(/[&<>"]/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];
+  });
+}
+
+/* ---------- wiring ---------- */
+var RKEY_G='chute.roster.girls.v1', RKEY_B='chute.roster.boys.v1';
+var TKEY='chute.team.v1', HKEY='chute.history.v1';
+var gender='Girls';
+$('seg').addEventListener('click',function(e){
+  var b=e.target.closest('button'); if(!b) return;
+  gender=b.dataset.g;
+  [].forEach.call(this.children,function(x){ x.setAttribute('aria-pressed', String(x===b)); });
+  hintRoster();
+});
+
+function sideHint(list,el){
+  if(!list.length){ el.className='hint'; el.textContent='Not loaded.'; return; }
+  var seeded=list.filter(function(r){ return priorOf(r); }).length;
+  var by={}, nog=0;
+  list.forEach(function(r){ if(r.grade) by[r.grade]=(by[r.grade]||0)+1; else nog++; });
+  var g=Object.keys(by).sort().map(function(k){ return by[k]+' in '+k+'th'; });
+  if(nog) g.push(nog+' with no grade');
+  el.className='hint good';
+  el.textContent=list.length+' runners'+(g.length?', '+g.join(', '):'')+'. '+
+    (seeded ? seeded+' ordered by last race time, the rest in the order above.'
+            : 'Order above is the picker order until they race.');
+}
+function hintRoster(){
+  var g=parseList($('rosterG').value,'F'), b=parseList($('rosterB').value,'M');
+  sideHint(g,$('hintG')); sideHint(b,$('hintB'));
+  renderRosterCard(g,b);
+}
+function renderRosterCard(g,b){
+  g=g||parseList($('rosterG').value,'F'); b=b||parseList($('rosterB').value,'M');
+  var main=$('rosterSummary'), sub=$('rosterAvail');
+  if(!g.length && !b.length){
+    main.className='card-main empty';
+    main.textContent='No roster loaded';
+    sub.textContent='Tap to load it once, it stays for the season';
+    return;
+  }
+  main.className='card-main';
+  main.textContent=g.length+' girls, '+b.length+' boys';
+  sub.textContent=(gender==='Girls'?g.length:b.length)+' in the '+gender.toLowerCase()+' race. Tap to edit.';
+}
+$('rosterG').addEventListener('input',function(){
+  hintRoster();
+  try{ localStorage.setItem(RKEY_G,this.value); }catch(e){}
+});
+$('rosterB').addEventListener('input',function(){
+  hintRoster();
+  try{ localStorage.setItem(RKEY_B,this.value); }catch(e){}
+});
+$('team').addEventListener('input',function(){
+  try{ localStorage.setItem(TKEY,this.value); }catch(e){}
+});
+
+$('toArmed').addEventListener('click',function(){
+  var nm=$('rname').value.trim()||'Race';
+  var tm=$('team').value.trim()||'Ours';
+  var dt=$('rdate').value||todayStr();
+  newRace(nm+', '+gender, dt, gender, tm, buildRoster());
+  $('tapHome').textContent=tm+' Finisher';
+  show('armed');
+});
+$('openRoster').addEventListener('click',function(){ show('rosterEdit'); });
+$('rosterDone').addEventListener('click',function(){ show('setup'); });
+$('backSetup').addEventListener('click',function(){ show('setup'); });
+$('gun').addEventListener('click',startRace);
+
+$('tap').addEventListener('click',function(){ record(null,false); });
+$('tapHome').addEventListener('click',function(){ record(null,true); });
+$('undo').addEventListener('click',undo);
+$('stop').addEventListener('click',function(){ endRace(); show('recon'); });
+$('backTiming').addEventListener('click',function(){
+  reopenRace(); keepAwake();
+  show('timing'); renderChute(); renderChips(); renderCount();
+});
+$('toResults').addEventListener('click',function(){ show('results'); });
+$('backRecon').addEventListener('click',function(){ show('recon'); });
+var armDiscard=null;
+$('newRace').addEventListener('click',function(){
+  var b=this;
+  if(armDiscard!==b){
+    armDiscard=b; b.textContent='Discard this race?';
+    setTimeout(function(){ if(armDiscard===b){ armDiscard=null; b.textContent='New race'; } },4000);
+    return;
+  }
+  armDiscard=null; b.textContent='New race';
+  try{ localStorage.removeItem(KEY); }catch(e){}
+  S=null; show('setup'); hintRoster();
+  $('rdate').value=todayStr();
+  $('setupRestore').textContent='';
+});
+$('sheetClose').addEventListener('click',function(){ $('sheet').classList.remove('on'); });
+$('sheet').addEventListener('click',function(e){ if(e.target===this) this.classList.remove('on'); });
+
+/* keyboard for desktop testing */
+document.addEventListener('keydown',function(e){
+  if($('timing').classList.contains('on')){
+    if(e.code==='Space'){ e.preventDefault(); record(null,false); }
+    if(e.code==='Enter'){ e.preventDefault(); record(null,true); }
+    if(e.code==='Backspace'){ e.preventDefault(); undo(); }
+  }
+});
+
+/* ---------- restore ---------- */
+(function restore(){
+  loadHist();
+  $('rdate').value=todayStr();
+  try{
+    var g=localStorage.getItem(RKEY_G); if(g) $('rosterG').value=g;
+    var b=localStorage.getItem(RKEY_B); if(b) $('rosterB').value=b;
+    var ts=localStorage.getItem(TKEY); if(ts) $('team').value=ts;
+    // one time migration from the single combined roster
+    var old=localStorage.getItem('chute.roster.v1');
+    if(old && !g && !b){
+      var og=[], ob=[];
+      old.split('\n').forEach(function(line){
+        var l=line.trim(); if(!l) return;
+        var m=l.match(/[,\s]+(male|female|girl|boy|[mfgb])\s*$/i);
+        var nm=m?l.slice(0,m.index).trim():l;
+        if(!nm) return;
+        (m && /^(m|male|boy|b)$/i.test(m[1]) ? ob : og).push(nm);
+      });
+      $('rosterG').value=og.join('\n'); $('rosterB').value=ob.join('\n');
+      localStorage.setItem(RKEY_G,$('rosterG').value);
+      localStorage.setItem(RKEY_B,$('rosterB').value);
+      localStorage.removeItem('chute.roster.v1');
+    }
+  }catch(e){}
+  hintRoster();
+  var prev=load();
+  if(prev && prev.name){
+    S=prev;
+    if(!S.team) S.team='Peachtree MS';
+    if(!S.division) S.division=/Boys$/.test(S.name||'')?'Boys':'Girls';
+    if(!S.date) S.date=todayStr();
+    $('rdate').value=S.date;
+    if(S.roster) S.roster.forEach(function(r,i){
+      if(r.g==null) r.g=(S.division==='Boys'?'M':'F');
+      if(r.ord===undefined) r.ord=i;
+    });
+    S.fin.forEach(function(f){ if(f.h===undefined) f.h=(f.r!=null); });
+    if(S.endedMs===undefined) S.endedMs=null;
+    if(S.t0Wall!=null){
+      // rebuild the monotonic anchor from wall time across the reload
+      S.t0Mono = now() - (Date.now()-S.t0Wall);
+    }
+    $('rname').value=S.name.replace(/, (Girls|Boys)$/,'');
+    $('team').value=S.team;
+    $('tapHome').textContent=S.team+' Finisher';
+    gender=S.division;
+    [].forEach.call($('seg').children,function(x){
+      x.setAttribute('aria-pressed', String(x.dataset.g===gender));
+    });
+    $('timeName').textContent=S.name;
+    if(S.screen==='timing'){ keepAwake(); show('timing'); renderChute(); renderChips(); renderCount(); return; }
+    show(S.screen||'armed');
+    $('setupRestore').textContent='';
+  }
+})();
+})();
+</script>
+</body>
+</html>
