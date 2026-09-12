@@ -94,9 +94,9 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
 @keyframes splFly{0%{transform:translateX(-56%)}74%{transform:translateX(2.5%)}100%{transform:translateX(0)}}
 @keyframes splLand{from{opacity:0;transform:scale(.84)}to{opacity:1;transform:scale(1)}}
 @keyframes splFade{from{opacity:0}to{opacity:1}}
-.spl-arrow{animation:splFly .58s cubic-bezier(.16,.84,.32,1) backwards}
-.spl-xc{animation:splLand .3s ease-out .46s backwards;transform-origin:128px 46px}
-.spl-word{animation:splFade .42s ease-out .72s backwards}
+.spl-arrow{animation:splFly .66s cubic-bezier(.16,.84,.32,1) backwards}
+.spl-xc{animation:splLand .34s ease-out .54s backwards;transform-origin:128px 46px}
+.spl-word{animation:splFade .48s ease-out .9s backwards}
 @media (prefers-reduced-motion:reduce){
   .spl-arrow,.spl-xc,.spl-word{animation:none}
 }
@@ -911,6 +911,10 @@ document.addEventListener('keydown',function(e){
    The Turn holds its splash until auth and data land. This app loads nothing,
    so the splash covers no work: short floor, tap to skip, once per session. */
 (function splash(){
+  // Animation settles at ~1.38s. SPLASH_MS is total time on screen, so the
+  // difference is how long the finished mark rests before it leaves. Below
+  // about 1.8s it reads as a flash rather than a greeting.
+  var SPLASH_MS=2400;
   var el=$('splash'); if(!el) return;
   var seen=false;
   try{ seen=sessionStorage.getItem('chute.splash')==='1'; }catch(e){}
@@ -923,7 +927,7 @@ document.addEventListener('keydown',function(e){
     setTimeout(function(){ el.remove(); }, 400);
   }
   el.addEventListener('click',out);
-  setTimeout(out,1250);
+  setTimeout(out,SPLASH_MS);
 })();
 
 /* ---------- restore ---------- */
