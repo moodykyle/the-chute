@@ -569,7 +569,7 @@ pre.out{
 (function(){
 'use strict';
 
-var BUILD='v3.1';
+var BUILD='v3.2';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1040,7 +1040,7 @@ function applyPulledRoster(rows){
 }
 function pullRoster(){
   if(pullBusy) return;
-  if(!signedIn()){ backTo='rosterEdit'; show('account'); return; }
+  if(!signedIn()){ acctBack='rosterEdit'; show('account'); return; }
   pullBusy=true;
   rosterPullMsg('Reading the database...',false);
   ensureFresh().then(function(ok){
@@ -1767,20 +1767,30 @@ $('team').addEventListener('input',function(){
   try{ localStorage.setItem(TKEY,this.value); }catch(e){}
 });
 
-/* One shared return target. Only one of these screens is ever open, so a
-   single variable is enough and a stack would be ceremony. */
+/* One shared return target for Roster, Season data and About. Only one of
+   those is ever open, so a single variable is enough and a stack would be
+   ceremony.
+
+   Account gets its own, because it is the one screen reachable *from* another
+   screen that also reads backTo. Sharing one variable let the sign-in route
+   set backTo='rosterEdit', and Roster's own Done then read it and re-show
+   Roster. Two owners, one variable, exactly the shape of the b9 delete bug. */
 var backTo='settings';
+var acctBack='settings';
+/* A return target that points at the screen you are leaving is a dead button.
+   Never possible by construction now, but the fallback costs one line. */
+function goBack(from){ show(backTo===from?'home':backTo); }
 $('goSettings').addEventListener('click',function(){ show('settings'); });
 $('setDone').addEventListener('click',function(){ show('home'); });
-$('setAccount').addEventListener('click',function(){ backTo='settings'; show('account'); });
+$('setAccount').addEventListener('click',function(){ acctBack='settings'; show('account'); });
 $('setRoster').addEventListener('click',function(){ backTo='settings'; show('rosterEdit'); });
 $('setBackup').addEventListener('click',function(){
   backTo='settings'; $('impText').value=''; $('impReport').innerHTML=''; show('backup');
 });
 $('setAbout').addEventListener('click',function(){ backTo='settings'; show('about'); });
-$('acctDone').addEventListener('click',function(){ show(backTo); });
-$('aboutDone').addEventListener('click',function(){ show(backTo); });
-$('backupDone').addEventListener('click',function(){ show(backTo); });
+$('acctDone').addEventListener('click',function(){ show(acctBack); });
+$('aboutDone').addEventListener('click',function(){ goBack('about'); });
+$('backupDone').addEventListener('click',function(){ goBack('backup'); });
 $('acctBtn').addEventListener('click',function(){
   if(!signedIn()){ siPhase='email'; siMsg('',false); show('signin'); return; }
   armTwoTap(this,'Tap again to sign out',function(){
@@ -1882,7 +1892,7 @@ $('meetDelete').addEventListener('click',function(){
   });
 });
 $('rosterPull').addEventListener('click',pullRoster);
-$('rosterDone').addEventListener('click',function(){ show(backTo); });
+$('rosterDone').addEventListener('click',function(){ goBack('rosterEdit'); });
 $('backSetup').addEventListener('click',function(){ show('home'); });
 $('resHome').addEventListener('click',function(){ show('home'); });
 $('sheetClose').addEventListener('click',function(){ $('sheet').classList.remove('on'); });
