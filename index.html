@@ -149,7 +149,7 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
 /* ---------- forms ---------- */
 .lede{font-size:15px;color:var(--ink-soft);margin-bottom:22px;max-width:46ch}
 label{display:block;font-size:14px;color:var(--ink-soft);margin-bottom:6px}
-input[type=text],input[type=date],textarea{
+input[type=text],input[type=email],input[type=date],textarea{
   width:100%;max-width:100%;min-width:0;box-sizing:border-box;
   background:var(--chalk);color:var(--ink);
   border:1px solid var(--rule);border-radius:8px;
@@ -178,10 +178,50 @@ input[type=date]{min-height:47px;-webkit-appearance:none;appearance:none}
 .divider{padding:13px 16px 7px;font-size:13px;color:var(--ink-soft);border-top:1px solid var(--rule)}
 .seg{display:flex;gap:8px}
 .seg button{
-  flex:1;min-width:0;padding:11px;border:1px solid var(--rule);border-radius:8px;
-  background:var(--chalk);font-size:15px;font-weight:500;color:var(--ink-soft);
+  flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;
+  justify-content:flex-start;gap:6px;text-align:center;line-height:1.25;
+  padding:11px 6px 10px;border:1px solid var(--rule);border-radius:8px;
+  background:var(--chalk);font-size:13px;font-weight:500;color:var(--ink-soft);
+  min-height:72px;
 }
+/* Icons inherit currentColor so they follow the label through every state.
+   pointer-events:none keeps the svg from ever being the click target. */
+.seg button svg{width:22px;height:22px;flex:0 0 auto;pointer-events:none}
+.seg button:active{background:var(--home-wash);border-color:var(--tape);color:var(--ink)}
 .seg button[aria-pressed=true]{background:var(--red);border-color:var(--red);color:#fff}
+.btnrow{display:flex;gap:9px;margin-bottom:18px}
+.btnrow button{
+  flex:1;min-width:0;padding:14px 10px;border-radius:9px;border:1px solid var(--rule);
+  background:var(--chalk);font-size:15px;font-weight:600;min-height:48px;
+}
+.btnrow button:active{background:var(--red);border-color:var(--red);color:#fff}
+.btnrow button.go{background:var(--red);border-color:var(--red);color:#fff}
+.blk{font-size:11px;letter-spacing:.09em;color:var(--ink-soft);margin:4px 0 10px}
+#impText{min-height:118px;line-height:1.5}
+.report{font-size:14px;line-height:1.55;color:var(--ink-soft);margin-top:4px}
+.report b{color:var(--ink);font-weight:600}
+.report .warn{color:var(--tape)}
+.report .good{color:var(--tape)}
+input.code{
+  font-family:'Saira Condensed','Saira Condensed Fallback',system-ui,sans-serif;
+  font-size:30px;font-weight:700;letter-spacing:11px;text-align:center;
+  padding:14px 13px 14px 24px;
+}
+.acct{font-size:14px;color:var(--ink-soft);line-height:1.5}
+.acct b{color:var(--ink);font-weight:600;overflow-wrap:anywhere}
+.morelink:disabled{opacity:.4}
+.srow{
+  display:flex;align-items:center;gap:12px;width:100%;text-align:left;
+  padding:15px 2px;border-bottom:1px solid var(--rule);min-height:60px;
+}
+.srow .sn{font-size:16px;flex:1;min-width:0}
+.srow .ss{font-size:13px;color:var(--ink-soft);text-align:right;flex:0 1 auto;
+  max-width:56%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.srow .chev{flex:0 0 auto;color:var(--ink-soft);font-size:19px;line-height:1}
+.kv{display:flex;justify-content:space-between;gap:12px;
+  padding:11px 2px;border-bottom:1px solid var(--rule);font-size:14px}
+.kv .k{color:var(--ink-soft);flex:0 0 auto}
+.kv .v{flex:1;min-width:0;text-align:right;overflow-wrap:anywhere}
 
 .primary{
   width:100%;max-width:100%;box-sizing:border-box;padding:17px;border-radius:10px;background:var(--red);color:#fff;
@@ -318,8 +358,14 @@ pre.out{
   <div class="scroll pad" id="homeBody"></div>
   <div class="foot">
     <div class="seg">
-      <button type="button" id="goRoster">Roster</button>
-      <button type="button" id="goNewMeet">Add meet</button>
+      <button type="button" id="goNewMeet">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5.5" x2="12" y2="18.5"/><line x1="5.5" y1="12" x2="18.5" y2="12"/></svg>
+        <span>Add Meet</span>
+      </button>
+      <button type="button" id="goSettings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><circle cx="15" cy="7" r="2.4"/><line x1="4" y1="12.5" x2="20" y2="12.5"/><circle cx="9" cy="12.5" r="2.4"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="16" cy="18" r="2.4"/></svg>
+        <span>Settings</span>
+      </button>
     </div>
   </div>
 </section>
@@ -365,6 +411,83 @@ pre.out{
       <div class="hint" id="hintB">Not loaded.</div>
     </div>
   </div>
+</section>
+
+<!-- SEASON DATA -->
+<section class="screen" id="backup">
+  <div class="bar"><h1>Season data</h1><button class="linkbtn" id="backupDone">Done</button></div>
+  <div class="scroll pad">
+    <p class="lede">Everything lives on this device. This is how you get a copy off it, and how you move a season onto another phone or a laptop.</p>
+
+    <p class="blk">BACK UP</p>
+    <div class="hint" id="backupSummary"></div>
+    <div class="btnrow" style="margin-top:12px">
+      <button type="button" id="expCopy">Copy backup</button>
+      <button type="button" id="expFile">Save a file</button>
+    </div>
+
+    <p class="blk">RESTORE</p>
+    <div class="field">
+      <label for="impText">Paste a backup</label>
+      <textarea id="impText" spellcheck="false" autocapitalize="off" autocorrect="off" placeholder="Paste the backup text here"></textarea>
+      <div class="hint">Nothing is deleted. Meets you already have are kept, and a race that already has finishes is never replaced.</div>
+    </div>
+    <div class="btnrow">
+      <button type="button" id="impFile">Load a file</button>
+      <button type="button" id="impGo" class="go">Restore</button>
+    </div>
+    <input type="file" id="impPick" accept="application/json,.json" style="display:none">
+    <div class="report" id="impReport"></div>
+  </div>
+</section>
+
+<!-- SETTINGS -->
+<section class="screen" id="settings">
+  <div class="bar"><h1>Settings</h1><button class="linkbtn" id="setDone">Done</button></div>
+  <div class="scroll pad">
+    <button class="srow" id="setAccount"><span class="sn">Account</span><span class="ss" id="subAccount"></span><span class="chev">&#8250;</span></button>
+    <button class="srow" id="setRoster"><span class="sn">Roster</span><span class="ss" id="subRoster"></span><span class="chev">&#8250;</span></button>
+    <button class="srow" id="setBackup"><span class="sn">Season data</span><span class="ss" id="subBackup"></span><span class="chev">&#8250;</span></button>
+    <button class="srow" id="setAbout"><span class="sn">About</span><span class="ss" id="subAbout"></span><span class="chev">&#8250;</span></button>
+  </div>
+</section>
+
+<!-- ACCOUNT -->
+<section class="screen" id="account">
+  <div class="bar"><h1>Account</h1><button class="linkbtn" id="acctDone">Back</button></div>
+  <div class="scroll pad">
+    <p class="lede">Signing in is what lets the app read the roster from the database. Timing, scoring and export all work without it.</p>
+    <div class="acct" id="acctState"></div>
+    <div class="btnrow" style="margin-top:14px"><button type="button" id="acctBtn">Sign in</button></div>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section class="screen" id="about">
+  <div class="bar"><h1>About</h1><button class="linkbtn" id="aboutDone">Back</button></div>
+  <div class="scroll pad"><div id="aboutBody"></div></div>
+</section>
+
+<!-- SIGN IN -->
+<section class="screen" id="signin">
+  <div class="bar"><h1>Sign in</h1><button class="linkbtn" id="siBack">Back</button></div>
+  <div class="scroll pad">
+    <p class="lede" id="siLede"></p>
+    <div class="field" id="siEmailField">
+      <label for="siEmailIn">Email</label>
+      <input type="email" id="siEmailIn" inputmode="email" autocomplete="email"
+             autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="you@example.com">
+    </div>
+    <div class="field" id="siCodeField">
+      <label for="siCodeIn">Six digit code</label>
+      <input type="text" id="siCodeIn" class="code" inputmode="numeric" autocomplete="one-time-code"
+             maxlength="6" placeholder="000000" spellcheck="false">
+    </div>
+    <button class="morelink" id="siResendBtn">Send another code</button>
+    <button class="morelink" id="siOther">Use a different email</button>
+    <div class="report" id="siMsg"></div>
+  </div>
+  <div class="foot"><button class="primary" id="siGo">Send code</button></div>
 </section>
 
 <!-- ARMED -->
@@ -429,7 +552,7 @@ pre.out{
 (function(){
 'use strict';
 
-var BUILD='v1.1';
+var BUILD='v2.1';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -519,8 +642,13 @@ function $(id){ return document.getElementById(id); }
 function show(id){
   var all=document.querySelectorAll('.screen');
   for(var i=0;i<all.length;i++) all[i].classList.toggle('on', all[i].id===id);
-  if(S && id!=='rosterEdit' && id!=='home' && id!=='meet') { S.screen=id; save(); }
+  if(S && ['rosterEdit','home','meet','backup','signin','settings','account','about'].indexOf(id)<0) { S.screen=id; save(); }
   if(id==='home'){ renderHome(); hintRoster(); }
+  if(id==='backup') renderBackup();
+  if(id==='signin') renderSignin();
+  if(id==='settings') renderSettings();
+  if(id==='account') renderAccount();
+  if(id==='about') renderAbout();
   if(id==='timing') startClock(); else stopClock();
   if(id==='recon'){
     renderRecon();
@@ -700,6 +828,312 @@ function ourCount(){
   var n=0; for(var i=0;i<S.fin.length;i++) if(S.fin[i].h) n++; return n;
 }
 
+/* ---------- supabase ----------
+   No SDK. One fetch wrapper, so there is exactly one place that touches the
+   network and exactly one place that can fail. Keeps the single file and the
+   no-build-step shape.
+
+   The publishable key is public by design and is inert on its own: migration
+   0006 leaves `anon` holding nothing but SELECT on `heartbeat`. Everything
+   below needs a signed-in session. */
+var SB_URL='https://lvcujmqvvyadcdauurpt.supabase.co';
+var SB_KEY='sb_publishable_B7yQNceSNgeEMeY9bLG_gw_HMVDPKAj';
+var AKEY='chute.auth.v1';
+var OTP_LEN=6;
+var RESEND_S=60;          /* GoTrue allows one code per address per 60s */
+var AUTH=null;
+
+function loadAuth(){
+  try{ AUTH=JSON.parse(localStorage.getItem(AKEY)||'null'); }catch(e){ AUTH=null; }
+  if(AUTH && !AUTH.access_token) AUTH=null;
+  return AUTH;
+}
+function saveAuth(a){
+  AUTH=a||null;
+  try{
+    if(AUTH) localStorage.setItem(AKEY,JSON.stringify(AUTH));
+    else localStorage.removeItem(AKEY);
+  }catch(e){}
+}
+function signedIn(){ return !!(AUTH && AUTH.access_token); }
+function authEmail(){ return (AUTH && AUTH.email) || ''; }
+function sessionFrom(j,email){
+  return {
+    access_token:j.access_token,
+    refresh_token:j.refresh_token||'',
+    expires_at:Date.now()+((j.expires_in||3600)*1000),
+    email:(j.user&&j.user.email)||email||'',
+    uid:(j.user&&j.user.id)||''
+  };
+}
+
+/* Never throws. Every caller gets {ok,status,data} and a network failure is
+   just ok:false with offline:true, so no failure path can reach a tap. */
+function sbFetch(path,opts){
+  opts=opts||{};
+  var h={'apikey':SB_KEY,'Accept':'application/json'};
+  if(opts.body) h['Content-Type']='application/json';
+  if(opts.auth && AUTH) h['Authorization']='Bearer '+AUTH.access_token;
+  return fetch(SB_URL+path,{
+    method:opts.method||'GET', headers:h,
+    body:opts.body?JSON.stringify(opts.body):undefined
+  }).then(function(r){
+    return r.text().then(function(t){
+      var j=null; try{ j=t?JSON.parse(t):null; }catch(e){ j=null; }
+      return {ok:r.ok, status:r.status, data:j, raw:t};
+    });
+  }).catch(function(){
+    return {ok:false, status:0, data:null, raw:'', offline:true};
+  });
+}
+
+/* GoTrue error bodies are inconsistent by its own documentation, so match on
+   several shapes and fall back to the status rather than showing nothing. */
+function authMessage(res){
+  if(res.offline) return 'No connection. You can still time a race without signing in.';
+  var d=res.data||{};
+  var m=String(d.msg||d.error_description||d.message||d.error||'');
+  var code=String(d.error_code||'');
+  var both=m+' '+code;
+  if(res.status===429||/rate.?limit/i.test(both))
+    return 'Too many requests. Wait a minute and try again.';
+  if(/signups? not allowed|signup_disabled|otp_disabled/i.test(both))
+    return 'That address is not set up for this app.';
+  if(/expired|invalid|not found/i.test(both))
+    return 'That code is wrong or has expired. Request a new one.';
+  if(m) return m;
+  return 'Something went wrong. Status '+res.status+'.';
+}
+
+function requestCode(email){
+  return sbFetch('/auth/v1/otp',{method:'POST',body:{email:email,create_user:false}});
+}
+function verifyCode(email,token){
+  return sbFetch('/auth/v1/verify',{method:'POST',body:{email:email,token:token,type:'email'}});
+}
+function refreshSession(){
+  if(!AUTH||!AUTH.refresh_token) return Promise.resolve({ok:false,status:0,data:null});
+  return sbFetch('/auth/v1/token?grant_type=refresh_token',
+                 {method:'POST',body:{refresh_token:AUTH.refresh_token}})
+    .then(function(res){
+      if(res.ok&&res.data&&res.data.access_token) saveAuth(sessionFrom(res.data,authEmail()));
+      else if(res.status>=400&&res.status<500) saveAuth(null);  /* refresh token is dead */
+      return res;
+    });
+}
+/* Called before an authed read, never on boot. A cold start at a course with
+   no signal must reach the clock without waiting on anything. */
+function signOut(){ saveAuth(null); }
+function ensureFresh(){
+  if(!signedIn()) return Promise.resolve(false);
+  if(AUTH.expires_at && AUTH.expires_at-Date.now()>60000) return Promise.resolve(true);
+  return refreshSession().then(function(){ return signedIn(); });
+}
+
+/* ---------- sign in screen ---------- */
+var siPhase='email', siEmail='', siUntil=0, siTimer=null, siBusy=false;
+function validEmail(s){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s).trim()); }
+function siMsg(text,warn){
+  $('siMsg').innerHTML = text ? '<span class="'+(warn?'warn':'good')+'">'+esc(text)+'</span>' : '';
+}
+function siStopTimer(){ if(siTimer){ clearInterval(siTimer); siTimer=null; } }
+function siCooldown(){
+  siUntil=Date.now()+RESEND_S*1000;
+  siStopTimer();
+  siTimer=setInterval(siRenderResend,1000);
+  siRenderResend();
+}
+function siRenderResend(){
+  var b=$('siResendBtn'), left=Math.ceil((siUntil-Date.now())/1000);
+  if(left>0){ b.disabled=true; b.textContent='Send another code in '+left+'s'; }
+  else { b.disabled=false; b.textContent='Send another code'; siStopTimer(); }
+}
+function renderSignin(){
+  var code=(siPhase==='code');
+  $('siEmailField').style.display = code?'none':'';
+  $('siCodeField').style.display  = code?'':'none';
+  $('siResendBtn').style.display  = code?'':'none';
+  $('siOther').style.display      = code?'':'none';
+  $('siGo').textContent = code?'Sign in':'Send code';
+  $('siLede').textContent = code
+    ? 'Enter the six digit code sent to '+siEmail+'. It expires in an hour.'
+    : 'Signing in loads the roster from the database. You do not need it to time a race.';
+  if(code) siRenderResend();
+}
+function siSend(){
+  var email=$('siEmailIn').value.trim();
+  if(!validEmail(email)){ siMsg('That does not look like an email address.',true); return; }
+  if(siBusy) return;
+  siBusy=true; siMsg('Sending...',false);
+  requestCode(email).then(function(res){
+    siBusy=false;
+    if(!res.ok){ siMsg(authMessage(res),true); return; }
+    siEmail=email; siPhase='code';
+    $('siCodeIn').value='';
+    renderSignin(); siCooldown();
+    siMsg('Code sent. Check your email.',false);
+    try{ $('siCodeIn').focus(); }catch(e){}
+  });
+}
+function siVerify(){
+  var t=$('siCodeIn').value.replace(/\D/g,'');
+  if(t.length!==OTP_LEN){ siMsg('Enter all '+OTP_LEN+' digits.',true); return; }
+  if(siBusy) return;
+  siBusy=true; siMsg('Checking...',false);
+  verifyCode(siEmail,t).then(function(res){
+    siBusy=false;
+    if(!res.ok||!res.data||!res.data.access_token){ siMsg(authMessage(res),true); return; }
+    saveAuth(sessionFrom(res.data,siEmail));
+    siStopTimer(); siPhase='email'; siMsg('',false);
+    show('account');
+  });
+}
+
+/* ---------- season export and import ----------
+   localStorage is scoped per device per origin, so a season timed on the
+   phone is invisible on any other machine. Until the Supabase sync lands this
+   file is the only bridge, and the only backup. */
+var EXPORT_SCHEMA=1;
+function seasonStats(){
+  var st={meets:SEASON.meets.length, timed:0, fin:0, ours:0};
+  SEASON.meets.forEach(function(m){
+    (m.races||[]).forEach(function(r){
+      if(raceState(r)!=='new') st.timed++;
+      (r.fin||[]).forEach(function(f){ st.fin++; if(f.h) st.ours++; });
+    });
+  });
+  return st;
+}
+function buildExport(){
+  /* exportedAt is an instant, not a calendar date, so toISOString is correct
+     here. The date trap applies to meets.date, which stays a local y-m-d. */
+  return JSON.stringify({
+    app:'the-chute', schema:EXPORT_SCHEMA, version:BUILD,
+    exportedAt:new Date().toISOString(),
+    team:txt(TKEY), roster:{girls:txt(RKEY_G), boys:txt(RKEY_B)},
+    history:HIST, season:SEASON
+  }, null, 1);
+}
+function parseImport(text){
+  var d;
+  try{ d=JSON.parse(text); }catch(e){ throw new Error('That is not valid backup text. Paste the whole thing, including the first and last brace.'); }
+  if(!d || typeof d!=='object' || d.app!=='the-chute') throw new Error('That is not a Chute backup.');
+  if(typeof d.schema==='number' && d.schema>EXPORT_SCHEMA) throw new Error('That backup came from a newer version of the app. Update this device first.');
+  if(!d.season || !Array.isArray(d.season.meets)) throw new Error('No season data in that backup.');
+  return d;
+}
+function sameFinishes(a,b){
+  a=a||[]; b=b||[];
+  if(a.length!==b.length) return false;
+  for(var i=0;i<a.length;i++) if(a[i].cid!==b[i].cid) return false;
+  return true;
+}
+/* Merge, never replace. A race holding finishes is the one thing in this app
+   that cannot be recreated, so it always wins over anything incoming. */
+function mergeImport(d){
+  var rep={meets:0, races:0, conflicts:[], notes:[]};
+  d.season.meets.forEach(function(im){
+    var lm=findMeet(im.id);
+    if(!lm){
+      im.races=(im.races||[]).map(function(r){
+        r.fin=(r.fin||[]).map(function(f){ if(!f.cid) f.cid=uid(); return f; });
+        return r;
+      });
+      SEASON.meets.push(im); rep.meets++; return;
+    }
+    (im.races||[]).forEach(function(ir){
+      var lr=null;
+      for(var i=0;i<lm.races.length;i++) if(lm.races[i].id===ir.id) lr=lm.races[i];
+      if(!lr){ lm.races.push(ir); rep.races++; return; }
+      var ln=(lr.fin||[]).length, rn=(ir.fin||[]).length;
+      if(rn===0) return;
+      if(ln===0){
+        lr.t0Wall=ir.t0Wall; lr.endedMs=(ir.endedMs===undefined?null:ir.endedMs);
+        lr.fin=(ir.fin||[]).map(function(f){ if(!f.cid) f.cid=uid(); return f; });
+        rep.races++; return;
+      }
+      if(!sameFinishes(lr.fin,ir.fin))
+        rep.conflicts.push(lm.name+', '+lr.division+': kept the '+ln+' finishers already here, ignored '+rn+' from the backup');
+    });
+  });
+  saveSeason();
+
+  if(d.team && !txt(TKEY)){ try{ localStorage.setItem(TKEY,d.team); $('team').value=d.team; }catch(e){} }
+  var R=d.roster||{};
+  [[RKEY_G,'rosterG',R.girls,'Girls'],[RKEY_B,'rosterB',R.boys,'Boys']].forEach(function(p){
+    if(!p[2]) return;
+    var cur=txt(p[0]);
+    if(!cur){ try{ localStorage.setItem(p[0],p[2]); $(p[1]).value=p[2]; }catch(e){} rep.notes.push(p[3]+' roster loaded from the backup'); }
+    else if(cur.trim()!==String(p[2]).trim()) rep.notes.push(p[3]+' roster on this device differs from the backup and was left alone');
+  });
+
+  if(d.history && typeof d.history==='object'){
+    var merged=0;
+    for(var k in d.history){
+      var inc=d.history[k], cur2=HIST[k];
+      if(!cur2 || (inc && (inc.at||0)>(cur2.at||0))){ HIST[k]=inc; merged++; }
+    }
+    if(merged){ try{ localStorage.setItem(HKEY,JSON.stringify(HIST)); }catch(e){} rep.notes.push(merged+' prior results merged into the picker'); }
+  }
+  return rep;
+}
+
+function renderAccount(){
+  if(signedIn()){
+    $('acctState').innerHTML='Signed in as <b>'+esc(authEmail())+'</b>.';
+    $('acctBtn').textContent='Sign out';
+  } else {
+    $('acctState').textContent='Not signed in. Timing and scoring work without it. Signing in is what lets the app read the roster from the database.';
+    $('acctBtn').textContent='Sign in';
+  }
+}
+function renderSettings(){
+  $('subAccount').textContent = signedIn() ? authEmail() : 'Not signed in';
+  var g=parseList(txt(RKEY_G),'F').length, b=parseList(txt(RKEY_B),'M').length;
+  $('subRoster').textContent = (g+b) ? (g+b)+' runners' : 'Not loaded';
+  var st=seasonStats();
+  $('subBackup').textContent = st.meets ? st.meets+(st.meets===1?' meet':' meets') : 'Empty';
+  $('subAbout').textContent = BUILD;
+}
+function renderAbout(){
+  var st=seasonStats(), bytes=0;
+  try{ for(var k in localStorage){ if(localStorage.hasOwnProperty(k)) bytes+=(localStorage[k]||'').length; } }catch(e){}
+  function row(k,v){ return '<div class="kv"><span class="k">'+esc(k)+'</span><span class="v">'+esc(v)+'</span></div>'; }
+  $('aboutBody').innerHTML=
+    '<p class="lede">If the build below does not match the file you deployed, you are looking at a cached copy and nothing else on screen is trustworthy.</p>'+
+    row('Build', BUILD)+
+    row('Signed in', signedIn()?authEmail():'No')+
+    row('Meets', String(st.meets))+
+    row('Races timed', String(st.timed))+
+    row('Finishers recorded', String(st.fin))+
+    row('Stored locally', Math.round(bytes/1024)+' KB')+
+    '<p class="hint" style="margin-top:16px">To force a fresh copy on an iPhone, delete the home screen icon and add it again. A reload alone will not do it.</p>';
+}
+function renderBackup(){
+  var st=seasonStats();
+  $('backupSummary').className = st.meets ? 'hint good' : 'hint';
+  $('backupSummary').textContent = st.meets
+    ? st.meets+(st.meets===1?' meet':' meets')+', '+st.timed+(st.timed===1?' race':' races')+
+      ' timed, '+st.fin+' finishers recorded, '+st.ours+' of them ours.'
+    : 'Nothing to back up yet.';
+  $('expCopy').disabled=!st.meets; $('expFile').disabled=!st.meets;
+}
+function reportHtml(rep){
+  var h='';
+  if(!rep.meets && !rep.races && !rep.conflicts.length)
+    h+='<b>Nothing new.</b> This device already has everything in that backup.';
+  else {
+    var bits=[];
+    if(rep.meets) bits.push(rep.meets+(rep.meets===1?' meet':' meets')+' added');
+    if(rep.races) bits.push(rep.races+(rep.races===1?' race':' races')+' filled in');
+    h+='<b>Restored.</b> '+(bits.join(', ')||'No new meets')+'.';
+  }
+  rep.notes.forEach(function(n){ h+='<br>'+esc(n)+'.'; });
+  rep.conflicts.forEach(function(c){ h+='<br><span class="warn">'+esc(c)+'</span>.'; });
+  if(rep.conflicts.length) h+='<br><span class="warn">Nothing was overwritten. Recorded times always win.</span>';
+  return h;
+}
+
 /* ---------- home ---------- */
 var showPast=false;
 function renderHome(){
@@ -765,7 +1199,7 @@ function emptyState(){
   }
   var go=d.querySelector('#esGo');
   go.addEventListener('click', runners ? function(){ editMeet(null); }
-                                       : function(){ show('rosterEdit'); });
+                                       : function(){ backTo='home'; show('rosterEdit'); });
   return d;
 }
 
@@ -975,12 +1409,16 @@ function renderResults(){
      '<button id="copyCsv">Copy CSV</button></div>';
   h+='<div class="sect">Full field</div><pre class="out">'+esc(buildCsv())+'</pre>';
   h+='<div class="copyrow" style="padding-top:0"><button id="doneBtn">Done, back to home</button></div>';
+  /* The season exists on this phone and nowhere else. Right after scoring is
+     the one moment you are thinking about the race that just happened. */
+  h+='<div class="sect" style="padding-top:0"><button class="morelink" id="resBackup" style="color:var(--tape)">Back up the season</button></div>';
   h+='<div class="sect" style="padding-bottom:18px">Build '+BUILD+'</div>';
 
   $('resultBody').innerHTML=h;
   $('copyChat').addEventListener('click',function(){ copyOut(buildChat(), this); });
   $('copyCsv').addEventListener('click',function(){ copyOut(buildCsv(), this); });
   $('doneBtn').addEventListener('click',function(){ show('home'); });
+  $('resBackup').addEventListener('click',function(){ backTo='results'; show('backup'); });
 }
 
 function buildCsv(){
@@ -1082,7 +1520,84 @@ $('team').addEventListener('input',function(){
   try{ localStorage.setItem(TKEY,this.value); }catch(e){}
 });
 
-$('goRoster').addEventListener('click',function(){ show('rosterEdit'); });
+/* One shared return target. Only one of these screens is ever open, so a
+   single variable is enough and a stack would be ceremony. */
+var backTo='settings';
+$('goSettings').addEventListener('click',function(){ show('settings'); });
+$('setDone').addEventListener('click',function(){ show('home'); });
+$('setAccount').addEventListener('click',function(){ backTo='settings'; show('account'); });
+$('setRoster').addEventListener('click',function(){ backTo='settings'; show('rosterEdit'); });
+$('setBackup').addEventListener('click',function(){
+  backTo='settings'; $('impText').value=''; $('impReport').innerHTML=''; show('backup');
+});
+$('setAbout').addEventListener('click',function(){ backTo='settings'; show('about'); });
+$('acctDone').addEventListener('click',function(){ show(backTo); });
+$('aboutDone').addEventListener('click',function(){ show(backTo); });
+$('backupDone').addEventListener('click',function(){ show(backTo); });
+$('acctBtn').addEventListener('click',function(){
+  if(!signedIn()){ siPhase='email'; siMsg('',false); show('signin'); return; }
+  armTwoTap(this,'Tap again to sign out',function(){
+    signOut(); renderAccount();
+  });
+});
+$('siBack').addEventListener('click',function(){ siStopTimer(); siPhase='email'; show('account'); });
+$('siGo').addEventListener('click',function(){ (siPhase==='code'?siVerify:siSend)(); });
+$('siResendBtn').addEventListener('click',function(){
+  if(this.disabled||siBusy) return;
+  siBusy=true; siMsg('Sending...',false);
+  requestCode(siEmail).then(function(res){
+    siBusy=false;
+    if(!res.ok){ siMsg(authMessage(res),true); return; }
+    siCooldown(); siMsg('Another code sent.',false);
+  });
+});
+$('siOther').addEventListener('click',function(){
+  siStopTimer(); siPhase='email'; siMsg('',false); renderSignin();
+  try{ $('siEmailIn').focus(); }catch(e){}
+});
+$('siCodeIn').addEventListener('input',function(){
+  var v=this.value.replace(/\D/g,'').slice(0,OTP_LEN);
+  if(v!==this.value) this.value=v;
+  /* Auto-submit at six digits. A wrong code does not burn the real one, so
+     the cost of a bad autofill is a retry, not a new 60 second wait. */
+  if(v.length===OTP_LEN) siVerify();
+});
+$('siEmailIn').addEventListener('keydown',function(e){ if(e.key==='Enter') siSend(); });
+$('expCopy').addEventListener('click',function(){ copyOut(buildExport(), this); });
+$('expFile').addEventListener('click',function(){
+  var name='the-chute-'+todayStr()+'.json', b=this, label=b.textContent;
+  try{
+    var u=URL.createObjectURL(new Blob([buildExport()],{type:'application/json'}));
+    var a=document.createElement('a');
+    a.href=u; a.download=name; document.body.appendChild(a); a.click();
+    setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(u); },1500);
+    b.textContent='Saved';
+  }catch(e){ b.textContent='Use Copy instead'; }
+  setTimeout(function(){ b.textContent=label; },1800);
+});
+$('impFile').addEventListener('click',function(){ $('impPick').click(); });
+$('impPick').addEventListener('change',function(){
+  var f=this.files && this.files[0];
+  this.value='';
+  if(!f) return;
+  var fr=new FileReader();
+  fr.onload=function(){
+    $('impText').value=String(fr.result||'');
+    $('impReport').innerHTML='<b>File loaded.</b> Tap Restore to merge it in.';
+  };
+  fr.onerror=function(){ $('impReport').innerHTML='<span class="warn">Could not read that file.</span>'; };
+  fr.readAsText(f);
+});
+$('impGo').addEventListener('click',function(){
+  var t=$('impText').value.trim();
+  if(!t){ $('impReport').innerHTML='<span class="warn">Paste a backup first, or load one from a file.</span>'; return; }
+  var d;
+  try{ d=parseImport(t); }
+  catch(e){ $('impReport').innerHTML='<span class="warn">'+esc(e.message)+'</span>'; return; }
+  $('impReport').innerHTML=reportHtml(mergeImport(d));
+  $('impText').value='';
+  renderBackup(); hintRoster();
+});
 $('goNewMeet').addEventListener('click',function(){ editMeet(null); });
 $('meetBack').addEventListener('click',function(){ editingMeet=null; show('home'); });
 $('meetSave').addEventListener('click',commitMeet);
@@ -1117,7 +1632,7 @@ $('meetDelete').addEventListener('click',function(){
     editingMeet=null; show('home');
   });
 });
-$('rosterDone').addEventListener('click',function(){ show('home'); });
+$('rosterDone').addEventListener('click',function(){ show(backTo); });
 $('backSetup').addEventListener('click',function(){ show('home'); });
 $('newRace').addEventListener('click',function(){ show('home'); });
 $('sheetClose').addEventListener('click',function(){ $('sheet').classList.remove('on'); });
@@ -1163,6 +1678,7 @@ document.addEventListener('keydown',function(e){
 (function boot(){
   loadHist();
   loadSeason();
+  loadAuth();   /* reads localStorage only. No network on boot, ever. */
   try{
     var g=localStorage.getItem(RKEY_G); if(g) $('rosterG').value=g;
     var b=localStorage.getItem(RKEY_B); if(b) $('rosterB').value=b;
