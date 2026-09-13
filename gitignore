@@ -1,0 +1,9 @@
+.DS_Store
+node_modules/
+*.log
+
+# Rosters contain real names of minors and this repo is public.
+# Keep filled seeds out of version control.
+*_PRIVATE.sql
+supabase/seed_roster_*.sql
+!supabase/seed_roster_2026.sql

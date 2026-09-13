@@ -42,11 +42,11 @@
   --red:#C8102E;
   --home-wash:#1C3450;
   --navy:#0C2340;
+  color-scheme:dark;
 }
-color-scheme: dark;
 
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%}
+html,body{height:100%;width:100%;max-width:100%;overflow-x:hidden}
 body{
   background:var(--field);
   color:var(--ink);
@@ -61,7 +61,8 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
 .num{font-family:'Saira Condensed','Saira Condensed Fallback',system-ui,sans-serif;font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
 
 .app{
-  display:flex;flex-direction:column;height:100dvh;max-width:560px;margin:0 auto;position:relative;
+  display:flex;flex-direction:column;height:100dvh;width:100%;max-width:560px;
+  margin:0 auto;position:relative;overflow-x:hidden;
   padding-top:env(safe-area-inset-top);
 }
 
@@ -86,17 +87,18 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
 @media (prefers-reduced-motion:reduce){
   .spl-arrow,.spl-xc,.spl-word{animation:none}
 }
-.screen{display:none;flex-direction:column;flex:1;min-height:0}
+.screen{display:none;flex-direction:column;flex:1;min-width:0;min-height:0}
 .screen.on{display:flex}
 
 /* ---------- shared bits ---------- */
 .bar{
   display:flex;align-items:center;justify-content:space-between;gap:12px;
-  padding:14px 16px;border-bottom:1px solid var(--rule);flex:0 0 auto;
-  min-height:56px;
+  padding:14px 22px;border-bottom:1px solid var(--rule);flex:0 0 auto;
+  min-height:58px;
 }
 .bar h1{font-size:17px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.bar .count{font-size:15px;color:var(--ink-soft);white-space:nowrap}
+.bar .count{font-size:15px;color:var(--ink-soft);white-space:nowrap;flex:0 1 auto;
+  overflow:hidden;text-overflow:ellipsis}
 .linkbtn{
   font-size:15px;color:var(--ink-soft);text-decoration:underline;text-underline-offset:3px;
   padding:11px 8px;margin:-11px -8px;min-height:44px;display:inline-flex;align-items:center;
@@ -104,13 +106,52 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
 .linkbtn:focus-visible,button:focus-visible{outline:2px solid var(--tape);outline-offset:2px;border-radius:4px}
 
 .pad{padding:20px 16px}
-.scroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
 
-/* ---------- setup ---------- */
+.homebar{position:relative}
+.mark{height:26px;width:auto;flex:0 0 auto}
+.wordmark{
+  position:absolute;left:50%;transform:translateX(-50%);
+  font-family:'Bebas Neue','Saira Condensed',system-ui,sans-serif;
+  font-size:23px;letter-spacing:.06em;color:var(--ink);white-space:nowrap;line-height:1;
+  pointer-events:none;
+}
+.season{font-size:14px;color:var(--ink-soft);letter-spacing:.12em;white-space:nowrap;flex:0 0 auto}
+.hero{border:2px solid var(--red);border-radius:12px;padding:13px;margin-bottom:18px}
+.hero.quiet{border:1px solid var(--rule)}
+.hero-tag{font-size:11px;letter-spacing:.1em;color:var(--red);margin-bottom:5px}
+.hero.quiet .hero-tag{color:var(--ink-soft)}
+.hero-name{font-size:17px;font-weight:600;letter-spacing:-.01em;overflow-wrap:anywhere}
+.hero-sub{font-size:13px;color:var(--ink-soft);margin:2px 0 10px;overflow-wrap:anywhere}
+.rrace{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:10px 0;border-top:1px solid var(--rule)}
+.rrace>div{min-width:0;flex:1}
+.rrace .lbl{font-size:15px}
+.rrace .st{font-size:12px;color:var(--ink-soft);margin-top:1px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rrace .rbtn{flex:0 0 auto}
+.rbtn{background:var(--red);color:#fff;border:none;border-radius:7px;
+  padding:10px 16px;font-size:14px;font-weight:600;min-height:42px}
+.rbtn.ghost{background:transparent;color:var(--ink);border:1px solid var(--rule);font-weight:500}
+.sect{padding:14px 0 6px;font-size:11px;letter-spacing:.09em;color:var(--ink-soft)}
+.mrow{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+  padding:12px 0;border-bottom:1px solid var(--rule);min-height:48px}
+.mrow .md{font-size:12px;color:var(--ink-soft);flex:0 0 48px}
+.mrow .mt{flex:0 0 auto}
+.mrow .mn{font-size:15px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mrow .mt{font-size:11px;padding:3px 9px;border-radius:20px;background:var(--chalk);
+  color:var(--ink-soft);white-space:nowrap}
+.mrow .mt.scored{background:var(--home-wash);color:var(--tape);font-weight:600}
+.morelink{display:block;width:100%;text-align:left;padding:13px 0;font-size:14px;
+  color:var(--tape);border-bottom:1px solid var(--rule);min-height:46px}
+
+.scroll{flex:1;min-width:0;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+
+/* ---------- forms ---------- */
 .lede{font-size:15px;color:var(--ink-soft);margin-bottom:22px;max-width:46ch}
 label{display:block;font-size:14px;color:var(--ink-soft);margin-bottom:6px}
 input[type=text],input[type=date],textarea{
-  width:100%;background:var(--chalk);color:var(--ink);
+  width:100%;max-width:100%;min-width:0;box-sizing:border-box;
+  background:var(--chalk);color:var(--ink);
   border:1px solid var(--rule);border-radius:8px;
   padding:12px 13px;font:inherit;font-size:16px;
 }
@@ -119,34 +160,33 @@ input:focus,textarea:focus{outline:2px solid var(--tape);outline-offset:-1px;bor
 .field{margin-bottom:20px}
 input[type=date]{min-height:47px;-webkit-appearance:none;appearance:none}
 .hint{font-size:13px;color:var(--ink-soft);margin-top:7px;line-height:1.45}
-.card{
-  display:block;width:100%;text-align:left;background:var(--chalk);
-  border:1px solid var(--rule);border-radius:8px;padding:13px;
+.es{padding:34px 8px;text-align:center}
+.es svg{margin-bottom:22px}
+.es h2{font-size:19px;font-weight:600;letter-spacing:-.01em;margin-bottom:8px}
+.es p{font-size:14px;color:var(--ink-soft);line-height:1.6;margin:0 auto 22px;max-width:30ch}
+.es button{
+  background:var(--red);color:#fff;border:none;border-radius:9px;
+  padding:14px 22px;font-size:15px;font-weight:600;min-height:48px;
 }
-.card:active{border-color:var(--tape)}
-.card-main{display:block;font-size:16px;font-weight:600}
-.card-main.empty{font-weight:400;color:var(--ink-soft)}
-.card-sub{display:block;font-size:13px;color:var(--ink-soft);margin-top:3px}
 .hint.good{color:var(--tape)}
 .copyrow{display:flex;gap:9px;padding:14px 16px 18px}
 .copyrow button{
-  flex:1;padding:14px 10px;border-radius:9px;border:1px solid var(--rule);
+  flex:1;min-width:0;padding:14px 10px;border-radius:9px;border:1px solid var(--rule);
   background:var(--chalk);font-size:15px;font-weight:600;
 }
 .copyrow button:active{background:var(--red);border-color:var(--red);color:#fff}
 .divider{padding:13px 16px 7px;font-size:13px;color:var(--ink-soft);border-top:1px solid var(--rule)}
 .seg{display:flex;gap:8px}
 .seg button{
-  flex:1;padding:11px;border:1px solid var(--rule);border-radius:8px;
+  flex:1;min-width:0;padding:11px;border:1px solid var(--rule);border-radius:8px;
   background:var(--chalk);font-size:15px;font-weight:500;color:var(--ink-soft);
 }
 .seg button[aria-pressed=true]{background:var(--red);border-color:var(--red);color:#fff}
 
 .primary{
-  width:100%;padding:17px;border-radius:10px;background:var(--red);color:#fff;
+  width:100%;max-width:100%;box-sizing:border-box;padding:17px;border-radius:10px;background:var(--red);color:#fff;
   font-size:17px;font-weight:600;letter-spacing:-.01em;
 }
-.primary.tape{background:var(--tape);color:#fff}
 .primary:disabled{opacity:.35}
 .foot{flex:0 0 auto;padding:16px 16px calc(16px + env(safe-area-inset-bottom));border-top:1px solid var(--rule)}
 
@@ -168,16 +208,16 @@ input[type=date]{min-height:47px;-webkit-appearance:none;appearance:none}
 .clock{font-size:clamp(52px,17vw,82px);font-weight:700;line-height:.95;letter-spacing:-.02em;color:var(--tape)}
 .clock .ms{font-size:.52em;color:var(--ink-soft);margin-left:2px}
 
-.chute{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;padding:0}
+.chute{flex:1;min-width:0;min-height:0;overflow-y:auto;display:flex;flex-direction:column;padding:0}
 .row{
-  display:grid;grid-template-columns:52px 1fr auto;align-items:baseline;gap:10px;
+  display:grid;grid-template-columns:52px minmax(0,1fr) auto;align-items:baseline;gap:10px;
   padding:9px 16px;border-bottom:1px solid var(--rule);
 }
 .chute .row{border-bottom:1px solid var(--rule);border-top:none}
 .row .pl{font-size:25px;font-weight:700;line-height:1;text-align:right}
 .row .who{font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .row .who.anon{color:var(--ink-soft)}
-.row .tm{font-size:17px;font-weight:600;color:var(--ink-soft)}
+.row .tm{font-size:17px;font-weight:600;color:var(--ink-soft);white-space:nowrap}
 .row.home{background:var(--home-wash)}
 .row.home .pl{color:var(--tape)}
 .row.home .who{color:var(--ink)}
@@ -202,9 +242,10 @@ input[type=date]{min-height:47px;-webkit-appearance:none;appearance:none}
 
 /* ---------- reconcile / results ---------- */
 .rrow{
-  display:grid;grid-template-columns:52px 1fr auto;align-items:center;gap:10px;
+  display:grid;grid-template-columns:52px minmax(0,1fr) auto;align-items:center;gap:10px;
   width:100%;padding:12px 16px;border-bottom:1px solid var(--rule);text-align:left;
 }
+.rrow .who{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rrow .pl{font-size:23px;font-weight:700;text-align:right}
 .rrow .who{font-size:16px}
 .rrow .who.anon{color:var(--ink-soft)}
@@ -212,11 +253,10 @@ input[type=date]{min-height:47px;-webkit-appearance:none;appearance:none}
 .rrow.home{background:var(--home-wash)}
 .seg2{display:flex;gap:8px;padding:12px 16px;border-bottom:1px solid var(--rule)}
 .seg2 button{
-  flex:1;padding:9px;border:1px solid var(--rule);border-radius:8px;
+  flex:1;min-width:0;padding:9px;border:1px solid var(--rule);border-radius:8px;
   background:var(--chalk);font-size:14px;font-weight:500;color:var(--ink-soft);
 }
 .seg2 button[aria-pressed=true]{background:var(--red);border-color:var(--red);color:#fff}
-.wheel{padding:4px 0 10px}
 .opt{scroll-snap-align:center}
 .sheet-in .scroll{scroll-snap-type:y proximity}
 .rrow.home .pl{color:var(--tape)}
@@ -228,7 +268,7 @@ input[type=date]{min-height:47px;-webkit-appearance:none;appearance:none}
 .note{padding:14px 16px;font-size:14px;line-height:1.5;color:var(--ink-soft);border-bottom:1px solid var(--rule)}
 .sect{padding:16px 16px 6px;font-size:14px;color:var(--ink-soft)}
 pre.out{
-  margin:0 16px 16px;padding:12px;background:var(--chalk);border:1px solid var(--rule);
+  margin:0 16px 16px;max-width:calc(100% - 32px);padding:12px;background:var(--chalk);border:1px solid var(--rule);
   border-radius:8px;font-size:12px;line-height:1.6;overflow-x:auto;white-space:pre;
   font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
 }
@@ -248,7 +288,7 @@ pre.out{
 .opt{width:100%;padding:17px 16px;border-bottom:1px solid var(--rule);text-align:left;font-size:18px}
 .opt:active{background:var(--home-wash)}
 .opt.home{color:var(--ink);font-weight:600}
-.opt.taken{color:var(--ink-soft);font-weight:400}
+
 .opt small{display:block;font-size:13px;color:var(--ink-soft);font-weight:400}
 </style>
 </head>
@@ -268,39 +308,41 @@ pre.out{
 
 <div class="app">
 
-<!-- SETUP -->
-<section class="screen on" id="setup">
-  <div class="bar"><h1>Chute</h1><span class="count" id="setupRestore"></span></div>
-  <div class="scroll pad">
-    <p class="lede">Tap once for every runner who crosses the line. Tap a name when it is one of yours. Everyone else just holds a place number.</p>
-    <div class="field">
-      <label for="rname">Race</label>
-      <input type="text" id="rname" placeholder="Chamblee Invitational" autocomplete="off">
-    </div>
-    <div class="field">
-      <label for="rdate">Date</label>
-      <input type="date" id="rdate">
-    </div>
-    <div class="field">
-      <label for="team">Your team</label>
-      <input type="text" id="team" placeholder="Peachtree MS" value="Peachtree MS" autocomplete="off">
-    </div>
-    <div class="field">
-      <label>Division</label>
-      <div class="seg" id="seg">
-        <button type="button" data-g="Girls" aria-pressed="true">Girls</button>
-        <button type="button" data-g="Boys" aria-pressed="false">Boys</button>
-      </div>
-    </div>
-    <div class="field">
-      <label>Roster</label>
-      <button class="card" id="openRoster">
-        <span class="card-main" id="rosterSummary">No roster loaded</span>
-        <span class="card-sub" id="rosterAvail">Tap to load it once, it stays for the season</span>
-      </button>
+<!-- HOME -->
+<section class="screen on" id="home">
+  <div class="bar homebar">
+    <svg class="mark" viewBox="0 0 258 92" aria-hidden="true"><path d="M6 26 L24 46 L6 66" fill="none" stroke="#C8102E" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><path d="M28 26 L46 46 L28 66" fill="none" stroke="#C8102E" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><line x1="40" y1="46" x2="214" y2="46" stroke="#C8102E" stroke-width="10" stroke-linecap="round"/><polygon points="212,26 252,46 212,66" fill="#C8102E"/><path d="M109.321 45.471999999999994 101.335 22.89999999999999H108.991L113.875 37.81599999999999H114.00699999999999L119.023 22.89999999999999H125.887L117.901 45.471999999999994L126.28299999999999 69.1H118.627L113.347 52.995999999999995H113.21499999999999L107.803 69.1H100.939Z M132.753 58.407999999999994V33.59199999999999Q132.753 28.179999999999993 135.492 25.209999999999994Q138.231 22.239999999999995 143.445 22.239999999999995Q148.659 22.239999999999995 151.398 25.209999999999994Q154.137 28.179999999999993 154.137 33.59199999999999V38.47599999999999H147.273V33.129999999999995Q147.273 28.83999999999999 143.64299999999997 28.83999999999999Q140.01299999999998 28.83999999999999 140.01299999999998 33.129999999999995V58.93599999999999Q140.01299999999998 63.16 143.64299999999997 63.16Q147.273 63.16 147.273 58.93599999999999V51.873999999999995H154.137V58.407999999999994Q154.137 63.81999999999999 151.398 66.78999999999999Q148.659 69.75999999999999 143.445 69.75999999999999Q138.231 69.75999999999999 135.492 66.78999999999999Q132.753 63.81999999999999 132.753 58.407999999999994Z" fill="#FFFFFF" stroke="#0C2340" stroke-width="2.6" stroke-linejoin="round" paint-order="stroke"/></svg>
+    <span class="wordmark">THE CHUTE</span>
+    <span class="season" id="seasonLabel"></span>
+  </div>
+  <div class="scroll pad" id="homeBody"></div>
+  <div class="foot">
+    <div class="seg">
+      <button type="button" id="goRoster">Roster</button>
+      <button type="button" id="goNewMeet">Add meet</button>
     </div>
   </div>
-  <div class="foot"><button class="primary" id="toArmed">Set up race</button></div>
+</section>
+
+<!-- MEET -->
+<section class="screen" id="meet">
+  <div class="bar"><button class="linkbtn" id="meetBack">Home</button><button class="linkbtn" id="meetDelete">Delete</button></div>
+  <div class="scroll pad">
+    <div class="field">
+      <label for="mname">Meet</label>
+      <input type="text" id="mname" placeholder="Chamblee Invitational" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="mdate">Date</label>
+      <input type="date" id="mdate">
+    </div>
+    <div class="field">
+      <label for="mvenue">Venue</label>
+      <input type="text" id="mvenue" placeholder="Murphey Candler Park" autocomplete="off">
+    </div>
+    <div class="hint">Every meet holds a girls race and a boys race. Each keeps its own clock and its own results.</div>
+  </div>
+  <div class="foot"><button class="primary" id="meetSave">Save meet</button></div>
 </section>
 
 <!-- ROSTER -->
@@ -308,6 +350,10 @@ pre.out{
   <div class="bar"><h1>Roster</h1><button class="linkbtn" id="rosterDone">Done</button></div>
   <div class="scroll pad">
     <p class="lede">Loaded once and reused for every race. Name then grade, listed roughly fastest first. After the first race the picker reorders itself by actual finish times.</p>
+    <div class="field">
+      <label for="team">Your team</label>
+      <input type="text" id="team" placeholder="Peachtree MS" value="Peachtree MS" autocomplete="off">
+    </div>
     <div class="field">
       <label for="rosterG">Girls, one per line, fastest first</label>
       <textarea id="rosterG" spellcheck="false" autocapitalize="words" placeholder="Sarah Jones, 8&#10;Ava Miller, 7&#10;Maya Patel, 6"></textarea>
@@ -383,12 +429,69 @@ pre.out{
 (function(){
 'use strict';
 
-var BUILD='b4';
+var BUILD='b10';
 var KEY='chute.v1';
+var SKEY='chute.season.v1';
+
+/* Mirrors supabase/migrations/0001_init.sql: meets hold races, races hold
+   finishes, and every finish carries a client_id so the eventual sync can
+   retry a lost POST without duplicating a runner. Nothing here needs the
+   network; Supabase drains this later without the UI changing. */
+var SEASON=null;
+function uid(){
+  if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return 'x'+Date.now().toString(36)+Math.random().toString(36).slice(2,10);
+}
+function loadSeason(){
+  try{ SEASON=JSON.parse(localStorage.getItem(SKEY)||'null'); }catch(e){ SEASON=null; }
+  if(!SEASON || typeof SEASON!=='object') SEASON={meets:[]};
+  if(!Array.isArray(SEASON.meets)) SEASON.meets=[];
+  return SEASON;
+}
+function saveSeason(){ try{ localStorage.setItem(SKEY,JSON.stringify(SEASON)); }catch(e){} }
+function addMeet(name,date,venue){
+  var m={id:uid(), name:name, date:date, venue:venue||'', races:[
+    {id:uid(), division:'Girls', t0Wall:null, endedMs:null, fin:[]},
+    {id:uid(), division:'Boys',  t0Wall:null, endedMs:null, fin:[]}
+  ]};
+  SEASON.meets.push(m); saveSeason(); return m;
+}
+function findMeet(id){
+  for(var i=0;i<SEASON.meets.length;i++) if(SEASON.meets[i].id===id) return SEASON.meets[i];
+  return null;
+}
+function findRace(mid,rid){
+  var m=findMeet(mid); if(!m) return null;
+  for(var i=0;i<m.races.length;i++) if(m.races[i].id===rid) return {meet:m,race:m.races[i]};
+  return null;
+}
+function raceState(r){
+  if(r.t0Wall==null) return 'new';
+  if(r.endedMs==null) return 'live';
+  return 'done';
+}
+/* Team score from stored finishes, without needing the race loaded. */
+function scoreOf(r){
+  var ours=[];
+  (r.fin||[]).forEach(function(f,i){ if(f.h) ours.push(i+1); });
+  if(ours.length<5) return null;
+  return ours.slice(0,5).reduce(function(a,b){return a+b;},0);
+}
+function meetsSorted(){
+  return SEASON.meets.slice().sort(function(a,b){
+    return (a.date||'').localeCompare(b.date||'');
+  });
+}
 var S=null, raf=null, wake=null, freshIdx=-1, sheetPlace=-1;
 
 /* ---------- storage ---------- */
-function save(){ try{ localStorage.setItem(KEY,JSON.stringify(S)); }catch(e){} }
+function save(){
+  try{ localStorage.setItem(KEY,JSON.stringify(S)); }catch(e){}
+  if(S && S.meetId){
+    var f=findRace(S.meetId,S.raceId);
+    if(f){ f.race.t0Wall=S.t0Wall; f.race.endedMs=S.endedMs; f.race.fin=S.fin; saveSeason(); }
+  }
+}
 function load(){
   try{ var r=localStorage.getItem(KEY); return r?JSON.parse(r):null; }catch(e){ return null; }
 }
@@ -416,7 +519,8 @@ function $(id){ return document.getElementById(id); }
 function show(id){
   var all=document.querySelectorAll('.screen');
   for(var i=0;i<all.length;i++) all[i].classList.toggle('on', all[i].id===id);
-  if(S && id!=='rosterEdit' && id!=='setup') { S.screen=id; save(); }
+  if(S && id!=='rosterEdit' && id!=='home' && id!=='meet') { S.screen=id; save(); }
+  if(id==='home'){ renderHome(); hintRoster(); }
   if(id==='timing') startClock(); else stopClock();
   if(id==='recon'){
     renderRecon();
@@ -520,12 +624,46 @@ function byExpected(list){
   });
 }
 
-function newRace(name,date,division,team,roster){
+var editingMeet=null;
+function editMeet(id){
+  editingMeet=id;
+  var m=id?findMeet(id):null;
+  $('mname').value=m?m.name:'';
+  $('mdate').value=m?m.date:todayStr();
+  $('mvenue').value=m?m.venue:'';
+  $('meetDelete').style.display=m?'':'none';
+  show('meet');
+}
+function commitMeet(){
+  var nm=$('mname').value.trim()||'Meet';
+  var dt=$('mdate').value||todayStr();
+  var vn=$('mvenue').value.trim();
+  if(editingMeet){
+    var m=findMeet(editingMeet);
+    if(m){ m.name=nm; m.date=dt; m.venue=vn; saveSeason(); }
+  } else addMeet(nm,dt,vn);
+  editingMeet=null;
+  show('home');
+}
+function openRace(mid,rid){
+  var f=findRace(mid,rid); if(!f) return;
+  var r=f.race;
   S={
-    name:name, date:date, division:division, team:team, roster:roster,
-    t0Wall:null, t0Mono:null, fin:[], screen:'armed'
+    meetId:mid, raceId:rid,
+    name:f.meet.name+', '+r.division,
+    date:f.meet.date, division:r.division,
+    team:txt(TKEY)||'Peachtree MS',
+    roster:buildRoster(),
+    t0Wall:r.t0Wall, t0Mono:null, endedMs:(r.endedMs===undefined?null:r.endedMs),
+    fin:r.fin||[], screen:'armed'
   };
+  if(S.t0Wall!=null) S.t0Mono = now() - (Date.now()-S.t0Wall);
+  $('tapHome').textContent=S.team+' Finisher';
+  $('timeName').textContent=S.name;
   save();
+  if(raceState(r)==='done') show('results');
+  else if(raceState(r)==='live'){ keepAwake(); show('timing'); renderChute(); renderCount(); }
+  else show('armed');
 }
 function startRace(){
   S.t0Wall=Date.now(); S.t0Mono=now(); S.fin=[]; S.endedMs=null;
@@ -537,7 +675,7 @@ function startRace(){
 function record(runnerId,home){
   if(S.t0Mono==null || S.endedMs!=null) return;
   var ms=elapsed();
-  S.fin.push({ms:ms, r:(runnerId==null?null:runnerId), h:(runnerId!=null||home===true)});
+  S.fin.push({ms:ms, r:(runnerId==null?null:runnerId), h:(runnerId!=null||home===true), cid:uid()});
   save();
   freshIdx=S.fin.length-1;
   if(navigator.vibrate) try{ navigator.vibrate(home||runnerId!=null?[14,30,14]:18); }catch(e){}
@@ -560,6 +698,129 @@ function isTaken(id){
 }
 function ourCount(){
   var n=0; for(var i=0;i<S.fin.length;i++) if(S.fin[i].h) n++; return n;
+}
+
+/* ---------- home ---------- */
+var showPast=false;
+function renderHome(){
+  var b=$('homeBody'); b.innerHTML='';
+  var today=todayStr(), ms=meetsSorted();
+  $('seasonLabel').textContent=today.slice(0,4);
+
+  if(!ms.length){ b.appendChild(emptyState()); return; }
+  // One meet gets promoted out of the list: today's if there is one,
+  // otherwise the next upcoming, otherwise the most recent.
+  var hero=null, isToday=false;
+  for(var i=0;i<ms.length;i++) if(ms[i].date===today){ hero=ms[i]; isToday=true; break; }
+  if(!hero) for(var j=0;j<ms.length;j++) if(ms[j].date>today){ hero=ms[j]; break; }
+  if(!hero) hero=ms[ms.length-1];
+
+  b.appendChild(heroCard(hero,isToday,today));
+
+  var upcoming=ms.filter(function(m){ return m!==hero && m.date>=today; });
+  var past=ms.filter(function(m){ return m!==hero && m.date<today; }).reverse();
+
+  if(upcoming.length){
+    b.appendChild(sect('COMING UP'));
+    upcoming.forEach(function(m){ b.appendChild(meetRow(m)); });
+  }
+  if(past.length){
+    if(showPast){
+      b.appendChild(sect('EARLIER'));
+      past.forEach(function(m){ b.appendChild(meetRow(m)); });
+    } else {
+      var a=document.createElement('button');
+      a.className='morelink';
+      a.textContent='Past results, '+past.length+(past.length===1?' meet':' meets');
+      a.addEventListener('click',function(){ showPast=true; renderHome(); });
+      b.appendChild(a);
+    }
+  }
+}
+function sect(t){ var d=document.createElement('p'); d.className='sect'; d.textContent=t; return d; }
+
+/* The mark has no room in a 26px bar, so the empty screen is where it lives. */
+function bigMark(h){
+  var m=document.querySelector('#home .mark');
+  if(!m) return '';
+  var c=m.cloneNode(true);
+  c.removeAttribute('class');
+  c.setAttribute('style','height:'+h+'px;width:auto');
+  return c.outerHTML;
+}
+function emptyState(){
+  var runners=parseList(txt(RKEY_G),'F').length+parseList(txt(RKEY_B),'M').length;
+  var d=document.createElement('div');
+  d.className='es';
+  if(!runners){
+    d.innerHTML=bigMark(58)+
+      '<h2>Start with your roster</h2>'+
+      '<p>Names and grades, once for the season. Meets come next.</p>'+
+      '<button id="esGo">Open roster</button>';
+  } else {
+    d.innerHTML=bigMark(58)+
+      '<h2>Add your first meet</h2>'+
+      '<p>Every meet gets a girls race and a boys race, each with its own clock.</p>'+
+      '<button id="esGo">Add a meet</button>';
+  }
+  var go=d.querySelector('#esGo');
+  go.addEventListener('click', runners ? function(){ editMeet(null); }
+                                       : function(){ show('rosterEdit'); });
+  return d;
+}
+
+function heroCard(m,isToday,today){
+  var d=document.createElement('div');
+  d.className='hero'+(isToday?'':' quiet');
+  var tag = isToday ? 'TODAY'
+          : (m.date>today ? 'NEXT UP' : 'MOST RECENT');
+  var sub = [fmtDate(m.date,true), m.venue].filter(Boolean).join(' \u00b7 ');
+  d.innerHTML='<div class="hero-tag">'+tag+'</div>'+
+    '<div class="hero-name">'+esc(m.name)+'</div>'+
+    '<div class="hero-sub">'+esc(sub)+'</div>';
+  m.races.forEach(function(r){
+    d.appendChild(raceRow(m,r));
+  });
+  var edit=document.createElement('button');
+  edit.className='morelink'; edit.style.borderBottom='none'; edit.style.paddingBottom='0';
+  edit.textContent='Edit meet';
+  edit.addEventListener('click',function(){ editMeet(m.id); });
+  d.appendChild(edit);
+  return d;
+}
+
+function raceRow(m,r){
+  var st=raceState(r), row=document.createElement('div');
+  row.className='rrace';
+  var n=(r.fin||[]).length, ours=(r.fin||[]).filter(function(f){return f.h;}).length;
+  var sub, label, ghost=false;
+  if(st==='new'){ sub='Not started'; label='Start'; }
+  else if(st==='live'){ sub=n+' in, '+ours+' ours'; label='Resume'; }
+  else {
+    var sc=scoreOf(r);
+    sub = (sc!=null? 'Team score '+sc : ours+' finishers, no score') + ' \u00b7 '+n+' in field';
+    label='Results'; ghost=true;
+  }
+  row.innerHTML='<div><div class="lbl">'+esc(r.division)+'</div><div class="st">'+esc(sub)+'</div></div>';
+  var btn=document.createElement('button');
+  btn.className='rbtn'+(ghost?' ghost':'');
+  btn.textContent=label;
+  btn.addEventListener('click',function(){ openRace(m.id,r.id); });
+  row.appendChild(btn);
+  return row;
+}
+
+function meetRow(m){
+  var row=document.createElement('button');
+  row.className='mrow';
+  var scores=m.races.map(scoreOf).filter(function(x){return x!=null;});
+  var anyRun=m.races.some(function(r){ return raceState(r)!=='new'; });
+  var tag = scores.length ? scores.join(' / ')+' pts' : (anyRun?'In progress':'Set up');
+  row.innerHTML='<span class="md">'+esc(fmtDate(m.date))+'</span>'+
+    '<span class="mn">'+esc(m.name)+'</span>'+
+    '<span class="mt'+(scores.length?' scored':'')+'">'+esc(tag)+'</span>';
+  row.addEventListener('click',function(){ editMeet(m.id); });
+  return row;
 }
 
 /* ---------- renders ---------- */
@@ -713,13 +974,13 @@ function renderResults(){
      '<button id="copyChat">Copy for chat</button>'+
      '<button id="copyCsv">Copy CSV</button></div>';
   h+='<div class="sect">Full field</div><pre class="out">'+esc(buildCsv())+'</pre>';
-  h+='<div class="copyrow" style="padding-top:0"><button id="doneBtn">Done, back to setup</button></div>';
+  h+='<div class="copyrow" style="padding-top:0"><button id="doneBtn">Done, back to home</button></div>';
   h+='<div class="sect" style="padding-bottom:18px">Build '+BUILD+'</div>';
 
   $('resultBody').innerHTML=h;
   $('copyChat').addEventListener('click',function(){ copyOut(buildChat(), this); });
   $('copyCsv').addEventListener('click',function(){ copyOut(buildCsv(), this); });
-  $('doneBtn').addEventListener('click',function(){ discardRace(this); });
+  $('doneBtn').addEventListener('click',function(){ show('home'); });
 }
 
 function buildCsv(){
@@ -792,13 +1053,6 @@ function esc(s){
 /* ---------- wiring ---------- */
 var RKEY_G='chute.roster.girls.v1', RKEY_B='chute.roster.boys.v1';
 var TKEY='chute.team.v1', HKEY='chute.history.v1';
-var gender='Girls';
-$('seg').addEventListener('click',function(e){
-  var b=e.target.closest('button'); if(!b) return;
-  gender=b.dataset.g;
-  [].forEach.call(this.children,function(x){ x.setAttribute('aria-pressed', String(x===b)); });
-  hintRoster();
-});
 
 function sideHint(list,el){
   if(!list.length){ el.className='hint'; el.textContent='Not loaded.'; return; }
@@ -815,20 +1069,6 @@ function sideHint(list,el){
 function hintRoster(){
   var g=parseList($('rosterG').value,'F'), b=parseList($('rosterB').value,'M');
   sideHint(g,$('hintG')); sideHint(b,$('hintB'));
-  renderRosterCard(g,b);
-}
-function renderRosterCard(g,b){
-  g=g||parseList($('rosterG').value,'F'); b=b||parseList($('rosterB').value,'M');
-  var main=$('rosterSummary'), sub=$('rosterAvail');
-  if(!g.length && !b.length){
-    main.className='card-main empty';
-    main.textContent='No roster loaded';
-    sub.textContent='Tap to load it once, it stays for the season';
-    return;
-  }
-  main.className='card-main';
-  main.textContent=g.length+' girls, '+b.length+' boys';
-  sub.textContent=(gender==='Girls'?g.length:b.length)+' in the '+gender.toLowerCase()+' race. Tap to edit.';
 }
 $('rosterG').addEventListener('input',function(){
   hintRoster();
@@ -842,17 +1082,27 @@ $('team').addEventListener('input',function(){
   try{ localStorage.setItem(TKEY,this.value); }catch(e){}
 });
 
-$('toArmed').addEventListener('click',function(){
-  var nm=$('rname').value.trim()||'Race';
-  var tm=$('team').value.trim()||'Ours';
-  var dt=$('rdate').value||todayStr();
-  newRace(nm+', '+gender, dt, gender, tm, buildRoster());
-  $('tapHome').textContent=tm+' Finisher';
-  show('armed');
+$('goRoster').addEventListener('click',function(){ show('rosterEdit'); });
+$('goNewMeet').addEventListener('click',function(){ editMeet(null); });
+$('meetBack').addEventListener('click',function(){ editingMeet=null; show('home'); });
+$('meetSave').addEventListener('click',commitMeet);
+$('meetDelete').addEventListener('click',function(){
+  var b=this;
+  if(armDiscard!==b){
+    armDiscard=b; armLabel=b.textContent; b.textContent='Tap again';
+    setTimeout(function(){ if(armDiscard===b){ armDiscard=null; b.textContent=armLabel; } },4000);
+    return;
+  }
+  armDiscard=null; b.textContent=armLabel;
+  if(editingMeet){
+    SEASON.meets=SEASON.meets.filter(function(m){ return m.id!==editingMeet; });
+    saveSeason();
+    if(S && S.meetId===editingMeet){ S=null; try{localStorage.removeItem(KEY);}catch(e){} }
+  }
+  editingMeet=null; show('home');
 });
-$('openRoster').addEventListener('click',function(){ show('rosterEdit'); });
-$('rosterDone').addEventListener('click',function(){ show('setup'); });
-$('backSetup').addEventListener('click',function(){ show('setup'); });
+$('rosterDone').addEventListener('click',function(){ show('home'); });
+$('backSetup').addEventListener('click',function(){ show('home'); });
 $('gun').addEventListener('click',startRace);
 
 $('tap').addEventListener('click',function(){ record(null,false); });
@@ -866,27 +1116,27 @@ $('backTiming').addEventListener('click',function(){
 $('toResults').addEventListener('click',function(){ show('results'); });
 $('backRecon').addEventListener('click',function(){ show('recon'); });
 var armDiscard=null, armLabel='';
-function discardRace(b){
+function armTwoTap(b,confirmText,act){
   if(armDiscard!==b){
-    armDiscard=b; armLabel=b.textContent; b.textContent='Tap again to discard';
+    armDiscard=b; armLabel=b.textContent; b.textContent=confirmText;
     setTimeout(function(){ if(armDiscard===b){ armDiscard=null; b.textContent=armLabel; } },4000);
     return;
   }
-  armDiscard=null; b.textContent=armLabel;
-  try{ localStorage.removeItem(KEY); }catch(e){}
-  S=null; show('setup'); hintRoster();
-  $('rdate').value=todayStr();
-  $('setupRestore').textContent='';
+  armDiscard=null; b.textContent=armLabel; act();
 }
-$('newRace').addEventListener('click',function(){ discardRace(this); });
-$('segOurs').addEventListener('click',function(){ setRecon(false); });
-$('segAll').addEventListener('click',function(){ setRecon(true); });
-function setRecon(all){
-  reconAll=all;
-  $('segOurs').setAttribute('aria-pressed',String(!all));
-  $('segAll').setAttribute('aria-pressed',String(all));
-  renderRecon();
-}
+$('meetDelete').addEventListener('click',function(){
+  armTwoTap(this,'Tap again',function(){
+    if(editingMeet){
+      SEASON.meets=SEASON.meets.filter(function(m){ return m.id!==editingMeet; });
+      saveSeason();
+      if(S && S.meetId===editingMeet){ S=null; try{localStorage.removeItem(KEY);}catch(e){} }
+    }
+    editingMeet=null; show('home');
+  });
+});
+$('rosterDone').addEventListener('click',function(){ show('home'); });
+$('backSetup').addEventListener('click',function(){ show('home'); });
+$('newRace').addEventListener('click',function(){ show('home'); });
 $('sheetClose').addEventListener('click',function(){ $('sheet').classList.remove('on'); });
 $('sheet').addEventListener('click',function(e){ if(e.target===this) this.classList.remove('on'); });
 
@@ -903,15 +1153,19 @@ document.addEventListener('keydown',function(e){
    The Turn holds its splash until auth and data land. This app loads nothing,
    so the splash covers no work: short floor, tap to skip, once per session. */
 (function splash(){
-  // Animation settles at ~1.38s. SPLASH_MS is total time on screen, so the
+  // Animation settles at ~1.63s. SPLASH_MS is total time on screen, so the
   // difference is how long the finished mark rests before it leaves. Below
   // about 1.8s it reads as a flash rather than a greeting.
   var SPLASH_MS=3200;
+  // Greet on a genuine cold start, stay quiet when you are bouncing in and out
+  // during a meet. localStorage, not sessionStorage, so the window survives the
+  // app being swiped away between races.
+  var SPLASH_QUIET_MIN=30;
   var el=$('splash'); if(!el) return;
-  var seen=false;
-  try{ seen=sessionStorage.getItem('chute.splash')==='1'; }catch(e){}
-  if(seen){ el.remove(); return; }
-  try{ sessionStorage.setItem('chute.splash','1'); }catch(e){}
+  var last=0;
+  try{ last=parseInt(localStorage.getItem('chute.splash.at')||'0',10)||0; }catch(e){}
+  if(Date.now()-last < SPLASH_QUIET_MIN*60000){ el.remove(); return; }
+  try{ localStorage.setItem('chute.splash.at',String(Date.now())); }catch(e){}
   var done=false;
   function out(){
     if(done) return; done=true;
@@ -923,14 +1177,13 @@ document.addEventListener('keydown',function(e){
 })();
 
 /* ---------- restore ---------- */
-(function restore(){
+(function boot(){
   loadHist();
-  $('rdate').value=todayStr();
+  loadSeason();
   try{
     var g=localStorage.getItem(RKEY_G); if(g) $('rosterG').value=g;
     var b=localStorage.getItem(RKEY_B); if(b) $('rosterB').value=b;
     var ts=localStorage.getItem(TKEY); if(ts) $('team').value=ts;
-    // one time migration from the single combined roster
     var old=localStorage.getItem('chute.roster.v1');
     if(old && !g && !b){
       var og=[], ob=[];
@@ -948,35 +1201,29 @@ document.addEventListener('keydown',function(e){
     }
   }catch(e){}
   hintRoster();
+
   var prev=load();
-  if(prev && prev.name){
-    S=prev;
-    if(!S.team) S.team='Peachtree MS';
-    if(!S.division) S.division=/Boys$/.test(S.name||'')?'Boys':'Girls';
-    if(!S.date) S.date=todayStr();
-    $('rdate').value=S.date;
-    if(S.roster) S.roster.forEach(function(r,i){
-      if(r.g==null) r.g=(S.division==='Boys'?'M':'F');
-      if(r.ord===undefined) r.ord=i;
-    });
-    S.fin.forEach(function(f){ if(f.h===undefined) f.h=(f.r!=null); });
-    if(S.endedMs===undefined) S.endedMs=null;
-    if(S.t0Wall!=null){
-      // rebuild the monotonic anchor from wall time across the reload
-      S.t0Mono = now() - (Date.now()-S.t0Wall);
-    }
-    $('rname').value=S.name.replace(/, (Girls|Boys)$/,'');
-    $('team').value=S.team;
-    $('tapHome').textContent=S.team+' Finisher';
-    gender=S.division;
-    [].forEach.call($('seg').children,function(x){
-      x.setAttribute('aria-pressed', String(x.dataset.g===gender));
-    });
-    $('timeName').textContent=S.name;
-    if(S.screen==='timing'){ keepAwake(); show('timing'); renderChute(); renderCount(); return; }
-    show(S.screen||'armed');
-    $('setupRestore').textContent='';
+
+  // A pre-season loose race predates meets. Fold it into one so nothing is lost.
+  if(prev && prev.name && !prev.meetId && (prev.fin||[]).length){
+    var m=addMeet(prev.name.replace(/, (Girls|Boys)$/,''), prev.date||todayStr(), '');
+    var div=/Boys$/.test(prev.name)?'Boys':'Girls';
+    var r=m.races.filter(function(x){ return x.division===div; })[0];
+    r.t0Wall=prev.t0Wall; r.endedMs=(prev.endedMs===undefined?null:prev.endedMs);
+    r.fin=(prev.fin||[]).map(function(f){ if(!f.cid) f.cid=uid(); return f; });
+    saveSeason();
+    try{ localStorage.removeItem(KEY); }catch(e){}
+    prev=null;
   }
+
+  // Resume straight into a race that is still on the clock; otherwise home.
+  if(prev && prev.meetId){
+    var f=findRace(prev.meetId,prev.raceId);
+    if(f && raceState(f.race)==='live'){ openRace(prev.meetId,prev.raceId); return; }
+  }
+  try{ localStorage.removeItem(KEY); }catch(e){}
+  S=null;
+  show('home');
 })();
 })();
 </script>
