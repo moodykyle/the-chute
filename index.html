@@ -429,7 +429,7 @@ pre.out{
 (function(){
 'use strict';
 
-var BUILD='b10';
+var BUILD='v1.1';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1086,23 +1086,6 @@ $('goRoster').addEventListener('click',function(){ show('rosterEdit'); });
 $('goNewMeet').addEventListener('click',function(){ editMeet(null); });
 $('meetBack').addEventListener('click',function(){ editingMeet=null; show('home'); });
 $('meetSave').addEventListener('click',commitMeet);
-$('meetDelete').addEventListener('click',function(){
-  var b=this;
-  if(armDiscard!==b){
-    armDiscard=b; armLabel=b.textContent; b.textContent='Tap again';
-    setTimeout(function(){ if(armDiscard===b){ armDiscard=null; b.textContent=armLabel; } },4000);
-    return;
-  }
-  armDiscard=null; b.textContent=armLabel;
-  if(editingMeet){
-    SEASON.meets=SEASON.meets.filter(function(m){ return m.id!==editingMeet; });
-    saveSeason();
-    if(S && S.meetId===editingMeet){ S=null; try{localStorage.removeItem(KEY);}catch(e){} }
-  }
-  editingMeet=null; show('home');
-});
-$('rosterDone').addEventListener('click',function(){ show('home'); });
-$('backSetup').addEventListener('click',function(){ show('home'); });
 $('gun').addEventListener('click',startRace);
 
 $('tap').addEventListener('click',function(){ record(null,false); });
@@ -1125,7 +1108,7 @@ function armTwoTap(b,confirmText,act){
   armDiscard=null; b.textContent=armLabel; act();
 }
 $('meetDelete').addEventListener('click',function(){
-  armTwoTap(this,'Tap again',function(){
+  armTwoTap(this,'Tap again to delete',function(){
     if(editingMeet){
       SEASON.meets=SEASON.meets.filter(function(m){ return m.id!==editingMeet; });
       saveSeason();
