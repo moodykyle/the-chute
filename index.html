@@ -175,6 +175,7 @@ input[type=date]{min-height:47px;-webkit-appearance:none;appearance:none}
   background:var(--chalk);font-size:15px;font-weight:600;
 }
 .copyrow button:active{background:var(--red);border-color:var(--red);color:#fff}
+.copyrow button.go{background:var(--red);border-color:var(--red);color:#fff}
 .divider{padding:13px 16px 7px;font-size:13px;color:var(--ink-soft);border-top:1px solid var(--rule)}
 .seg{display:flex;gap:8px}
 .seg button{
@@ -301,6 +302,11 @@ input.code{
 .sheet-in .scroll{scroll-snap-type:y proximity}
 .rrow.home .pl{color:var(--tape)}
 .rrow.home .who{color:var(--ink)}
+/* The unnamed places are the work left to do, so they carry the accent and
+   the named ones go quiet. Scoped to .rrow: during timing every home finisher
+   is pending by definition and colouring them all would be noise. */
+.rrow .who.pending{color:var(--tape)}
+.rrow.todo{box-shadow:inset 3px 0 0 var(--tape)}
 
 .score{padding:22px 16px;border-bottom:1px solid var(--rule)}
 .score .big{font-size:66px;font-weight:700;line-height:1;letter-spacing:-.03em}
@@ -325,11 +331,18 @@ pre.out{
   padding-bottom:env(safe-area-inset-bottom);
 }
 .sheet-in .bar{border-bottom:1px solid var(--rule)}
-.opt{width:100%;padding:17px 16px;border-bottom:1px solid var(--rule);text-align:left;font-size:18px}
+.opt{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:baseline;
+  width:100%;padding:12px 16px;border-bottom:1px solid var(--rule);text-align:left;font-size:16px;
+}
 .opt:active{background:var(--home-wash)}
 .opt.home{color:var(--ink);font-weight:600}
-
-.opt small{display:block;font-size:13px;color:var(--ink-soft);font-weight:400}
+/* The first two choices are not people. Tinting them keeps a thumb working
+   down a list of names from landing on one by muscle memory. */
+.opt.meta{background:var(--chalk);font-weight:500}
+.opt .on{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.opt .og{font-size:13px;color:var(--ink-soft);font-weight:400;white-space:nowrap}
+.opt small{grid-column:1 / -1;font-size:13px;color:var(--ink-soft);font-weight:400}
 </style>
 </head>
 <body>
@@ -396,7 +409,11 @@ pre.out{
   <div class="bar"><h1>Roster</h1><button class="linkbtn" id="rosterDone">Done</button></div>
   <div class="scroll pad">
     <p class="lede">Loaded once and reused for every race. Name then grade, listed roughly fastest first. After the first race the picker reorders itself by actual finish times.</p>
-    <div class="field">
+    <div class="btnrow" style="margin-bottom:6px">
+      <button type="button" id="rosterPull" class="go">Load roster from database</button>
+    </div>
+    <div class="hint" id="rosterPullMsg"></div>
+    <div class="field" style="margin-top:20px">
       <label for="team">Your team</label>
       <input type="text" id="team" placeholder="Peachtree MS" value="Peachtree MS" autocomplete="off">
     </div>
@@ -532,8 +549,8 @@ pre.out{
 <!-- RESULTS -->
 <section class="screen" id="results">
   <div class="bar">
+    <button class="linkbtn" id="resHome">Back to home</button>
     <button class="linkbtn" id="backRecon">Fix names</button>
-    <button class="linkbtn" id="newRace">New race</button>
   </div>
   <div class="scroll" id="resultBody"></div>
 </section>
@@ -552,7 +569,7 @@ pre.out{
 (function(){
 'use strict';
 
-var BUILD='v2.1';
+var BUILD='v3.1';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -644,6 +661,7 @@ function show(id){
   for(var i=0;i<all.length;i++) all[i].classList.toggle('on', all[i].id===id);
   if(S && ['rosterEdit','home','meet','backup','signin','settings','account','about'].indexOf(id)<0) { S.screen=id; save(); }
   if(id==='home'){ renderHome(); hintRoster(); }
+  if(id==='rosterEdit') renderRosterPull();
   if(id==='backup') renderBackup();
   if(id==='signin') renderSignin();
   if(id==='settings') renderSettings();
@@ -930,6 +948,112 @@ function ensureFresh(){
   return refreshSession().then(function(){ return signedIn(); });
 }
 
+/* ---------- roster from the database ----------
+   Deliberately narrow. The read fills the same two textareas you would have
+   typed into and stops there. buildRoster() still hands out integer ids,
+   finishes still store integers in f.r, and chute.history.v1 is never
+   touched. The view's last_ms/last_place columns are not even selected,
+   because they are NULL for every runner and reading them would scramble the
+   picker. The athlete_id migration and the history merge are still ahead of
+   us; this buys back the typing without touching identity. */
+var ROSTER_SELECT='runner,first_name,last_name,division,grade,sort_seed';
+function rosterPath(){
+  return '/rest/v1/roster_season?select='+ROSTER_SELECT+
+         '&season_year=eq.'+todayStr().slice(0,4)+
+         '&active=eq.true'+
+         '&order=division.asc,sort_seed.asc.nullslast';
+}
+/* One line per runner in exactly the shape parseList already reads, so the
+   pulled roster and a typed one are indistinguishable downstream. */
+function rosterLines(rows,code){
+  return rows.filter(function(r){ return r.division===code; })
+    .map(function(r){
+      var nm=String(r.runner||((r.first_name||'')+' '+(r.last_name||''))).trim();
+      var g=parseInt(r.grade,10);
+      return (g>=5&&g<=8) ? nm+', '+g : nm;
+    })
+    .filter(function(s){ return s.length; })
+    .join('\n');
+}
+function rosterNames(){
+  return parseList(txt(RKEY_G),'F').concat(parseList(txt(RKEY_B),'M'))
+    .map(function(r){ return r.name; });
+}
+/* buildRoster() ids are positions in this list. If the list reorders under a
+   finish that already carries an id, that finish silently renames. */
+function namedFinishCount(){
+  var n=0;
+  SEASON.meets.forEach(function(m){
+    (m.races||[]).forEach(function(r){
+      (r.fin||[]).forEach(function(f){ if(f.r!=null) n++; });
+    });
+  });
+  return n;
+}
+var pullBusy=false;
+function rosterPullMsg(text,warn){
+  var el=$('rosterPullMsg');
+  el.className='hint'+(warn?'':' good');
+  el.textContent=text;
+}
+/* The button carries its own state. Signed-in-ness is already on the Settings
+   row above; repeating it here explained nothing. */
+function renderRosterPull(){
+  $('rosterPull').textContent = signedIn()
+    ? 'Load roster from database'
+    : 'Sign in to load the roster';
+  rosterPullMsg('',false);
+}
+function writeRoster(g,b,n){
+  try{ localStorage.setItem(RKEY_G,g); localStorage.setItem(RKEY_B,b); }catch(e){}
+  $('rosterG').value=g; $('rosterB').value=b;
+  hintRoster();
+  rosterPullMsg(n+' runners loaded from the database.',false);
+}
+function applyPulledRoster(rows){
+  var year=todayStr().slice(0,4);
+  var g=rosterLines(rows,'F'), b=rosterLines(rows,'M');
+  if(!g && !b){ rosterPullMsg('No active runners found for '+year+'.',true); return; }
+  var incoming=parseList(g,'F').concat(parseList(b,'M')).map(function(r){ return r.name; });
+  var current=rosterNames();
+  var same=incoming.length===current.length && incoming.every(function(n,i){ return n===current[i]; });
+  if(same){
+    rosterPullMsg(incoming.length+' runners, already matching what is on this device.',false);
+    return;
+  }
+  /* The one way this read can destroy data: reordering the roster under
+     finishes that already hold a position in it. Refuse rather than warn. */
+  var named=namedFinishCount();
+  if(named && current.length){
+    rosterPullMsg('Not loaded. '+named+' finishes this season are already named and this roster is in a different order, so loading it would rename them. Back up the season first.',true);
+    return;
+  }
+  if(current.length){
+    var gg=g, bb=b, nn=incoming.length;
+    armTwoTap($('rosterPull'),'Tap again to replace '+current.length+' with '+nn,function(){
+      writeRoster(gg,bb,nn);
+    });
+    rosterPullMsg('This device already has '+current.length+' runners. Tapping again replaces them.',true);
+    return;
+  }
+  writeRoster(g,b,incoming.length);
+}
+function pullRoster(){
+  if(pullBusy) return;
+  if(!signedIn()){ backTo='rosterEdit'; show('account'); return; }
+  pullBusy=true;
+  rosterPullMsg('Reading the database...',false);
+  ensureFresh().then(function(ok){
+    if(!ok){ pullBusy=false; rosterPullMsg('That session has expired. Sign in again from Settings.',true); return null; }
+    return sbFetch(rosterPath(),{auth:true}).then(function(res){
+      pullBusy=false;
+      if(res.offline){ rosterPullMsg('No connection. Whatever is already on this device still works.',true); return; }
+      if(!res.ok || !Array.isArray(res.data)){ rosterPullMsg(authMessage(res),true); return; }
+      applyPulledRoster(res.data);
+    });
+  });
+}
+
 /* ---------- sign in screen ---------- */
 var siPhase='email', siEmail='', siUntil=0, siTimer=null, siBusy=false;
 function validEmail(s){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s).trim()); }
@@ -1135,7 +1259,18 @@ function reportHtml(rep){
 }
 
 /* ---------- home ---------- */
-var showPast=false;
+var showDone=false;
+/* A meet is finished when every race in it has been ended. Nothing is marked
+   closed by hand; the races already know. */
+function meetFinished(m){
+  var rs=m.races||[];
+  return rs.length>0 && rs.every(function(r){ return raceState(r)==='done'; });
+}
+/* Race rows live on the promoted card only, so whichever meet holds that slot
+   is the only one you can start. Tapping any meet moves it into the slot.
+   Without this a meet that is not today, not the next one up and not the most
+   recent has no way to be started at all. */
+var pinned=null;
 function renderHome(){
   var b=$('homeBody'); b.innerHTML='';
   var today=todayStr(), ms=meetsSorted();
@@ -1144,31 +1279,51 @@ function renderHome(){
   if(!ms.length){ b.appendChild(emptyState()); return; }
   // One meet gets promoted out of the list: today's if there is one,
   // otherwise the next upcoming, otherwise the most recent.
-  var hero=null, isToday=false;
-  for(var i=0;i<ms.length;i++) if(ms[i].date===today){ hero=ms[i]; isToday=true; break; }
-  if(!hero) for(var j=0;j<ms.length;j++) if(ms[j].date>today){ hero=ms[j]; break; }
-  if(!hero) hero=ms[ms.length-1];
-
-  b.appendChild(heroCard(hero,isToday,today));
-
-  var upcoming=ms.filter(function(m){ return m!==hero && m.date>=today; });
-  var past=ms.filter(function(m){ return m!==hero && m.date<today; }).reverse();
-
-  if(upcoming.length){
-    b.appendChild(sect('COMING UP'));
-    upcoming.forEach(function(m){ b.appendChild(meetRow(m)); });
+  var hero=null, isToday=false, byHand=false;
+  if(pinned){
+    hero=findMeet(pinned);
+    if(hero){ byHand=true; isToday=(hero.date===today); }
+    else pinned=null;
   }
-  if(past.length){
-    if(showPast){
-      b.appendChild(sect('EARLIER'));
-      past.forEach(function(m){ b.appendChild(meetRow(m)); });
+  if(!hero){
+    for(var i=0;i<ms.length;i++) if(ms[i].date===today){ hero=ms[i]; isToday=true; break; }
+    /* skip over meets that are already scored: the next thing to time is the
+       next thing not yet timed, whatever the calendar says */
+    if(!hero) for(var j=0;j<ms.length;j++)
+      if(ms[j].date>today && !meetFinished(ms[j])){ hero=ms[j]; break; }
+    if(!hero) hero=ms[ms.length-1];
+  }
+
+  b.appendChild(heroCard(hero,isToday,today,byHand));
+
+  /* Sectioned by what has happened to a meet, not by where its date falls.
+     A meet scored this morning is finished even though the date has not
+     passed, and putting it under COMING UP is what made this screen read as
+     a shuffle. */
+  var rest=ms.filter(function(m){ return m!==hero; });
+  var coming=rest.filter(function(m){ return !meetFinished(m) && m.date>=today; });
+  var done  =rest.filter(function(m){ return meetFinished(m); }).reverse();
+  var missed=rest.filter(function(m){ return !meetFinished(m) && m.date<today; }).reverse();
+
+  if(coming.length){
+    b.appendChild(sect('COMING UP'));
+    coming.forEach(function(m){ b.appendChild(meetRow(m)); });
+  }
+  if(done.length){
+    if(showDone || done.length<=3){
+      b.appendChild(sect('SCORED'));
+      done.forEach(function(m){ b.appendChild(meetRow(m)); });
     } else {
       var a=document.createElement('button');
       a.className='morelink';
-      a.textContent='Past results, '+past.length+(past.length===1?' meet':' meets');
-      a.addEventListener('click',function(){ showPast=true; renderHome(); });
+      a.textContent='Scored meets, '+done.length;
+      a.addEventListener('click',function(){ showDone=true; renderHome(); });
       b.appendChild(a);
     }
+  }
+  if(missed.length){
+    b.appendChild(sect('NOT TIMED'));
+    missed.forEach(function(m){ b.appendChild(meetRow(m)); });
   }
 }
 function sect(t){ var d=document.createElement('p'); d.className='sect'; d.textContent=t; return d; }
@@ -1203,11 +1358,18 @@ function emptyState(){
   return d;
 }
 
-function heroCard(m,isToday,today){
+function heroCard(m,isToday,today,byHand){
+  var fin=meetFinished(m);
   var d=document.createElement('div');
-  d.className='hero'+(isToday?'':' quiet');
-  var tag = isToday ? 'TODAY'
-          : (m.date>today ? 'NEXT UP' : 'MOST RECENT');
+  /* The red border means "this is the one you are timing". A scored meet is
+     not that, even when it is dated today. */
+  d.className='hero'+((isToday&&!fin)?'':' quiet');
+  /* SCORED beats every date-based label. MOST RECENT is only true when the
+     app chose it; picked by hand it may be any past meet. */
+  var tag = fin ? 'SCORED'
+          : isToday ? 'TODAY'
+          : (m.date>today ? (byHand?'UPCOMING':'NEXT UP')
+                          : (byHand?'EARLIER':'MOST RECENT'));
   var sub = [fmtDate(m.date,true), m.venue].filter(Boolean).join(' \u00b7 ');
   d.innerHTML='<div class="hero-tag">'+tag+'</div>'+
     '<div class="hero-name">'+esc(m.name)+'</div>'+
@@ -1220,6 +1382,16 @@ function heroCard(m,isToday,today){
   edit.textContent='Edit meet';
   edit.addEventListener('click',function(){ editMeet(m.id); });
   d.appendChild(edit);
+  /* Pinning is sticky, so there has to be a way out of it that is not
+     hunting for whichever meet the app would have picked. */
+  if(byHand){
+    var un=document.createElement('button');
+    un.className='morelink'; un.style.borderBottom='none'; un.style.paddingBottom='0';
+    un.style.color='var(--ink-soft)';
+    un.textContent='Show the next meet instead';
+    un.addEventListener('click',function(){ pinned=null; renderHome(); });
+    d.appendChild(un);
+  }
   return d;
 }
 
@@ -1253,7 +1425,9 @@ function meetRow(m){
   row.innerHTML='<span class="md">'+esc(fmtDate(m.date))+'</span>'+
     '<span class="mn">'+esc(m.name)+'</span>'+
     '<span class="mt'+(scores.length?' scored':'')+'">'+esc(tag)+'</span>';
-  row.addEventListener('click',function(){ editMeet(m.id); });
+  /* Promote rather than edit. Edit meet is on the promoted card already, and
+     starting a race is the far more common reason to tap a meet. */
+  row.addEventListener('click',function(){ pinned=m.id; renderHome(); });
   return row;
 }
 
@@ -1280,6 +1454,14 @@ function renderChute(){
 }
 
 var reconAll=false;
+/* Wired for the first time in v2.3. The markup shipped in b5, the handlers
+   never did, so reconAll could only ever be false. */
+function setReconAll(v){
+  reconAll=v;
+  $('segOurs').setAttribute('aria-pressed',String(!v));
+  $('segAll').setAttribute('aria-pressed',String(v));
+  renderRecon();
+}
 function renderRecon(){
   var c=$('reconList'); c.innerHTML='';
   if(!S.fin.length){
@@ -1295,7 +1477,7 @@ function renderRecon(){
     var who = nm ? esc(nm) : (f.h ? 'Tap to name' : 'Field');
     var cls = nm ? '' : (f.h ? ' pending' : ' anon');
     var b=document.createElement('button');
-    b.className='rrow'+(f.h?' home':'');
+    b.className='rrow'+(f.h?' home':'')+(f.h&&!nm?' todo':'');
     b.innerHTML='<span class="pl num">'+(i+1)+'</span>'+
       '<span class="who'+cls+'">'+who+'</span>'+
       '<span class="tm num">'+fmt(f.ms,1)+'</span>';
@@ -1320,11 +1502,11 @@ function openSheet(i){
   $('sheetTitle').textContent='Place '+(i+1)+' \u00b7 '+fmt(S.fin[i].ms,1);
   var l=$('sheetList'); l.innerHTML='';
   var keep=document.createElement('button');
-  keep.className='opt home'; keep.textContent=S.team+', name later';
+  keep.className='opt meta home'; keep.textContent=S.team+', name later';
   keep.addEventListener('click',function(){ assign(null,true); });
   l.appendChild(keep);
   var none=document.createElement('button');
-  none.className='opt'; none.textContent='Not one of ours';
+  none.className='opt meta'; none.textContent='Not one of ours';
   none.addEventListener('click',function(){ assign(null,false); });
   l.appendChild(none);
 
@@ -1338,12 +1520,12 @@ function openSheet(i){
   function addOpt(r){
     var b=document.createElement('button');
     b.className='opt home';
-    var p=priorOf(r), parts=[];
-    if(gradeTag(r)) parts.push(gradeTag(r));
-    if(S.fin[i].r===r.id) parts.push('currently assigned here');
-    else if(p) parts.push((p.date?fmtDate(p.date)+': ':'last race ')+fmt(p.ms,1)+', place '+p.place);
-    var sub=parts.join(', ');
-    b.innerHTML=esc(r.name)+(sub?'<small>'+esc(sub)+'</small>':'');
+    var p=priorOf(r), sub='';
+    if(S.fin[i].r===r.id) sub='currently assigned here';
+    else if(p) sub=(p.date?fmtDate(p.date)+': ':'last race ')+fmt(p.ms,1)+', place '+p.place;
+    b.innerHTML='<span class="on">'+esc(r.name)+'</span>'+
+      '<span class="og">'+esc(gradeTag(r))+'</span>'+
+      (sub?'<small>'+esc(sub)+'</small>':'');
     b.addEventListener('click',function(){ assign(r.id,true); });
     l.appendChild(b);
   }
@@ -1353,13 +1535,30 @@ function openSheet(i){
     d.textContent='Every runner on the roster is already placed.';
     l.appendChild(d);
   }
+  if(here.length){
+    var rd=document.createElement('div');
+    rd.className='divider';
+    rd.textContent=S.division+' roster';
+    l.appendChild(rd);
+  }
   here.forEach(addOpt);
+  /* The other division is an escape hatch for a misfiled runner, not a normal
+     choice. Folded away so a girls race does not end with boys in the list,
+     and so reaching for one is a deliberate act. */
   if(other.length){
-    var h=document.createElement('div');
-    h.className='divider';
-    h.textContent='Other division';
+    var h=document.createElement('button');
+    h.className='opt';
+    h.style.color='var(--ink-soft)';
+    h.textContent='Show '+other.length+' from the other division';
+    h.addEventListener('click',function(){
+      l.removeChild(h);
+      var d=document.createElement('div');
+      d.className='divider';
+      d.textContent='Other division. Check this is really who you mean.';
+      l.appendChild(d);
+      other.forEach(addOpt);
+    });
     l.appendChild(h);
-    other.forEach(addOpt);
   }
   $('sheet').classList.add('on');
 }
@@ -1370,6 +1569,7 @@ function assign(id,home){
   save(); $('sheet').classList.remove('on'); renderRecon();
 }
 
+var resFull=false;
 function renderResults(){
   commitHistory();
   var ours=[];
@@ -1392,43 +1592,90 @@ function renderResults(){
   h+='<div class="note">Places are raw order across the whole field. If any other team ran fewer than five, official scoring removes their runners first and these totals will shift.'+
      (unnamed?' '+unnamed+' of your places still need a name, but the score above is already final.':'')+'</div>';
 
-  h+='<div class="sect">'+ours.length+' '+esc(S.team)+' finishers'+
-     (S.date?' \u00b7 '+esc(fmtDate(S.date,true)):'')+'</div>';
-  ours.forEach(function(r,i){
-    var tags=[];
-    if(r.grade) tags.push(r.grade+'th');
-    if(i>=5) tags.push('displacer');
-    h+='<div class="rrow home"><span class="pl num">'+r.place+'</span>'+
-       '<span class="who'+(r.name?'':' pending')+'">'+(r.name?esc(r.name):'needs a name')+
-       (tags.length?' <small style="color:var(--ink-soft)">'+tags.join(', ')+'</small>':'')+'</span>'+
-       '<span class="tm num">'+fmt(r.ms,3)+'</span></div>';
-  });
+  /* Same toggle as reconcile, so the two screens behave alike. The score
+     above never changes with it: the view switches, the race does not. */
+  h+='<div class="seg2">'+
+     '<button type="button" id="resSegOurs" aria-pressed="'+(!resFull)+'">Ours</button>'+
+     '<button type="button" id="resSegAll" aria-pressed="'+resFull+'">Full field</button></div>';
+
+  var when = S.date?' \u00b7 '+esc(fmtDate(S.date,true)):'';
+  if(resFull){
+    h+='<div class="sect">Full field, '+S.fin.length+
+       (S.fin.length===1?' finisher':' finishers')+when+'</div>';
+    var seen=0;
+    S.fin.forEach(function(f,i){
+      var nm=nameOf(f.r), run=runnerById(f.r), tags=[];
+      if(f.h){
+        seen++;
+        if(run && run.grade) tags.push(run.grade+'th');
+        if(seen>5) tags.push('displacer');
+      }
+      var who = nm ? esc(nm) : (f.h ? 'needs a name' : 'Field');
+      var cls = nm ? '' : (f.h ? ' pending' : ' anon');
+      h+='<div class="rrow'+(f.h?' home':'')+'"><span class="pl num">'+(i+1)+'</span>'+
+         '<span class="who'+cls+'">'+who+
+         (tags.length?' <small style="color:var(--ink-soft)">'+tags.join(', ')+'</small>':'')+'</span>'+
+         '<span class="tm num">'+fmt(f.ms,3)+'</span></div>';
+    });
+  } else {
+    h+='<div class="sect">'+ours.length+' '+esc(S.team)+
+       (ours.length===1?' finisher':' finishers')+when+'</div>';
+    ours.forEach(function(r,i){
+      var tags=[];
+      if(r.grade) tags.push(r.grade+'th');
+      if(i>=5) tags.push('displacer');
+      h+='<div class="rrow home"><span class="pl num">'+r.place+'</span>'+
+         '<span class="who'+(r.name?'':' pending')+'">'+(r.name?esc(r.name):'needs a name')+
+         (tags.length?' <small style="color:var(--ink-soft)">'+tags.join(', ')+'</small>':'')+'</span>'+
+         '<span class="tm num">'+fmt(r.ms,3)+'</span></div>';
+    });
+  }
 
   h+='<div class="copyrow">'+
      '<button id="copyChat">Copy for chat</button>'+
-     '<button id="copyCsv">Copy CSV</button></div>';
-  h+='<div class="sect">Full field</div><pre class="out">'+esc(buildCsv())+'</pre>';
-  h+='<div class="copyrow" style="padding-top:0"><button id="doneBtn">Done, back to home</button></div>';
-  /* The season exists on this phone and nowhere else. Right after scoring is
-     the one moment you are thinking about the race that just happened. */
-  h+='<div class="sect" style="padding-top:0"><button class="morelink" id="resBackup" style="color:var(--tape)">Back up the season</button></div>';
+     '<button id="copyCsv">Copy CSV, '+(resFull?'full field':'ours')+'</button></div>';
   h+='<div class="sect" style="padding-bottom:18px">Build '+BUILD+'</div>';
 
   $('resultBody').innerHTML=h;
   $('copyChat').addEventListener('click',function(){ copyOut(buildChat(), this); });
   $('copyCsv').addEventListener('click',function(){ copyOut(buildCsv(), this); });
-  $('doneBtn').addEventListener('click',function(){ show('home'); });
-  $('resBackup').addEventListener('click',function(){ backTo='results'; show('backup'); });
+  $('resSegOurs').addEventListener('click',function(){ resFull=false; renderResults(); });
+  $('resSegAll').addEventListener('click',function(){ resFull=true; renderResults(); });
 }
 
-function buildCsv(){
-  var out='date,meet,division,place,time,team,runner,grade\n';
+/* Raw places of our finishers, in order. The same rule the results screen
+   scores on, kept in one place so the CSV can never disagree with the screen. */
+function ourPlaces(){
+  var p=[];
+  S.fin.forEach(function(f,i){ if(f.h) p.push(i+1); });
+  return p;
+}
+/* Two blocks rather than one wide table. The meet facts are the same on every
+   row, so repeating them 30 times buried the part you actually read. The
+   first block is the whole scoring summary and does not change with the view.
+
+   `full` follows the toggle on the results screen, so what you copy is what
+   you were looking at. Columns are identical either way, so a sheet built on
+   one paste does not break on the next. Places stay raw field order in both,
+   because a place is a fact about the race, not about the filter. */
+function buildCsv(full){
+  if(full===undefined) full=resFull;
   var meet=S.name.replace(/, (Girls|Boys)$/,'');
+  var p=ourPlaces(), top5=p.slice(0,5), scored=p.length>=5;
+  var out='date,meet,division,team,team_score,scoring_places,our_finishers,field_size\n'+
+    csvCell(S.date||'')+','+csvCell(meet)+','+csvCell(S.division)+','+csvCell(S.team)+','+
+    (scored?top5.reduce(function(a,b){return a+b;},0):'')+','+
+    (scored?top5.join('+'):'')+','+
+    p.length+','+S.fin.length+'\n\n'+
+    'place,time,runner,team,grade,scoring\n';
+  var seen=0;
   S.fin.forEach(function(f,i){
+    var sc='';
+    if(f.h){ seen++; sc = seen<=5 ? 'scorer' : 'displacer'; }
+    if(!full && !f.h) return;
     var r=runnerById(f.r);
-    out+=csvCell(S.date||'')+','+csvCell(meet)+','+csvCell(S.division)+','+
-         (i+1)+','+fmt(f.ms,3)+','+csvCell(f.h?S.team:'')+','+csvCell(nameOf(f.r)||'')+
-         ','+(r&&r.grade?r.grade:'')+'\n';
+    out+=(i+1)+','+fmt(f.ms,3)+','+csvCell(nameOf(f.r)||'')+','+
+         csvCell(f.h?S.team:'')+','+(r&&r.grade?r.grade:'')+','+sc+'\n';
   });
   return out;
 }
@@ -1611,6 +1858,8 @@ $('backTiming').addEventListener('click',function(){
   reopenRace(); keepAwake();
   show('timing'); renderChute(); renderCount();
 });
+$('segOurs').addEventListener('click',function(){ setReconAll(false); });
+$('segAll').addEventListener('click',function(){ setReconAll(true); });
 $('toResults').addEventListener('click',function(){ show('results'); });
 $('backRecon').addEventListener('click',function(){ show('recon'); });
 var armDiscard=null, armLabel='';
@@ -1632,9 +1881,10 @@ $('meetDelete').addEventListener('click',function(){
     editingMeet=null; show('home');
   });
 });
+$('rosterPull').addEventListener('click',pullRoster);
 $('rosterDone').addEventListener('click',function(){ show(backTo); });
 $('backSetup').addEventListener('click',function(){ show('home'); });
-$('newRace').addEventListener('click',function(){ show('home'); });
+$('resHome').addEventListener('click',function(){ show('home'); });
 $('sheetClose').addEventListener('click',function(){ $('sheet').classList.remove('on'); });
 $('sheet').addEventListener('click',function(e){ if(e.target===this) this.classList.remove('on'); });
 
