@@ -494,6 +494,13 @@ pre.out{
     </div>
     <input type="file" id="impPick" accept="application/json,.json" style="display:none">
     <div class="report" id="impReport"></div>
+
+    <p class="blk">PRIOR RESULTS</p>
+    <div class="hint" id="histSummary"></div>
+    <div class="hint" style="margin-top:6px">Prior results order the names in the picker and put a last-race line under each one. Nothing else reads them. Clearing them leaves every meet, place and time exactly where it is, and the picker falls back to roster order until the next race.</div>
+    <div class="btnrow">
+      <button type="button" id="histClear">Clear prior results</button>
+    </div>
   </div>
 </section>
 
@@ -608,7 +615,7 @@ pre.out{
 (function(){
 'use strict';
 
-var BUILD='v3.12';
+var BUILD='v3.13';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1317,6 +1324,12 @@ function renderBackup(){
       ' timed, '+st.fin+' finishers recorded, '+st.ours+' of them ours.'
     : 'Nothing to back up yet.';
   $('expCopy').disabled=!st.meets; $('expFile').disabled=!st.meets;
+  var n=0; for(var k in HIST) if(HIST.hasOwnProperty(k)) n++;
+  $('histSummary').className = n ? 'hint good' : 'hint';
+  $('histSummary').textContent = n
+    ? n+(n===1?' runner has':' runners have')+' a prior result feeding the picker.'
+    : 'No prior results. The picker is in roster order.';
+  $('histClear').disabled=!n;
 }
 function reportHtml(rep){
   var h='';
@@ -2066,6 +2079,16 @@ $('meetDelete').addEventListener('click',function(){
       if(S && S.meetId===editingMeet){ S=null; try{localStorage.removeItem(KEY);}catch(e){} }
     }
     editingMeet=null; show('home');
+  });
+});
+/* Test races seed the picker the same way real ones do, because commitHistory
+   cannot tell them apart. This is the way out, and it is deliberately the only
+   thing in the app that deletes anything other than a meet. */
+$('histClear').addEventListener('click',function(){
+  armTwoTap(this,'Tap again to clear',function(){
+    HIST={};
+    try{ localStorage.removeItem(HKEY); }catch(e){}
+    renderBackup(); hintRoster();
   });
 });
 $('rosterPull').addEventListener('click',pullRoster);
