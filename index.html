@@ -254,7 +254,13 @@ input.code{
 .row{
   display:grid;grid-template-columns:52px minmax(0,1fr) auto;align-items:baseline;gap:10px;
   padding:9px 16px;border-bottom:1px solid var(--rule);
+  width:100%;text-align:left;
 }
+/* v3.11: the chute is tappable during the race. Same two properties .rrow
+   already carries on reconcile, for the same reason: a grid button needs to be
+   told to fill its column and stop centring its text. */
+.row:active{background:var(--rule)}
+.row.home:active{background:var(--home-wash);filter:brightness(.96)}
 .chute .row{border-bottom:1px solid var(--rule);border-top:none}
 .row .pl{font-size:25px;font-weight:700;line-height:1;text-align:right}
 .row .who{font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -268,7 +274,11 @@ input.code{
 .row.fresh{animation:land .16s ease-out}
 @media (prefers-reduced-motion:reduce){.row.fresh{animation:none}}
 
-.deck{flex:0 0 auto;padding:10px 16px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--rule)}
+/* z-index 21 puts the deck above the sheet's z-index 20 backdrop. That is the
+   whole safety story for naming mid-race: the picker can be open and both
+   capture buttons still take a tap. Naming a runner is never allowed to cost a
+   finish. */
+.deck{flex:0 0 auto;padding:10px 16px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--rule);position:relative;z-index:21}
 .tap{
   width:100%;height:clamp(88px,14vh,118px);border-radius:12px;
   background:var(--chalk);color:var(--ink);border:1px solid var(--rule);font-size:21px;font-weight:600;letter-spacing:-.01em;
@@ -330,6 +340,19 @@ pre.out{
   width:100%;max-width:560px;background:var(--field);border-radius:14px 14px 0 0;
   max-height:calc(88dvh - env(safe-area-inset-top));display:flex;flex-direction:column;
   padding-bottom:env(safe-area-inset-bottom);
+}
+/* Opened from timing the sheet ends where the deck starts. z-index alone was
+   not enough: both were anchored to the bottom of the viewport, so lifting the
+   deck only decided which one won the overlap, and it buried the picker.
+
+   --deckh is measured on the real deck when the sheet opens, because the tap
+   buttons are clamped against viewport height and the deck is a different size
+   on every phone. Padding the flex container rather than capping the height
+   keeps the sheet clear of the deck at any size: it can only grow upward. */
+.sheet.compact{padding-bottom:var(--deckh,0px)}
+.sheet.compact .sheet-in{
+  max-height:max(220px, calc(100dvh - var(--deckh,0px) - 140px));
+  border-radius:14px;padding-bottom:0;
 }
 .sheet-in .bar{border-bottom:1px solid var(--rule)}
 .opt{
@@ -541,7 +564,7 @@ pre.out{
   </div>
   <div class="clockwrap"><div class="clock num" id="clock">0:00<span class="ms">.0</span></div></div>
   <div class="chute" id="chute"></div>
-  <div class="deck">
+  <div class="deck" id="deck">
     <button class="tap-home" id="tapHome">Peachtree MS Finisher</button>
     <button class="tap" id="tap">Field Finisher</button>
     <div class="deck-row">
@@ -585,7 +608,7 @@ pre.out{
 (function(){
 'use strict';
 
-var BUILD='v3.10';
+var BUILD='v3.12';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -702,6 +725,8 @@ function fmt(ms,prec){
 /* ---------- dom ---------- */
 function $(id){ return document.getElementById(id); }
 function show(id){
+  /* A sheet is always about the screen that opened it. */
+  closeSheet();
   var all=document.querySelectorAll('.screen');
   for(var i=0;i<all.length;i++) all[i].classList.toggle('on', all[i].id===id);
   if(S && ['rosterEdit','home','meet','backup','signin','settings','account','about'].indexOf(id)<0) { S.screen=id; save(); }
@@ -878,6 +903,8 @@ function record(runnerId,home){
 }
 function undo(){
   if(!S.fin.length) return;
+  /* The popped place may be the one the sheet is naming. */
+  closeSheet();
   S.fin.pop(); save(); freshIdx=-1;
   if(navigator.vibrate) try{ navigator.vibrate([12,40,12]); }catch(e){}
   renderChute(); renderCount();
@@ -1492,11 +1519,14 @@ function renderChute(){
     var f=S.fin[i], nm=nameOf(f.r);
     var who = nm ? esc(nm) : (f.h ? esc(S.team) : '&#183;');
     var cls = nm ? '' : (f.h ? ' pending' : ' anon');
-    var d=document.createElement('div');
+    var d=document.createElement('button');
     d.className='row'+(f.h?' home':'')+(i===freshIdx?' fresh':'');
     d.innerHTML='<span class="pl num">'+(i+1)+'</span>'+
       '<span class="who'+cls+'">'+who+'</span>'+
       '<span class="tm num">'+fmt(f.ms,1)+'</span>';
+    /* Every row, not just ours. A finish filed in the wrong category is a real
+       error and this is the only place to fix it without ending the race. */
+    d.addEventListener('click',(function(n){ return function(){ openSheet(n); }; })(i));
     c.appendChild(d);
   }
   c.scrollTop=0;
@@ -1546,8 +1576,16 @@ function renderRecon(){
   c.appendChild(n);
 }
 
+/* One sheet, one list, one code path, whether it was opened off the chute
+   mid-race or off reconcile afterwards. Only the height changes. */
 function openSheet(i){
+  if(i<0 || i>=S.fin.length) return;
   sheetPlace=i;
+  var tim=$('timing').classList.contains('on');
+  $('sheet').classList.toggle('compact', tim);
+  /* Measured, not assumed. Read while the deck is on screen, so offsetHeight is
+     the real thing including the safe-area padding. */
+  if(tim) $('sheet').style.setProperty('--deckh', $('deck').offsetHeight+'px');
   $('sheetTitle').textContent='Place '+(i+1)+' \u00b7 '+fmt(S.fin[i].ms,1);
   var l=$('sheetList'); l.innerHTML='';
   var keep=document.createElement('button');
@@ -1611,11 +1649,20 @@ function openSheet(i){
   }
   $('sheet').classList.add('on');
 }
+function closeSheet(){ sheetPlace=-1; $('sheet').classList.remove('on'); }
 function assign(id,home){
+  /* Undo can pop the place the sheet is pointing at. Everything that could
+     invalidate sheetPlace closes the sheet, and this is the backstop for the
+     case something does not. */
+  if(sheetPlace<0 || sheetPlace>=S.fin.length){ closeSheet(); return; }
   if(id!=null) for(var j=0;j<S.fin.length;j++) if(S.fin[j].r===id){ S.fin[j].r=null; }
   S.fin[sheetPlace].r=id;
   S.fin[sheetPlace].h=(id!=null)||home===true;
-  save(); $('sheet').classList.remove('on'); renderRecon();
+  save(); closeSheet();
+  /* Back to whichever screen asked. The count matters on timing: turning a
+     field row into one of ours moves "ours". */
+  if($('timing').classList.contains('on')){ renderChute(); renderCount(); }
+  else renderRecon();
 }
 
 var resFull=false;
@@ -2025,8 +2072,8 @@ $('rosterPull').addEventListener('click',pullRoster);
 $('rosterDone').addEventListener('click',function(){ goBack('rosterEdit'); });
 $('backSetup').addEventListener('click',function(){ show('home'); });
 $('resHome').addEventListener('click',function(){ show('home'); });
-$('sheetClose').addEventListener('click',function(){ $('sheet').classList.remove('on'); });
-$('sheet').addEventListener('click',function(e){ if(e.target===this) this.classList.remove('on'); });
+$('sheetClose').addEventListener('click',closeSheet);
+$('sheet').addEventListener('click',function(e){ if(e.target===this) closeSheet(); });
 
 /* keyboard for desktop testing */
 document.addEventListener('keydown',function(e){
