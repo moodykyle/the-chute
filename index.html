@@ -149,16 +149,17 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
 /* ---------- forms ---------- */
 .lede{font-size:15px;color:var(--ink-soft);margin-bottom:22px;max-width:46ch}
 label{display:block;font-size:14px;color:var(--ink-soft);margin-bottom:6px}
-input[type=text],input[type=email],input[type=date],textarea{
+input[type=text],input[type=email],input[type=date],select,textarea{
   width:100%;max-width:100%;min-width:0;box-sizing:border-box;
   background:var(--chalk);color:var(--ink);
   border:1px solid var(--rule);border-radius:8px;
   padding:12px 13px;font:inherit;font-size:16px;
 }
 textarea{min-height:190px;resize:vertical;line-height:1.7}
-input:focus,textarea:focus{outline:2px solid var(--tape);outline-offset:-1px;border-color:transparent}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--tape);outline-offset:-1px;border-color:transparent}
 .field{margin-bottom:20px}
 input[type=date]{min-height:47px;-webkit-appearance:none;appearance:none}
+select{min-height:47px}
 .hint{font-size:13px;color:var(--ink-soft);margin-top:7px;line-height:1.45}
 .es{padding:34px 8px;text-align:center}
 .es svg{margin-bottom:22px}
@@ -396,6 +397,21 @@ pre.out{
       <input type="date" id="mdate">
     </div>
     <div class="field">
+      <label for="mdist">Distance</label>
+      <select id="mdist">
+        <option value="">Not set</option>
+        <option>1 mile</option>
+        <option>1.5 miles</option>
+        <option>2 miles</option>
+        <option>2.5 miles</option>
+        <option>3 miles</option>
+        <option>2K</option>
+        <option>3K</option>
+        <option>4K</option>
+        <option>5K</option>
+      </select>
+    </div>
+    <div class="field">
       <label for="mvenue">Venue</label>
       <input type="text" id="mvenue" placeholder="Murphey Candler Park" autocomplete="off">
     </div>
@@ -569,7 +585,7 @@ pre.out{
 (function(){
 'use strict';
 
-var BUILD='v3.3';
+var BUILD='v3.10';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -589,12 +605,40 @@ function loadSeason(){
   return SEASON;
 }
 function saveSeason(){ try{ localStorage.setItem(SKEY,JSON.stringify(SEASON)); }catch(e){} }
-function addMeet(name,date,venue){
-  var m={id:uid(), name:name, date:date, venue:venue||'', races:[
+function addMeet(name,date,venue,dist){
+  var m={id:uid(), name:name, date:date, venue:venue||'', dist:dist||'', races:[
     {id:uid(), division:'Girls', t0Wall:null, endedMs:null, fin:[]},
     {id:uid(), division:'Boys',  t0Wall:null, endedMs:null, fin:[]}
   ]};
   SEASON.meets.push(m); saveSeason(); return m;
+}
+/* The distance of the most recently created meet, used only as the default
+   for the next one. Reads the season rather than a new storage key. */
+function lastDist(){
+  for(var i=SEASON.meets.length-1;i>=0;i--) if(SEASON.meets[i].dist) return SEASON.meets[i].dist;
+  return '';
+}
+/* Read live off the meet rather than copying onto S at openRace. S is restored
+   from localStorage on boot, so a copy taken when the race opened would go
+   stale the moment you edited the meet. Everything that prints a distance goes
+   through here, so the screen and both copies cannot disagree. */
+function meetDist(){
+  var m = (S && S.meetId) ? findMeet(S.meetId) : null;
+  return (m && m.dist) || '';
+}
+/* The wall clock stamp taken when Start was hit, which the race already
+   stores, so there is nothing to type and nothing to backfill on meets
+   already run. Deliberately derived rather than entered: it is a race fact,
+   not a meet fact, since the girls and boys go off at different times from
+   the same meet.
+
+   Rounded to the minute. It marks the start of our clock, not the gun, so the
+   seconds would be false precision. */
+function startTime(){
+  if(!S || S.t0Wall==null) return '';
+  try{
+    return new Date(S.t0Wall).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+  }catch(e){ return ''; }
 }
 function findMeet(id){
   for(var i=0;i<SEASON.meets.length;i++) if(SEASON.meets[i].id===id) return SEASON.meets[i];
@@ -650,7 +694,8 @@ function fmt(ms,prec){
   if(ms==null) return '';
   var t=Math.max(0,ms), cs=Math.floor(t%1000), s=Math.floor(t/1000);
   var m=Math.floor(s/60); s=s%60;
-  var frac = prec===3 ? ('.'+String(cs).padStart(3,'0')) : ('.'+Math.floor(cs/100));
+  var frac = prec===0 ? '' :
+             prec===3 ? ('.'+String(cs).padStart(3,'0')) : ('.'+Math.floor(cs/100));
   return m+':'+String(s).padStart(2,'0')+frac;
 }
 
@@ -777,6 +822,9 @@ function editMeet(id){
   $('mname').value=m?m.name:'';
   $('mdate').value=m?m.date:todayStr();
   $('mvenue').value=m?m.venue:'';
+  /* A season is mostly the same distance, so a new meet starts on whatever the
+     last one ran. Saves a tap and keeps the CSV column groupable. */
+  $('mdist').value=m?(m.dist||''):lastDist();
   $('meetDelete').style.display=m?'':'none';
   show('meet');
 }
@@ -784,10 +832,11 @@ function commitMeet(){
   var nm=$('mname').value.trim()||'Meet';
   var dt=$('mdate').value||todayStr();
   var vn=$('mvenue').value.trim();
+  var ds=$('mdist').value;
   if(editingMeet){
     var m=findMeet(editingMeet);
-    if(m){ m.name=nm; m.date=dt; m.venue=vn; saveSeason(); }
-  } else addMeet(nm,dt,vn);
+    if(m){ m.name=nm; m.date=dt; m.venue=vn; m.dist=ds; saveSeason(); }
+  } else addMeet(nm,dt,vn,ds);
   editingMeet=null;
   show('home');
 }
@@ -1370,7 +1419,7 @@ function heroCard(m,isToday,today,byHand){
           : isToday ? 'TODAY'
           : (m.date>today ? (byHand?'UPCOMING':'NEXT UP')
                           : (byHand?'EARLIER':'MOST RECENT'));
-  var sub = [fmtDate(m.date,true), m.venue].filter(Boolean).join(' \u00b7 ');
+  var sub = [fmtDate(m.date,true), m.dist, m.venue].filter(Boolean).join(' \u00b7 ');
   d.innerHTML='<div class="hero-tag">'+tag+'</div>'+
     '<div class="hero-name">'+esc(m.name)+'</div>'+
     '<div class="hero-sub">'+esc(sub)+'</div>';
@@ -1589,6 +1638,10 @@ function renderResults(){
         ? esc(S.team)+' team score, places '+top5.map(function(r){return r.place;}).join(' + ')
         : 'Need 5 finishers to score. You have '+ours.length+'.')+'</div></div>';
 
+  var sst=scoringStats();
+  if(sst) h+='<div class="note">Scoring five: average '+fmt(sst.avg,0)+
+             ', spread '+fmt(sst.spread,0)+'.</div>';
+
   h+='<div class="note">Places are raw order across the whole field. If any other team ran fewer than five, official scoring removes their runners first and these totals will shift.'+
      (unnamed?' '+unnamed+' of your places still need a name, but the score above is already final.':'')+'</div>';
 
@@ -1598,7 +1651,8 @@ function renderResults(){
      '<button type="button" id="resSegOurs" aria-pressed="'+(!resFull)+'">Ours</button>'+
      '<button type="button" id="resSegAll" aria-pressed="'+resFull+'">Full field</button></div>';
 
-  var when = S.date?' \u00b7 '+esc(fmtDate(S.date,true)):'';
+  var when = [S.date?fmtDate(S.date,true):'', meetDist()].filter(Boolean).join(' \u00b7 ');
+  when = when ? ' \u00b7 '+esc(when) : '';
   if(resFull){
     h+='<div class="sect">Full field, '+S.fin.length+
        (S.fin.length===1?' finisher':' finishers')+when+'</div>';
@@ -1608,7 +1662,7 @@ function renderResults(){
       if(f.h){
         seen++;
         if(run && run.grade) tags.push(run.grade+'th');
-        if(seen>5) tags.push('displacer');
+        if(scoringRole(seen)==='displacer') tags.push('displacer');
       }
       var who = nm ? esc(nm) : (f.h ? 'needs a name' : 'Field');
       var cls = nm ? '' : (f.h ? ' pending' : ' anon');
@@ -1623,7 +1677,7 @@ function renderResults(){
     ours.forEach(function(r,i){
       var tags=[];
       if(r.grade) tags.push(r.grade+'th');
-      if(i>=5) tags.push('displacer');
+      if(scoringRole(i+1)==='displacer') tags.push('displacer');
       h+='<div class="rrow home"><span class="pl num">'+r.place+'</span>'+
          '<span class="who'+(r.name?'':' pending')+'">'+(r.name?esc(r.name):'needs a name')+
          (tags.length?' <small style="color:var(--ink-soft)">'+tags.join(', ')+'</small>':'')+'</span>'+
@@ -1643,6 +1697,41 @@ function renderResults(){
   $('resSegAll').addEventListener('click',function(){ resFull=true; renderResults(); });
 }
 
+/* What the nth of our finishers did for the score. The first five score. The
+   sixth and seventh are displacers: they add nothing to our own total, but by
+   finishing ahead of a rival's scoring runner they push that team's total up.
+   The eighth onward affect no score at all.
+
+   This lives in one function because the old `>5` rule was wrong in three
+   places at once, and three copies of a rule is three chances to fix two. */
+function scoringRole(nth){
+  if(nth<=5) return 'scorer';
+  if(nth<=7) return 'displacer';
+  return 'non-scoring';
+}
+/* Our finishers in order, with the raw field place each took. */
+function ourFinishers(){
+  var a=[];
+  S.fin.forEach(function(f,i){ if(f.h) a.push({place:i+1, ms:f.ms, name:nameOf(f.r)}); });
+  return a;
+}
+/* Average and spread across the five who scored, the two numbers a printed
+   results sheet carries next to a team score.
+
+   Spread is first scorer to fifth, not first finisher to last. It is the
+   pack-running number: how close together the five who counted actually ran.
+
+   Total time is deliberately absent. It is the average times five, and it
+   survives on printed sheets because it is the intermediate you need when you
+   are adding the times by hand. Nothing here is adding by hand.
+
+   Null under five scorers, since there is nothing to average. */
+function scoringStats(){
+  var f=ourFinishers(); if(f.length<5) return null;
+  var five=f.slice(0,5), sum=0;
+  five.forEach(function(x){ sum+=x.ms; });
+  return { avg: sum/5, spread: five[4].ms-five[0].ms };
+}
 /* Raw places of our finishers, in order. The same rule the results screen
    scores on, kept in one place so the CSV can never disagree with the screen. */
 function ourPlaces(){
@@ -1662,8 +1751,9 @@ function buildCsv(full){
   if(full===undefined) full=resFull;
   var meet=S.name.replace(/, (Girls|Boys)$/,'');
   var p=ourPlaces(), top5=p.slice(0,5), scored=p.length>=5;
-  var out='date,meet,division,team,team_score,scoring_places,our_finishers,field_size\n'+
-    csvCell(S.date||'')+','+csvCell(meet)+','+csvCell(S.division)+','+csvCell(S.team)+','+
+  var out='date,meet,distance,division,team,team_score,scoring_places,our_finishers,field_size\n'+
+    csvCell(S.date||'')+','+csvCell(meet)+','+csvCell(meetDist())+','+
+    csvCell(S.division)+','+csvCell(S.team)+','+
     (scored?top5.reduce(function(a,b){return a+b;},0):'')+','+
     (scored?top5.join('+'):'')+','+
     p.length+','+S.fin.length+'\n\n'+
@@ -1671,7 +1761,7 @@ function buildCsv(full){
   var seen=0;
   S.fin.forEach(function(f,i){
     var sc='';
-    if(f.h){ seen++; sc = seen<=5 ? 'scorer' : 'displacer'; }
+    if(f.h){ seen++; sc = scoringRole(seen); }
     if(!full && !f.h) return;
     var r=runnerById(f.r);
     out+=(i+1)+','+fmt(f.ms,3)+','+csvCell(nameOf(f.r)||'')+','+
@@ -1700,13 +1790,42 @@ function buildChat(full){
   if(full===undefined) full=resFull;
   var p=ourPlaces(), top5=p.slice(0,5);
 
-  var out=S.team+' '+S.division+', '+S.name.replace(/, (Girls|Boys)$/,'')+'\n';
-  out+=fmtDate(S.date,true)+'\n';
-  out+=S.fin.length+' in the field\n';
+  /* Meet name first, on its own line. It is the part that changes race to
+     race and the part a reader scans for; the team and division are the same
+     every week. It is also the longest string in the header, so a line of its
+     own lets it wrap on its own terms instead of dragging the team name with
+     it. */
+  /* Two blocks. The first is the race: which meet, which race inside it, how
+     far, how many ran, when. The second is us: the team, what we scored, and
+     who ran it. The blank line is the transition, and it is why the team name
+     sits down here rather than at the top. Everything under it is ours.
+
+     Division rides the race line, not the team line. It describes which of the
+     meet's two races this is, and it has to stay near the top: a chat
+     notification previews two lines, and without it the girls message and the
+     boys message look identical until you open them. */
+  var out=S.name.replace(/, (Girls|Boys)$/,'')+'\n';
+  out+=[S.division, meetDist(), S.fin.length+' in the field']
+         .filter(Boolean).join(', ')+'\n';
+  var st=startTime();
+  out+=fmtDate(S.date,true)+(st?', '+st:'')+'\n';
+  out+='\n';
+
+  out+=S.team+'\n';
   if(p.length>=5){
-    out+='Team score '+top5.reduce(function(a,b){return a+b;},0)+
+    out+='Team Score '+top5.reduce(function(a,b){return a+b;},0)+
          ' ('+top5.join(' + ')+')\n';
   }
+  /* Displacers by place, the way a printed results sheet marks them, and on
+     their own line rather than tagged on two runner rows. The printed sheets
+     parenthesise the place in the list itself, which works in the monospace
+     they are set in; this copy lands in a proportional chat font where that
+     column would not hold. */
+  var disp=ourFinishers().slice(5,7).map(function(x){ return x.place; });
+  if(disp.length) out+='Displacers '+disp.join(', ')+'\n';
+
+  var st2=scoringStats();
+  if(st2) out+='Average '+fmt(st2.avg,0)+', Spread '+fmt(st2.spread,0)+'\n';
   out+='\n';
 
   var w=String(S.fin.length).length;
