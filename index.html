@@ -569,7 +569,7 @@ pre.out{
 (function(){
 'use strict';
 
-var BUILD='v3.2';
+var BUILD='v3.3';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1632,7 +1632,7 @@ function renderResults(){
   }
 
   h+='<div class="copyrow">'+
-     '<button id="copyChat">Copy for chat</button>'+
+     '<button id="copyChat">Copy for chat, '+(resFull?'full field':'ours')+'</button>'+
      '<button id="copyCsv">Copy CSV, '+(resFull?'full field':'ours')+'</button></div>';
   h+='<div class="sect" style="padding-bottom:18px">Build '+BUILD+'</div>';
 
@@ -1683,32 +1683,43 @@ function csvCell(v){
   v=String(v);
   return /[",\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v;
 }
-function buildChat(){
-  var ours=[];
-  S.fin.forEach(function(f,i){
-    if(!f.h) return;
-    var run=runnerById(f.r);
-    ours.push({place:i+1, ms:f.ms, name:nameOf(f.r), grade:run?run.grade:null});
-  });
-  var top5=ours.slice(0,5);
-  var w=0; ours.forEach(function(r){ w=Math.max(w,(r.name||'needs a name').length); });
+/* Follows the Ours / Full field toggle, the same way buildCsv does, so what
+   you copy is what you were looking at. The header block never changes with
+   it, for the same reason it does not in the CSV: the score is a fact about
+   the race, not about the filter.
+
+   Time sits second because place and time are the only fixed-width things on
+   a row. Chat apps render proportional, so the old padding after the name was
+   decoration that could never land; letting the name run last puts the ragged
+   edge on the right where it costs nothing.
+
+   No displacer tag. The header already names the scoring places in numbers,
+   and the word means nothing to the parents this copy is written for. The
+   screen and the CSV still carry it. */
+function buildChat(full){
+  if(full===undefined) full=resFull;
+  var p=ourPlaces(), top5=p.slice(0,5);
 
   var out=S.team+' '+S.division+', '+S.name.replace(/, (Girls|Boys)$/,'')+'\n';
   out+=fmtDate(S.date,true)+'\n';
   out+=S.fin.length+' in the field\n';
-  if(ours.length>=5){
-    out+='Team score '+top5.reduce(function(a,b){return a+b.place;},0)+
-         ' ('+top5.map(function(r){return r.place;}).join(' + ')+')\n';
+  if(p.length>=5){
+    out+='Team score '+top5.reduce(function(a,b){return a+b;},0)+
+         ' ('+top5.join(' + ')+')\n';
   }
   out+='\n';
-  ours.forEach(function(r,i){
-    var nm=(r.name||'needs a name');
-    out+=String(r.place).padStart(3,' ')+'  '+nm+' '.repeat(w-nm.length+2)+
-         (r.grade?r.grade+'th  ':'     ')+fmt(r.ms,1)+
-         (i>4?'  (displacer)':'')+'\n';
+
+  var w=String(S.fin.length).length;
+  S.fin.forEach(function(f,i){
+    if(!full && !f.h) return;
+    var nm=nameOf(f.r), run=runnerById(f.r);
+    var who = nm ? nm : (f.h ? 'needs a name' : 'Field');
+    if(f.h && run && run.grade) who += ', '+run.grade+'th';
+    out += String(i+1).padStart(w,' ')+'  '+fmt(f.ms,1)+'  '+who+'\n';
   });
   return out;
 }
+
 function copyOut(text,btn){
   var label=btn.textContent;
   function done(ok){
