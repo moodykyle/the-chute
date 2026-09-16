@@ -42,6 +42,8 @@
   --red:#C8102E;
   --home-wash:#1C3450;
   --navy:#0C2340;
+  --test:#F2C94C;
+  --test-ink:#1A1400;
   color-scheme:dark;
 }
 
@@ -128,6 +130,13 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
 .hero.quiet{border:1px solid var(--rule)}
 .hero-tag{font-size:11px;letter-spacing:.1em;color:var(--red);margin-bottom:5px}
 .hero.quiet .hero-tag{color:var(--ink-soft)}
+/* A test meet. Amber is used for nothing else, and red already means "the meet
+   you are timing today", so a test meet dated today cannot pass for the real
+   one. The stripe sits flush with the card edge above everything else. */
+.hero.test{border:2px solid var(--test)}
+.hero.test .hero-tag{color:var(--test);font-weight:600}
+.hazard{height:12px;margin:-13px -13px 10px;border-radius:10px 10px 0 0;
+  background:repeating-linear-gradient(135deg,var(--test) 0 10px,var(--field) 10px 20px)}
 .hero-name{font-size:17px;font-weight:600;letter-spacing:-.01em;overflow-wrap:anywhere}
 .hero-sub{font-size:13px;color:var(--ink-soft);margin:2px 0 10px;overflow-wrap:anywhere}
 .rrace{display:flex;align-items:center;justify-content:space-between;gap:10px;
@@ -149,6 +158,7 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
 .mrow .mt{font-size:11px;padding:3px 9px;border-radius:20px;background:var(--chalk);
   color:var(--ink-soft);white-space:nowrap}
 .mrow .mt.scored{background:var(--home-wash);color:var(--tape);font-weight:600}
+.mrow .mt.test{background:var(--test);color:var(--test-ink);font-weight:600;letter-spacing:.05em}
 .morelink{display:block;width:100%;text-align:left;padding:13px 0;font-size:14px;
   color:var(--tape);border-bottom:1px solid var(--rule);min-height:46px}
 
@@ -178,6 +188,11 @@ select{min-height:47px}
   padding:14px 22px;font-size:15px;font-weight:600;min-height:48px;
 }
 .hint.good{color:var(--tape)}
+.check{display:flex;align-items:center;gap:11px;font-size:16px;color:var(--ink)}
+.check input[type=checkbox]{flex:0 0 auto;width:22px;height:22px;margin:0;accent-color:var(--test)}
+.syncnote{font-size:12px;color:var(--ink-soft);text-align:center;padding:0 16px 8px}
+.syncnote:empty{display:none}
+.syncnote.test{background:var(--test);color:var(--test-ink);font-weight:600;letter-spacing:.04em;padding:6px 16px;margin-bottom:8px}
 .rhead{padding:13px 16px 13px;border-bottom:1px solid var(--rule)}
 .rid{display:flex;align-items:center;gap:8px}
 .ridtext{font-size:15px;font-weight:700;color:var(--ink);min-width:0;
@@ -200,7 +215,8 @@ select{min-height:47px}
 .rscore{font-size:56px;font-weight:800;letter-spacing:-.04em;line-height:.86;
   color:var(--tape);flex:0 0 auto}
 .rside{min-width:0;flex:1}
-.req{font-size:19px;font-weight:600;letter-spacing:-.01em;white-space:nowrap}
+.req{font-size:19px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
 .req .op{color:var(--ink-soft);font-weight:400;margin:0 1px}
 .req .disp{margin-left:7px;font-size:13px;color:var(--ink-soft);font-weight:400}
 .rstat{margin-top:3px;font-size:13px;color:var(--ink-soft)}
@@ -373,6 +389,8 @@ input.code{
 /* A clock nobody stopped should not look like a race in progress. */
 .livestrip.stale{border-top-color:var(--tape);background:var(--chalk)}
 .livestrip.stale .ltime{color:var(--ink-soft)}
+.livestrip.test{border-top:4px solid var(--test)}
+.livestrip .ltest{color:var(--test);font-weight:600}
 .xrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--rule)}
 .xrow .xn{font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .xrow.gone .xn{color:var(--ink-soft);text-decoration:line-through}
@@ -540,6 +558,10 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
     <div class="field">
       <label for="mvenue">Venue</label>
       <input type="text" id="mvenue" placeholder="Murphey Candler Park" autocomplete="off">
+    </div>
+    <div class="field">
+      <label class="check"><input type="checkbox" id="mtest"> Test meet</label>
+      <div class="hint" id="mtestHint"></div>
     </div>
     <div class="hint">Every meet holds a girls race and a boys race. Each keeps its own clock and its own results.</div>
   </div>
@@ -721,6 +743,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
     <button class="linkbtn" id="resHome">Back to home</button>
     <button class="linkbtn" id="backRecon">Edit race</button>
   </div>
+  <div class="syncnote" id="resSync"></div>
   <div class="scroll" id="resultBody"></div>
   <div class="copyrow" id="resultActions">
     <button type="button" id="copyChat">Copy Text - Team</button>
@@ -761,7 +784,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v3.28';
+var BUILD='v4.2';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -772,7 +795,13 @@ var SKEY='chute.season.v1';
 var SEASON=null;
 function uid(){
   if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
-  return 'x'+Date.now().toString(36)+Math.random().toString(36).slice(2,10);
+  /* The database only takes real UUIDs, so the fallback is one too. */
+  var b=[], i;
+  if(window.crypto && crypto.getRandomValues){ var a=new Uint8Array(16); crypto.getRandomValues(a); for(i=0;i<16;i++) b.push(a[i]); }
+  else for(i=0;i<16;i++) b.push(Math.floor(Math.random()*256));
+  b[6]=(b[6]&15)|64; b[8]=(b[8]&63)|128;
+  var h=b.map(function(x){ return (x+256).toString(16).slice(1); }).join('');
+  return h.slice(0,8)+'-'+h.slice(8,12)+'-'+h.slice(12,16)+'-'+h.slice(16,20)+'-'+h.slice(20);
 }
 function loadSeason(){
   try{ SEASON=JSON.parse(localStorage.getItem(SKEY)||'null'); }catch(e){ SEASON=null; }
@@ -781,8 +810,8 @@ function loadSeason(){
   return SEASON;
 }
 function saveSeason(){ try{ localStorage.setItem(SKEY,JSON.stringify(SEASON)); }catch(e){} }
-function addMeet(name,date,venue,dist){
-  var m={id:uid(), name:name, date:date, venue:venue||'', dist:dist||'', races:[
+function addMeet(name,date,venue,dist,test){
+  var m={id:uid(), name:name, date:date, venue:venue||'', dist:dist||'', test:!!test, races:[
     {id:uid(), division:'Girls', t0Wall:null, endedMs:null, fin:[]},
     {id:uid(), division:'Boys',  t0Wall:null, endedMs:null, fin:[]}
   ]};
@@ -877,7 +906,13 @@ function save(){
   try{ localStorage.setItem(KEY,JSON.stringify(S)); }catch(e){}
   if(S && S.meetId){
     var f=findRace(S.meetId,S.raceId);
-    if(f){ f.race.t0Wall=S.t0Wall; f.race.endedMs=S.endedMs; f.race.fin=S.fin; f.race.shift=S.shift||0; saveSeason(); }
+    if(f){
+      var rc=f.race;
+      /* start, end, reopen and shift all land here, so this is the one place a
+         race is marked as needing to be sent */
+      if(rc.t0Wall!==S.t0Wall || (rc.endedMs==null?null:rc.endedMs)!==(S.endedMs==null?null:S.endedMs) || (rc.shift||0)!==(S.shift||0)) touch(rc);
+      rc.t0Wall=S.t0Wall; rc.endedMs=S.endedMs; rc.fin=S.fin; rc.shift=S.shift||0; saveSeason();
+    }
   }
 }
 function load(){
@@ -969,9 +1004,11 @@ function renderLive(){
   var stale=isStale(f.race);
   $('liveName').textContent=f.meet.name+', '+f.race.division;
   $('liveTime').textContent=fmt(Date.now()-f.race.t0Wall,0);
-  $('liveMeta').textContent = stale
+  var sy=f.meet.test ? '<span class="ltest">TEST</span>' : esc(syncShort(f.meet));
+  $('liveMeta').innerHTML = stale
     ? 'Clock left running \u00b7 '+fin.length+' in \u00b7 tap to end it'
-    : 'Running \u00b7 '+fin.length+' in, '+ours+' ours \u00b7 tap to go back';
+    : 'Running \u00b7 '+fin.length+' in, '+ours+' ours \u00b7 '+sy+' \u00b7 tap to go back';
+  el.classList.toggle('test',!!f.meet.test);
   el.classList.toggle('stale',stale);
   el.classList.add('on');
   /* Published so anything bottom-anchored can stay clear of it. Read after the
@@ -1029,6 +1066,7 @@ function parseExtras(text){
 function deleteFinish(i){
   if(!S || i<0 || i>=S.fin.length) return false;
   if(!S.fin[i].m) return false;
+  tombstone(S.fin[i]);
   S.fin.splice(i,1);
   save();
   return true;
@@ -1058,7 +1096,7 @@ function purgeExtras(){
   var keep=[];
   list.forEach(function(r){ if(!r.dead) keep.push(lines[r.li]); });
   try{ localStorage.setItem(RKEY_X,keep.join('\n')); }catch(e){ return {ok:false, msg:'Could not write the roster.'}; }
-  if(S) S.roster=buildRoster();
+  if(S){ S.roster=buildRoster(); relinkFinishes(S.fin,S.roster); }
   return {ok:true, msg:''};
 }
 function setExtraDead(li,dead){
@@ -1069,7 +1107,7 @@ function setExtraDead(li,dead){
   p[0]=(dead?'-':'')+p[0].replace(/^-/,'');
   lines[li]=p.join('|');
   try{ localStorage.setItem(RKEY_X,lines.join('\n')); }catch(e){ return false; }
-  if(S) S.roster=buildRoster();
+  if(S){ S.roster=buildRoster(); relinkFinishes(S.fin,S.roster); }
   return true;
 }
 function buildRoster(){
@@ -1081,7 +1119,7 @@ function addExtra(name,g,grade){
   if(!nm) return null;
   var t=txt(RKEY_X).replace(/\n+$/,'');
   try{ localStorage.setItem(RKEY_X,(t?t+'\n':'')+g+'|'+nm+'|'+(grade||'')); }catch(e){ return null; }
-  S.roster=buildRoster();
+  S.roster=buildRoster(); relinkFinishes(S.fin,S.roster);
   for(var i=S.roster.length-1;i>=0;i--) if(S.roster[i].x && S.roster[i].name===nm) return S.roster[i].id;
   return null;
 }
@@ -1178,6 +1216,82 @@ function runnerById(id){
   for(var i=0;i<S.roster.length;i++) if(S.roster[i].id===id) return S.roster[i];
   return null;
 }
+
+/* ---------- runner identity ----------
+   f.r is a position in buildRoster() and moves whenever the list does. From
+   4.0 a named finish also carries who it is: f.n and f.g, the name and
+   division when it was named, and f.a, the database athlete id when the roster
+   came from the database. f.r becomes a cache rebuilt from those every time a
+   race is opened, so reordering the roster no longer renames anyone.
+
+   f.a is what the second phone will send. The name is the fallback for runners
+   added at a meet, who have no database id. */
+function aidMap(){
+  try{ var m=JSON.parse(localStorage.getItem(RKEY_A)||'{}'); return (m&&typeof m==='object')?m:{}; }
+  catch(e){ return {}; }
+}
+/* Keyed by division and normalised name, the same key history uses, so a
+   typed roster that matches the database picks the ids up too. */
+function aidsFrom(rows){
+  var m={};
+  (rows||[]).forEach(function(r){
+    if(!r || !r.athlete_id || (r.division!=='F' && r.division!=='M')) return;
+    parseList(rosterLines([r],r.division),r.division).forEach(function(p){ m[histKey(p)]=r.athlete_id; });
+  });
+  return m;
+}
+function saveAids(m){
+  try{ localStorage.setItem(RKEY_A,JSON.stringify(m||{})); }catch(e){}
+}
+function stampRunner(f,r,map){
+  if(!f) return;
+  if(!r){ delete f.n; delete f.g; delete f.a; return; }
+  f.n=r.name; f.g=r.g;
+  var a=(map||aidMap())[histKey(r)];
+  if(a) f.a=a; else delete f.a;
+}
+/* Point every stamped finish back at whoever it names in this roster. The
+   database id wins; the name is used when there is no id. A runner no longer
+   on the list leaves f.r empty and keeps the name, which the screens show. */
+function relinkFinishes(fin,roster){
+  if(!fin || !roster) return 0;
+  var map=aidMap(), byA={}, byK={}, moved=0;
+  roster.forEach(function(r){
+    var k=histKey(r), a=map[k];
+    if(a && !(a in byA)) byA[a]=r;
+    if(!(k in byK)) byK[k]=r;
+  });
+  fin.forEach(function(f){
+    if(f.n==null) return;
+    var r=(f.a && byA[f.a]) || byK[histKey({g:f.g, name:f.n})] || null;
+    var id=r?r.id:null;
+    if(f.r!==id){ f.r=id; moved++; }
+    if(r){
+      var a=map[histKey(r)];
+      if(a && f.a!==a){ f.a=a; touch(f); }
+      /* matched by id under a different spelling: the database corrected it */
+      if(a && r.name!==f.n){ f.n=r.name; touch(f); }
+    }
+  });
+  return moved;
+}
+/* Finishes named before 4.0 hold only a position. They were named against
+   this roster in this order, because the roster read has always refused to
+   reorder under named finishes, so the position is still true today. Stamp
+   them once while it is. */
+function stampLegacy(){
+  var roster=buildRoster(), map=aidMap(), n=0;
+  function scan(fin){
+    (fin||[]).forEach(function(f){
+      if(f.r==null || f.n!=null) return;
+      var r=roster[f.r];
+      if(r && r.id===f.r){ stampRunner(f,r,map); touch(f); n++; }
+    });
+  }
+  SEASON.meets.forEach(function(m){ (m.races||[]).forEach(function(r){ scan(r.fin); }); });
+  if(n) saveSeason();
+  return n;
+}
 /* expected finish order: last race time first, then the order they were typed */
 function byExpected(list){
   return list.slice().sort(function(a,b){
@@ -1199,6 +1313,10 @@ function editMeet(id){
   /* A season is mostly the same distance, so a new meet starts on whatever the
      last one ran. Saves a tap and keeps the CSV column groupable. */
   $('mdist').value=m?(m.dist||''):lastDist();
+  /* Never inherited from the last meet, unlike distance. One test race the
+     night before must not turn the real meet into a test. */
+  $('mtest').checked=!!(m && m.test);
+  $('mtestHint').textContent=TEST_HINT;
   $('meetDelete').style.display=m?'':'none';
   show('meet');
 }
@@ -1207,10 +1325,17 @@ function commitMeet(){
   var dt=$('mdate').value||todayStr();
   var vn=$('mvenue').value.trim();
   var ds=$('mdist').value;
+  var tst=$('mtest').checked;
   if(editingMeet){
     var m=findMeet(editingMeet);
-    if(m){ m.name=nm; m.date=dt; m.venue=vn; m.dist=ds; saveSeason(); }
-  } else addMeet(nm,dt,vn,ds);
+    if(m){
+      if(m.name!==nm || m.date!==dt || m.venue!==vn) touch(m);
+      if(m.dist!==ds) m.races.forEach(touch);
+      m.name=nm; m.date=dt; m.venue=vn; m.dist=ds;
+      if(!(tst && meetUploaded(m))) m.test=tst;
+      saveSeason();
+    }
+  } else addMeet(nm,dt,vn,ds,tst);
   editingMeet=null;
   show('home');
 }
@@ -1227,6 +1352,7 @@ function openRace(mid,rid){
     fin:r.fin||[], shift:r.shift||0, screen:'armed'
   };
   if(S.t0Wall!=null) S.t0Mono = now() - (Date.now()-S.t0Wall);
+  relinkFinishes(S.fin,S.roster);
   $('tapHome').textContent=S.team+' Finisher';
   $('timeName').textContent=S.name;
   save();
@@ -1259,6 +1385,7 @@ function undo(){
   /* The popped place may be the one the sheet is naming. */
   closeSheet();
   var gone=S.fin.length;
+  tombstone(S.fin[gone-1]);
   S.fin.pop(); save(); freshIdx=-1;
   if(navigator.vibrate) try{ navigator.vibrate([12,40,12]); }catch(e){}
   renderChute(); renderCount();
@@ -1322,6 +1449,7 @@ function sbFetch(path,opts){
   opts=opts||{};
   var h={'apikey':SB_KEY,'Accept':'application/json'};
   if(opts.body) h['Content-Type']='application/json';
+  if(opts.prefer) h['Prefer']=opts.prefer;
   if(opts.auth && AUTH) h['Authorization']='Bearer '+AUTH.access_token;
   return fetch(SB_URL+path,{
     method:opts.method||'GET', headers:h,
@@ -1379,6 +1507,316 @@ function ensureFresh(){
   return refreshSession().then(function(){ return signedIn(); });
 }
 
+
+/* ---------- sync ----------
+   Every meet, race and finish carries two marks. `up` means the database has
+   the row. `d` counts changes since it was last sent, and a send only clears
+   it if nothing changed while the request was out. What gets sent is always
+   the current state, never a queued operation, so ten edits to one finish are
+   one request and a reload mid-meet loses nothing.
+
+   A tap never waits on any of this. record() does not know sync exists; the
+   timer below finds new finishes by their missing `up`.
+
+   Test meets are skipped entirely. Nothing in them is sent, and nothing in
+   them leaves a tombstone. */
+var BAD_RETRY_MS=60000, SYNC_MS=2500, SYNC_INIT='chute.sync.init.v1', HOME_KEY='chute.team.home.v1';
+var UUID_RE=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+var TEST_HINT='Never saved to the database, and deletes in one tap.';
+var syncBusy=false, syncErr='';
+
+function touch(o){ if(o){ o.d=(o.d||0)+1; delete o.bad; } }
+/* Before 4.1 nothing was a test and nothing was sent. Every meet already on a
+   device is marked a test once, so only a meet switched to real goes up. */
+function syncInit(){
+  try{ if(localStorage.getItem(SYNC_INIT)) return false; }catch(e){ return false; }
+  SEASON.meets.forEach(function(m){ m.test=true; });
+  saveSeason();
+  try{ localStorage.setItem(SYNC_INIT,'1'); }catch(e){}
+  return true;
+}
+function meetUploaded(m){
+  if(!m) return false;
+  if(m.up) return true;
+  return (m.races||[]).some(function(r){
+    return r.up || (r.fin||[]).some(function(f){ return !!f.up; });
+  });
+}
+/* Undo and delete leave the cid behind so the server row can be marked
+   deleted. Harmless when the row never got there: the update matches nothing. */
+function tombstone(f){
+  if(!f || !f.cid || !S) return;
+  var fr=findRace(S.meetId,S.raceId);
+  if(!fr || fr.meet.test) return;
+  (fr.race.gone=fr.race.gone||[]).push(f.cid);
+}
+/* The database will not change a time, so a changed estimate is a new row. */
+function reissue(f){
+  if(!f) return;
+  tombstone(f);
+  f.cid=uid();
+  delete f.up; delete f.d; delete f.bad;
+}
+function divOf(r){ return r.division==='Boys'?'M':'F'; }
+function distMeters(s){
+  var t=String(s||'').trim().toLowerCase(), m;
+  if((m=t.match(/^(\d+(?:\.\d+)?)\s*k$/))) return Math.round(parseFloat(m[1])*1000);
+  if((m=t.match(/^(\d+(?:\.\d+)?)\s*miles?$/))) return Math.round(parseFloat(m[1])*1609.344);
+  return null;
+}
+function isoAt(ms){ return ms==null ? null : new Date(ms).toISOString(); }
+function meetBody(m){ return {id:m.id, name:m.name, meet_date:m.date, venue:m.venue||null}; }
+function meetPatch(m){ return {name:m.name, meet_date:m.date, venue:m.venue||null}; }
+function racePatch(m,r){
+  return {
+    started_at:isoAt(r.t0Wall),
+    ended_at:(r.t0Wall!=null && r.endedMs!=null) ? isoAt(r.t0Wall+r.endedMs) : null,
+    shift_ms:Math.round(r.shift||0),
+    distance_m:distMeters(m.dist)
+  };
+}
+function raceBody(m,r){
+  var b=racePatch(m,r); b.id=r.id; b.meet_id=m.id; b.division=divOf(r); return b;
+}
+/* Local times already carry the shift. The database keeps the raw tap and the
+   shift once on the race, so it comes back off here. */
+function finIdentity(f,home){
+  return {athlete_id:f.a||null, team_id:f.h?home:null, runner_name:f.a?null:(f.n||null)};
+}
+function finBody(r,f,i,home){
+  var b=finIdentity(f,home);
+  b.race_id=r.id; b.client_id=f.cid;
+  b.elapsed_ms=Math.max(0,Math.round(f.ms-(r.shift||0)));
+  b.seq=i; b.entered=!!f.m;
+  return b;
+}
+/* What still has to go, for one meet or the whole season. */
+function syncWork(only){
+  var w={meets:[], races:[], gone:[], fins:[], bad:0, total:0};
+  SEASON.meets.forEach(function(m){
+    if(m.test || (only && m!==only)) return;
+    if(!UUID_RE.test(m.id)){ w.bad++; return; }
+    if(resting(m)) w.bad++;
+    else if(!m.up || m.d) w.meets.push(m);
+    (m.races||[]).forEach(function(r){
+      if(!UUID_RE.test(r.id)){ w.bad++; return; }
+      if(resting(r)) w.bad++;
+      else if(!r.up || r.d) w.races.push({m:m, r:r});
+      if(r.gone && r.gone.length) w.gone.push({m:m, r:r});
+      (r.fin||[]).forEach(function(f,i){
+        if(resting(f)){ w.bad++; return; }
+        if(!f.up || f.d) w.fins.push({m:m, r:r, f:f, i:i});
+      });
+    });
+  });
+  w.total=w.meets.length+w.races.length+w.gone.length+w.fins.length;
+  return w;
+}
+function pendingCount(w){
+  var n=w.meets.length+w.races.length+w.fins.length;
+  w.gone.forEach(function(g){ n+=g.r.gone.length; });
+  return n;
+}
+function syncShort(m){
+  if(m && m.test) return 'Test';
+  var n=pendingCount(syncWork(m));
+  return n ? n+' waiting' : 'Saved';
+}
+function syncLine(m){
+  if(!m) return '';
+  if(m.test) return 'TEST MEET \u00b7 NOT SAVED TO THE DATABASE';
+  var w=syncWork(m), n=pendingCount(w), bad=w.bad ? ' \u00b7 '+w.bad+' could not be saved' : '';
+  if(!n) return w.bad ? w.bad+' could not be saved, trying again shortly' : 'Saved to the database';
+  var why = !signedIn() ? 'Not signed in'
+          : (navigator.onLine===false) ? 'Offline'
+          : syncErr ? syncErr
+          : 'Saving';
+  return why+' \u00b7 '+n+' waiting'+bad;
+}
+function renderResSync(){
+  var m=(S && S.meetId) ? findMeet(S.meetId) : null;
+  $('resSync').textContent=syncLine(m);
+  $('resSync').classList.toggle('test',!!(m && m.test));
+}
+
+/* Settle one request. A network failure or a refused session stops the whole
+   cycle; anything else is a problem with that row, which is set aside so one
+   bad finish cannot hold up a race. */
+function syncFatal(res){
+  if(res.offline || res.status===0 || res.status>=500){ syncErr='No connection'; return true; }
+  if(res.status===401){ syncErr='Sign in again to save'; return true; }
+  if(res.status===403){ syncErr='The database refused the write'; return true; }
+  return false;
+}
+function settle(o,snap){ if((o.d||0)===snap) delete o.d; delete o.bad; }
+/* A refused row rests for a minute and is tried again, rather than never. The
+   usual cause is a name moved between two rows in the same second, which the
+   next cycle sorts out on its own. A row that is truly wrong costs one request
+   a minute and says so on screen. */
+function setAside(o){ o.bad=Date.now(); }
+function resting(o){ return !!(o && o.bad && Date.now()-o.bad<BAD_RETRY_MS); }
+
+function homeTeamId(){
+  var c=''; try{ c=localStorage.getItem(HOME_KEY)||''; }catch(e){}
+  if(c) return Promise.resolve(c);
+  return sbFetch('/rest/v1/teams?select=id&is_home=is.true',{auth:true}).then(function(res){
+    var id=(res.ok && res.data && res.data[0] && res.data[0].id) || '';
+    if(!id){ if(!syncFatal(res)) syncErr='No home team in the database'; return ''; }
+    try{ localStorage.setItem(HOME_KEY,id); }catch(e){}
+    return id;
+  });
+}
+
+var IGNORE_REP='resolution=ignore-duplicates,return=representation';
+/* Insert rows that are not up yet. A row the server already had is left out
+   of the response, so it stays marked and gets patched next cycle. A lone row
+   that fails is set aside. */
+function insertOne(table,conflict,keyOf,o,bodyOf){
+  var snap=o.d||0;
+  return sbFetch('/rest/v1/'+table+'?on_conflict='+conflict+'&select='+conflict.split(',').pop(),
+                 {method:'POST', auth:true, prefer:IGNORE_REP, body:[bodyOf(o)]})
+    .then(function(res){
+      if(res.ok){
+        o.up=true;
+        if((res.data||[]).length) settle(o,snap); else touch(o);
+        return true;
+      }
+      if(syncFatal(res)) return false;
+      setAside(o);
+      return true;
+    });
+}
+function insertBatch(table,conflict,keyOf,items,bodyOf){
+  if(!items.length) return Promise.resolve(true);
+  if(items.length===1) return insertOne(table,conflict,keyOf,items[0],bodyOf);
+  var snaps=items.map(function(o){ return o.d||0; });
+  var key=conflict.split(',').pop();
+  return sbFetch('/rest/v1/'+table+'?on_conflict='+conflict+'&select='+key,
+                 {method:'POST', auth:true, prefer:IGNORE_REP, body:items.map(bodyOf)})
+    .then(function(res){
+      if(res.ok){
+        var got={};
+        (res.data||[]).forEach(function(row){ got[row[key]]=true; });
+        items.forEach(function(o,i){
+          o.up=true;
+          if(got[keyOf(o)]) settle(o,snaps[i]); else touch(o);
+        });
+        return true;
+      }
+      if(syncFatal(res)) return false;
+      return seq(items,function(o){ return insertOne(table,conflict,keyOf,o,bodyOf); });
+    });
+}
+function patchOne(path,o,body){
+  var snap=o.d||0;
+  return sbFetch(path,{method:'PATCH', auth:true, prefer:'return=minimal', body:body})
+    .then(function(res){
+      if(res.ok){ settle(o,snap); return true; }
+      if(syncFatal(res)) return false;
+      setAside(o);
+      return true;
+    });
+}
+/* Run promise-returning steps in order, stopping at the first false. */
+function seq(list,fn){
+  return list.reduce(function(p,x){
+    return p.then(function(ok){ return ok===false ? false : fn(x); });
+  }, Promise.resolve(true));
+}
+function inList(cids){ return 'in.('+cids.join(',')+')'; }
+
+/* One cycle. Order matters, and each step waits for the one before:
+   meets, then races, then per race: tombstones, clear names on changed rows,
+   insert new rows, set names. Clearing first means a runner moved from one
+   place to another never exists on two live rows at once, which the database
+   refuses. */
+function syncDrain(w,home){
+  var byRace={};
+  w.fins.forEach(function(x){ (byRace[x.r.id]=byRace[x.r.id]||{m:x.m, r:x.r, list:[]}).list.push(x); });
+  w.gone.forEach(function(x){ byRace[x.r.id]=byRace[x.r.id]||{m:x.m, r:x.r, list:[]}; });
+  return seq([
+    function(){ return insertBatch('meets','id',function(m){ return m.id; },
+                  w.meets.filter(function(m){ return !m.up; }), meetBody); },
+    function(){ return seq(w.meets.filter(function(m){ return m.up && m.d; }), function(m){
+                  return patchOne('/rest/v1/meets?id=eq.'+m.id, m, meetPatch(m)); }); },
+    function(){ var fresh=w.races.filter(function(x){ return !x.r.up && x.m.up; });
+                  var meetOf={}; fresh.forEach(function(x){ meetOf[x.r.id]=x.m; });
+                  return insertBatch('races','id',function(r){ return r.id; },
+                    fresh.map(function(x){ return x.r; }),
+                    function(r){ return raceBody(meetOf[r.id],r); }); },
+    function(){ return seq(w.races.filter(function(x){ return x.r.up && x.r.d; }), function(x){
+                  return patchOne('/rest/v1/races?id=eq.'+x.r.id, x.r, racePatch(x.m,x.r)); }); },
+    function(){ return seq(Object.keys(byRace).map(function(k){ return byRace[k]; }), function(g){
+                  return drainRace(g.m,g.r,g.list,home); }); }
+  ], function(step){ return step(); });
+}
+function drainRace(m,r,list,home){
+  if(!r.up){
+    /* nothing from a race the server has never seen can be there to delete */
+    if(r.gone) r.gone=[];
+    return true;
+  }
+  list.forEach(function(x){ if(!x.f.up && !UUID_RE.test(x.f.cid||'')) x.f.cid=uid(); });
+  var changed=list.filter(function(x){ return x.f.up && x.f.d; });
+  var fresh=list.filter(function(x){ return !x.f.up; });
+  var base='/rest/v1/finishes?race_id=eq.'+r.id;
+  var goneNow=(r.gone||[]).slice();
+  var idx={}; list.forEach(function(x){ idx[x.f.cid]=x.i; });
+  return seq([
+    function(){
+      if(!goneNow.length) return true;
+      return sbFetch(base+'&client_id='+inList(goneNow),
+                     {method:'PATCH', auth:true, prefer:'return=minimal', body:{deleted_at:new Date().toISOString()}})
+        .then(function(res){
+          if(res.ok){ r.gone=(r.gone||[]).filter(function(c){ return goneNow.indexOf(c)<0; }); return true; }
+          if(syncFatal(res)) return false;
+          r.gone=[];            /* a malformed id is the only way here; drop rather than loop */
+          return true;
+        });
+    },
+    function(){
+      if(!changed.length) return true;
+      return sbFetch(base+'&client_id='+inList(changed.map(function(x){ return x.f.cid; })),
+                     {method:'PATCH', auth:true, prefer:'return=minimal', body:{athlete_id:null}})
+        .then(function(res){ return res.ok || !syncFatal(res); });
+    },
+    function(){
+      return insertBatch('finishes','race_id,client_id',function(f){ return f.cid; },
+        fresh.map(function(x){ return x.f; }),
+        function(f){ return finBody(r,f,idx[f.cid],home); });
+    },
+    function(){
+      return seq(changed, function(x){
+        return patchOne(base+'&client_id=eq.'+x.f.cid, x.f, finIdentity(x.f,home));
+      });
+    }
+  ], function(step){ return step(); });
+}
+function syncTick(){
+  if(syncBusy) return;
+  var w=syncWork(null);
+  if(!w.total || !signedIn() || navigator.onLine===false){ renderSyncViews(); return; }
+  syncBusy=true;
+  ensureFresh().then(function(ok){
+    if(!ok){ syncErr='Sign in again to save'; return false; }
+    return homeTeamId().then(function(home){
+      if(!home) return false;
+      return syncDrain(w,home);
+    });
+  }).then(function(done){
+    if(done) syncErr='';
+  }, function(){
+    syncErr='Could not save';
+  }).then(function(){
+    syncBusy=false;
+    saveSeason();
+    renderSyncViews();
+  });
+}
+function renderSyncViews(){
+  if($('results').classList.contains('on')) renderResSync();
+}
+
 /* ---------- roster from the database ----------
    Deliberately narrow. The read fills the same two textareas you would have
    typed into and stops there. buildRoster() still hands out integer ids,
@@ -1387,7 +1825,7 @@ function ensureFresh(){
    because they are NULL for every runner and reading them would scramble the
    picker. The athlete_id migration and the history merge are still ahead of
    us; this buys back the typing without touching identity. */
-var ROSTER_SELECT='runner,first_name,last_name,division,grade,sort_seed';
+var ROSTER_SELECT='athlete_id,runner,first_name,last_name,division,grade,sort_seed';
 function rosterPath(){
   return '/rest/v1/roster_season?select='+ROSTER_SELECT+
          '&season_year=eq.'+todayStr().slice(0,4)+
@@ -1410,13 +1848,15 @@ function rosterNames(){
   return parseList(txt(RKEY_G),'F').concat(parseList(txt(RKEY_B),'M'))
     .map(function(r){ return r.name; });
 }
-/* buildRoster() ids are positions in this list. If the list reorders under a
-   finish that already carries an id, that finish silently renames. */
+/* buildRoster() ids are positions in this list. A finish that knows only its
+   position silently renames if the list reorders under it. A stamped finish
+   knows who it is and relinks, so only unstamped ones count against a reorder.
+   Boot stamps everything it can, so this is normally zero from 4.0. */
 function namedFinishCount(){
   var n=0;
   SEASON.meets.forEach(function(m){
     (m.races||[]).forEach(function(r){
-      (r.fin||[]).forEach(function(f){ if(f.r!=null) n++; });
+      (r.fin||[]).forEach(function(f){ if(f.r!=null && f.n==null) n++; });
     });
   });
   return n;
@@ -1439,12 +1879,17 @@ function writeRoster(g,b,n){
   try{ localStorage.setItem(RKEY_G,g); localStorage.setItem(RKEY_B,b); }catch(e){}
   $('rosterG').value=g; $('rosterB').value=b;
   hintRoster();
+  if(S){ S.roster=buildRoster(); relinkFinishes(S.fin,S.roster); }
   rosterPullMsg(n+' runners loaded from the database.',false);
 }
 function applyPulledRoster(rows){
   var year=todayStr().slice(0,4);
   var g=rosterLines(rows,'F'), b=rosterLines(rows,'M');
   if(!g && !b){ rosterPullMsg('No active runners found for '+year+'.',true); return; }
+  /* Ids are keyed by name, so storing them is safe whether or not the list
+     below is allowed to land, and a device whose typed roster already matches
+     still picks them up. */
+  saveAids(aidsFrom(rows));
   var incoming=parseList(g,'F').concat(parseList(b,'M')).map(function(r){ return r.name; });
   var current=rosterNames();
   var same=incoming.length===current.length && incoming.every(function(n,i){ return n===current[i]; });
@@ -1594,6 +2039,7 @@ function mergeImport(d){
         r.fin=(r.fin||[]).map(function(f){ if(!f.cid) f.cid=uid(); return f; });
         return r;
       });
+      if(im.test===undefined && !meetUploaded(im)) im.test=true;
       SEASON.meets.push(im); rep.meets++; return;
     }
     (im.races||[]).forEach(function(ir){
@@ -1800,7 +2246,7 @@ function heroCard(m,isToday,today,byHand){
   var d=document.createElement('div');
   /* The red border means "this is the one you are timing". A scored meet is
      not that, even when it is dated today. */
-  d.className='hero'+((isToday&&!fin)?'':' quiet');
+  d.className='hero'+((isToday&&!fin)?'':' quiet')+(m.test?' test':'');
   /* SCORED beats every date-based label. MOST RECENT is only true when the
      app chose it; picked by hand it may be any past meet. */
   var tag = fin ? 'SCORED'
@@ -1808,7 +2254,9 @@ function heroCard(m,isToday,today,byHand){
           : (m.date>today ? (byHand?'UPCOMING':'NEXT UP')
                           : (byHand?'EARLIER':'MOST RECENT'));
   var sub = [fmtDate(m.date,true), m.dist, m.venue].filter(Boolean).join(' \u00b7 ');
-  d.innerHTML='<div class="hero-tag">'+tag+'</div>'+
+  if(m.test) tag='TEST MEET \u00b7 '+tag;
+  d.innerHTML=(m.test?'<div class="hazard" aria-hidden="true"></div>':'')+
+    '<div class="hero-tag">'+tag+'</div>'+
     '<div class="hero-name">'+esc(m.name)+'</div>'+
     '<div class="hero-sub">'+esc(sub)+'</div>';
   m.races.forEach(function(r){
@@ -1861,6 +2309,7 @@ function meetRow(m){
   var tag = scores.length ? scores.join(' / ')+' pts' : (anyRun?'In progress':'Set up');
   row.innerHTML='<span class="md">'+esc(fmtDate(m.date))+'</span>'+
     '<span class="mn">'+esc(m.name)+'</span>'+
+    (m.test?'<span class="mt test">TEST</span>':'')+
     '<span class="mt'+(scores.length?' scored':'')+'">'+esc(tag)+'</span>';
   /* Promote rather than edit. Edit meet is on the promoted card already, and
      starting a race is the far more common reason to tap a meet. */
@@ -1897,7 +2346,7 @@ function renderChute(){
   var c=$('chute'); c.innerHTML='';
   var stop=Math.max(0,S.fin.length-40);
   for(var i=S.fin.length-1;i>=stop;i--){
-    var f=S.fin[i], nm=nameOf(f.r);
+    var f=S.fin[i], nm=(nameOf(f.r)||f.n||null);
     var who = nm ? esc(nm) : (f.h ? esc(S.team) : '&#183;');
     var cls = nm ? '' : (f.h ? ' pending' : ' anon');
     var d=document.createElement('button');
@@ -1932,7 +2381,7 @@ function renderRecon(){
   S.fin.forEach(function(f,i){
     if(!reconAll && !f.h) return;
     shown++;
-    var nm=nameOf(f.r);
+    var nm=(nameOf(f.r)||f.n||null);
     if(f.h && !nm) unnamed++;
     var who = nm ? esc(nm) : (f.h ? 'Tap to name' : 'Field');
     var cls = nm ? '' : (f.h ? ' pending' : ' anon');
@@ -2019,6 +2468,7 @@ function openSheet(i){
         onOk:function(v){
           var ms=parseClock(v[0]);
           if(ms==null) return 'Use a time like 19:08.3';
+          reissue(S.fin[place]);
           S.fin[place].ms=ms; save();
           closeSheet();
           if($('timing').classList.contains('on')){ renderChute(); renderCount(); } else renderRecon();
@@ -2157,8 +2607,10 @@ function assign(id,home){
      invalidate sheetPlace closes the sheet, and this is the backstop for the
      case something does not. */
   if(sheetPlace<0 || sheetPlace>=S.fin.length){ closeSheet(); return; }
-  if(id!=null) for(var j=0;j<S.fin.length;j++) if(S.fin[j].r===id){ S.fin[j].r=null; }
+  if(id!=null) for(var j=0;j<S.fin.length;j++) if(S.fin[j].r===id){ S.fin[j].r=null; stampRunner(S.fin[j],null); touch(S.fin[j]); }
   S.fin[sheetPlace].r=id;
+  touch(S.fin[sheetPlace]);
+  stampRunner(S.fin[sheetPlace], id!=null?runnerById(id):null);
   S.fin[sheetPlace].h=(id!=null)||home===true;
   save(); closeSheet();
   /* Back to whichever screen asked. The count matters on timing: turning a
@@ -2170,11 +2622,12 @@ function assign(id,home){
 var resFull=false, resNote=[];
 function renderResults(){
   commitHistory();
+  renderResSync();
   var ours=[];
   S.fin.forEach(function(f,i){
     if(!f.h) return;
     var run=runnerById(f.r);
-    ours.push({place:i+1, ms:f.ms, name:nameOf(f.r), grade:run?run.grade:null});
+    ours.push({place:i+1, ms:f.ms, name:(nameOf(f.r)||f.n||null), grade:run?run.grade:null});
   });
   var top5=ours.slice(0,5);
   var score=top5.reduce(function(a,b){return a+b.place;},0);
@@ -2217,7 +2670,7 @@ function renderResults(){
   if(resFull){
     var seen=0;
     S.fin.forEach(function(f,i){
-      var nm=nameOf(f.r), run=runnerById(f.r), tags=[];
+      var nm=(nameOf(f.r)||f.n||null), run=runnerById(f.r), tags=[];
       if(f.h){
         seen++;
         if(run && run.grade) tags.push(run.grade+'th');
@@ -2278,7 +2731,7 @@ function scoringRole(nth){
 /* Our finishers in order, with the raw field place each took. */
 function ourFinishers(){
   var a=[];
-  S.fin.forEach(function(f,i){ if(f.h) a.push({place:i+1, ms:f.ms, name:nameOf(f.r)}); });
+  S.fin.forEach(function(f,i){ if(f.h) a.push({place:i+1, ms:f.ms, name:(nameOf(f.r)||f.n||null)}); });
   return a;
 }
 /* Average and spread across the five who scored, the two numbers a printed
@@ -2330,7 +2783,7 @@ function buildCsv(full){
     if(f.h){ seen++; sc = scoringRole(seen); }
     if(!full && !f.h) return;
     var r=runnerById(f.r);
-    out+=(i+1)+','+fmt(f.ms,3)+(f.m?'*':'')+','+csvCell(nameOf(f.r)||'')+','+
+    out+=(i+1)+','+fmt(f.ms,3)+(f.m?'*':'')+','+csvCell((nameOf(f.r)||f.n||null)||'')+','+
          csvCell(f.h?S.team:'')+','+(r&&r.grade?r.grade:'')+','+sc+'\n';
   });
   return out;
@@ -2397,7 +2850,7 @@ function buildChat(full){
   var w=String(S.fin.length).length;
   S.fin.forEach(function(f,i){
     if(!full && !f.h) return;
-    var nm=nameOf(f.r), run=runnerById(f.r);
+    var nm=(nameOf(f.r)||f.n||null), run=runnerById(f.r);
     var who = nm ? nm : (f.h ? 'needs a name' : 'Field');
     if(f.h && run && run.grade) who += ', '+run.grade+'th';
     out += String(i+1).padStart(w,' ')+'  '+fmt(f.ms,1)+'  '+who+'\n';
@@ -2436,6 +2889,7 @@ function esc(s){
 
 /* ---------- wiring ---------- */
 var RKEY_G='chute.roster.girls.v1', RKEY_B='chute.roster.boys.v1', RKEY_X='chute.roster.extra.v1';
+var RKEY_A='chute.roster.aid.v1';
 var TKEY='chute.team.v1', HKEY='chute.history.v1';
 
 function sideHint(list,el){
@@ -2573,6 +3027,7 @@ $('impGo').addEventListener('click',function(){
   try{ d=parseImport(t); }
   catch(e){ $('impReport').innerHTML='<span class="warn">'+esc(e.message)+'</span>'; return; }
   $('impReport').innerHTML=reportHtml(mergeImport(d));
+  stampLegacy();
   $('impText').value='';
   renderBackup(); hintRoster();
 });
@@ -2605,14 +3060,28 @@ function armTwoTap(b,confirmText,act){
   armDiscard=null; b.textContent=armLabel; act();
 }
 $('meetDelete').addEventListener('click',function(){
-  armTwoTap(this,'Tap again to delete',function(){
+  var dm=editingMeet?findMeet(editingMeet):null;
+  function del(){
     if(editingMeet){
       SEASON.meets=SEASON.meets.filter(function(m){ return m.id!==editingMeet; });
       saveSeason();
       if(S && S.meetId===editingMeet){ S=null; try{localStorage.removeItem(KEY);}catch(e){} }
     }
     editingMeet=null; show('home');
-  });
+  }
+  /* A test meet was never real, so there is nothing to protect. A real one
+     that reached the database only leaves this phone. */
+  if(dm && dm.test){ del(); return; }
+  armTwoTap(this, (dm && meetUploaded(dm)) ? 'Tap again, database copy stays' : 'Tap again to delete', del);
+});
+$('mtest').addEventListener('change',function(){
+  var m=editingMeet?findMeet(editingMeet):null;
+  if(this.checked && m && meetUploaded(m)){
+    this.checked=false;
+    $('mtestHint').textContent='Already saved to the database, so it cannot become a test meet. Nothing in the app can take rows back out.';
+    return;
+  }
+  $('mtestHint').textContent=TEST_HINT;
 });
 /* Test races seed the picker the same way real ones do, because commitHistory
    cannot tell them apart. This is the way out, and it is deliberately the only
@@ -2645,6 +3114,8 @@ $('liveStrip').addEventListener('click',function(){
 /* Four a second is plenty for a clock shown to the tenth of a minute, and it
    costs nothing when no race is running. */
 setInterval(renderLive,250);
+setInterval(syncTick,SYNC_MS);
+window.addEventListener('online',syncTick);
 
 /* No confirmation. The race keeps running, the strip brings you back, and you
    are one tap from the chute again. Nothing is lost, so nothing is asked. */
@@ -2755,6 +3226,7 @@ document.addEventListener('keydown',function(e){
   loadHist();
   loadSeason();
   loadAuth();   /* reads localStorage only. No network on boot, ever. */
+  syncInit();
   try{
     var g=localStorage.getItem(RKEY_G); if(g) $('rosterG').value=g;
     var b=localStorage.getItem(RKEY_B); if(b) $('rosterB').value=b;
@@ -2776,6 +3248,7 @@ document.addEventListener('keydown',function(e){
     }
   }catch(e){}
   hintRoster();
+  stampLegacy();
 
   var prev=load();
 
