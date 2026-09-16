@@ -93,16 +93,24 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
 /* ---------- shared bits ---------- */
 .bar{
   display:flex;align-items:center;justify-content:space-between;gap:12px;
-  padding:14px 22px;border-bottom:1px solid var(--rule);flex:0 0 auto;
+  padding:10px 14px;border-bottom:1px solid var(--rule);flex:0 0 auto;
   min-height:58px;
 }
 .bar h1{font-size:17px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bar .count{font-size:15px;color:var(--ink-soft);white-space:nowrap;flex:0 1 auto;
   overflow:hidden;text-overflow:ellipsis}
 .linkbtn{
-  font-size:15px;color:var(--ink-soft);text-decoration:underline;text-underline-offset:3px;
-  padding:11px 8px;margin:-11px -8px;min-height:44px;display:inline-flex;align-items:center;
+  font-size:14px;font-weight:600;letter-spacing:.01em;
+  color:var(--ink);background:var(--chalk);border:1px solid var(--rule);
+  border-radius:999px;padding:8px 15px;min-height:38px;
+  display:inline-flex;align-items:center;justify-content:center;
+  white-space:nowrap;flex:0 0 auto;
 }
+.linkbtn:active{background:var(--home-wash)}
+/* Quieter, for anything that removes or ends something. A pill reads as an
+   invitation, and these should not. */
+.linkbtn.quiet{background:transparent;color:var(--ink-soft);border-color:var(--rule)}
+.linkbtn.quiet:active{background:var(--chalk);color:var(--ink)}
 .linkbtn:focus-visible,button:focus-visible{outline:2px solid var(--tape);outline-offset:2px;border-radius:4px}
 
 .pad{padding:20px 16px}
@@ -170,7 +178,37 @@ select{min-height:47px}
   padding:14px 22px;font-size:15px;font-weight:600;min-height:48px;
 }
 .hint.good{color:var(--tape)}
+.rhead{padding:13px 16px 13px;border-bottom:1px solid var(--rule)}
+.rid{display:flex;align-items:center;gap:8px}
+.ridtext{font-size:15px;font-weight:700;color:var(--ink);min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.info{
+  width:19px;height:19px;flex:0 0 auto;border-radius:50%;
+  border:1px solid var(--rule);background:transparent;color:var(--ink-soft);
+  font-size:11px;font-weight:700;line-height:1;
+  display:inline-flex;align-items:center;justify-content:center;padding:0;
+}
+.rwhen{margin-top:2px;font-size:13px;color:var(--ink-soft)}
+.askbody{font-size:15px;color:var(--ink-soft);line-height:1.5}
+.askbody p+p{margin-top:13px}
+.askbody b{color:var(--ink);font-weight:600}
+.rgrid{display:flex;align-items:center;gap:14px;margin-top:10px}
+/* No reserved width. It was bought to keep the block aligned from race to race,
+   which nobody ever sees, at the cost of thirty pixels of dead air beside every
+   two digit score, which everybody does. The number sizes to itself and the
+   equation sits a fixed gap away. */
+.rscore{font-size:56px;font-weight:800;letter-spacing:-.04em;line-height:.86;
+  color:var(--tape);flex:0 0 auto}
+.rside{min-width:0;flex:1}
+.req{font-size:19px;font-weight:600;letter-spacing:-.01em;white-space:nowrap}
+.req .op{color:var(--ink-soft);font-weight:400;margin:0 1px}
+.req .disp{margin-left:7px;font-size:13px;color:var(--ink-soft);font-weight:400}
+.rstat{margin-top:3px;font-size:13px;color:var(--ink-soft)}
 .copyrow{display:flex;gap:9px;padding:14px 16px 18px}
+/* Pinned below the list now rather than sitting at the end of it. On a hundred
+   finisher race the copy buttons were a long scroll away. */
+#resultActions,#reconActions{flex:0 0 auto;border-top:1px solid var(--rule);
+  padding:12px 16px calc(12px + env(safe-area-inset-bottom))}
 .copyrow button{
   flex:1;min-width:0;padding:14px 10px;border-radius:9px;border:1px solid var(--rule);
   background:var(--chalk);font-size:15px;font-weight:600;
@@ -279,6 +317,33 @@ input.code{
    capture buttons still take a tap. Naming a runner is never allowed to cost a
    finish. */
 .deck{flex:0 0 auto;padding:10px 16px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--rule);position:relative;z-index:21}
+.tapecho{
+  position:absolute;left:0;right:0;top:-54px;pointer-events:none;
+  text-align:center;font-size:40px;font-weight:800;line-height:1;
+  letter-spacing:-.03em;font-variant-numeric:tabular-nums;
+  opacity:0;color:var(--tape);
+}
+.tapecho.field{color:var(--ink)}
+.tapecho.undo{color:var(--ink-soft)}
+.tapecho.on{animation:echo .75s ease-out forwards}
+@keyframes echo{
+  0%{opacity:0;transform:translateY(10px) scale(.86)}
+  14%{opacity:1;transform:translateY(0) scale(1)}
+  55%{opacity:1}
+  100%{opacity:0;transform:translateY(-12px)}
+}
+.count b{font-weight:700;color:var(--ink);display:inline-block}
+.count b.bump{animation:bump .42s ease-out}
+@keyframes bump{
+  0%{transform:scale(1);color:var(--ink)}
+  22%{transform:scale(1.5);color:var(--tape)}
+  100%{transform:scale(1);color:var(--ink)}
+}
+@media (prefers-reduced-motion:reduce){
+  .tapecho.on{animation:echofade .75s ease-out forwards}
+  @keyframes echofade{0%,70%{opacity:1}100%{opacity:0}}
+  .count b.bump{animation:none}
+}
 .tap{
   width:100%;height:clamp(88px,14vh,118px);border-radius:12px;
   background:var(--chalk);color:var(--ink);border:1px solid var(--rule);font-size:21px;font-weight:600;letter-spacing:-.01em;
@@ -290,7 +355,28 @@ input.code{
 }
 .tap-home:active{filter:brightness(1.3)}
 .row .who.pending,.rrow .who.pending{font-weight:600;font-style:italic}
-.deck-row{display:flex;align-items:center;justify-content:space-between;margin-top:9px}
+.deck-row{display:flex;align-items:center;justify-content:space-between;
+  gap:8px;flex-wrap:wrap;margin-top:9px}
+/* Sits above everything, including the sheet, because it is the one thing that
+   must never be missed: a race is running and it is not the one on screen. */
+.livestrip{
+  position:fixed;left:0;right:0;bottom:0;z-index:30;display:none;
+  width:100%;text-align:left;border:0;border-top:2px solid var(--home);
+  background:var(--home-wash);color:var(--ink);
+  padding:11px 16px calc(11px + env(safe-area-inset-bottom));
+}
+.livestrip.on{display:block}
+.livestrip .lr1{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.livestrip .lname{font-weight:700;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.livestrip .ltime{font-size:19px;color:var(--home)}
+.livestrip .lmeta{font-size:12px;color:var(--tape);margin-top:2px}
+/* A clock nobody stopped should not look like a race in progress. */
+.livestrip.stale{border-top-color:var(--tape);background:var(--chalk)}
+.livestrip.stale .ltime{color:var(--ink-soft)}
+.xrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--rule)}
+.xrow .xn{font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.xrow.gone .xn{color:var(--ink-soft);text-decoration:line-through}
+.xrow .xg{color:var(--ink-soft);font-size:13px;margin-left:6px}
 
 /* ---------- reconcile / results ---------- */
 .rrow{
@@ -341,6 +427,23 @@ pre.out{
   max-height:calc(88dvh - env(safe-area-inset-top));display:flex;flex-direction:column;
   padding-bottom:env(safe-area-inset-bottom);
 }
+/* The stack, bottom to top: screens, sheet 20, deck 21, live strip 30, ask 36.
+   The ask sheet has to clear the naming sheet because it is opened from inside
+   it, and equal z-index would leave it behind, since it comes first in the DOM.
+   The strip sits between them: over the naming sheet, under a real modal. */
+#ask{z-index:36}
+/* And where the strip is showing, the naming sheet stops short of it, the same
+   way the compact sheet stops short of the deck. Measured for the same reason:
+   the strip is two lines of text and its height is not a number worth guessing. */
+/* The screens too, not just the sheet. Every screen the strip shows on has its
+   own row at the bottom: the copy buttons on results, the two corrections on
+   reconcile. The screen is a flex column with a .scroll that gives way, so
+   padding here shortens the list rather than pushing anything off. The clock
+   screen never gets this, because renderLive drops the flag before it shows. */
+body.haslive .screen{padding-bottom:var(--striph,0px)}
+body.haslive .sheet:not(.compact){padding-bottom:var(--striph,0px)}
+body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph,0px))}
+
 /* Opened from timing the sheet ends where the deck starts. z-index alone was
    not enough: both were anchored to the bottom of the viewport, so lifting the
    deck only decided which one won the overlap, and it buried the picker.
@@ -466,6 +569,15 @@ pre.out{
       <textarea id="rosterB" spellcheck="false" autocapitalize="words" placeholder="Ben Carter, 8&#10;Chris Doyle, 6&#10;Eli Nguyen, 7"></textarea>
       <div class="hint" id="hintB">Not loaded.</div>
     </div>
+    <div class="field" id="extraField">
+      <label>Added at a meet</label>
+      <div class="hint">Runners added from the picker. They sit after both lists so no id already in use moves. Removing one keeps its place in the numbering, so past races still show the name.</div>
+      <div id="extraList"></div>
+      <div class="btnrow" id="extraPurgeRow" style="margin-top:12px">
+        <button type="button" id="extraPurge">Clear removed runners</button>
+      </div>
+      <div class="hint" id="extraPurgeMsg"></div>
+    </div>
   </div>
 </section>
 
@@ -555,7 +667,7 @@ pre.out{
 
 <!-- ARMED -->
 <section class="screen" id="armed">
-  <div class="bar"><button class="linkbtn" id="backSetup">Edit race</button><span class="count" id="armedCount"></span></div>
+  <div class="bar"><button class="linkbtn" id="backSetup">Race setup</button><span class="count" id="armedCount"></span></div>
   <div class="pad">
     <div class="armed-name" id="armedName"></div>
     <div class="armed-sub">Hold the phone in your dominant hand and put your thumb on the button.</div>
@@ -567,19 +679,26 @@ pre.out{
 <section class="screen" id="timing">
   <div class="bar">
     <h1 id="timeName"></h1>
-    <span class="count" id="finCount">0 in</span>
+    <span class="count" id="finCount"><b id="cIn">0</b> in · <b id="cOurs">0</b> team</span>
   </div>
   <div class="clockwrap"><div class="clock num" id="clock">0:00<span class="ms">.0</span></div></div>
   <div class="chute" id="chute"></div>
   <div class="deck" id="deck">
+    <div class="tapecho" id="tapEcho" aria-hidden="true"></div>
     <button class="tap-home" id="tapHome">Peachtree MS Finisher</button>
     <button class="tap" id="tap">Field Finisher</button>
     <div class="deck-row">
-      <button class="linkbtn" id="undo">Undo last</button>
-      <button class="linkbtn" id="stop">End race</button>
+      <button class="linkbtn quiet" id="undo">Undo last</button>
+      <button class="linkbtn quiet" id="leaveClock">Leave clock</button>
+      <button class="linkbtn quiet" id="stop">End race</button>
     </div>
   </div>
 </section>
+
+<button class="livestrip" id="liveStrip">
+  <span class="lr1"><span class="lname" id="liveName"></span><span class="ltime num" id="liveTime"></span></span>
+  <span class="lmeta" id="liveMeta"></span>
+</button>
 
 <!-- RECONCILE -->
 <section class="screen" id="recon">
@@ -588,22 +707,49 @@ pre.out{
     <span class="count" id="reconFinal"></span>
     <button class="linkbtn" id="toResults">Results</button>
   </div>
-  <div class="seg2"><button type="button" id="segOurs" aria-pressed="true">Ours</button><button type="button" id="segAll" aria-pressed="false">Full field</button></div>
+  <div class="seg2"><button type="button" id="segOurs" aria-pressed="true">Team</button><button type="button" id="segAll" aria-pressed="false">All</button></div>
   <div class="scroll" id="reconList"></div>
+  <div class="copyrow" id="reconActions">
+    <button type="button" id="addMissed">Add a missed finish</button>
+    <button type="button" id="shiftAll">Shift all times</button>
+  </div>
 </section>
 
 <!-- RESULTS -->
 <section class="screen" id="results">
   <div class="bar">
     <button class="linkbtn" id="resHome">Back to home</button>
-    <button class="linkbtn" id="backRecon">Fix names</button>
+    <button class="linkbtn" id="backRecon">Edit race</button>
   </div>
   <div class="scroll" id="resultBody"></div>
+  <div class="copyrow" id="resultActions">
+    <button type="button" id="copyChat">Copy Text - Team</button>
+    <button type="button" id="copyCsv">Copy CSV - Team</button>
+  </div>
 </section>
 
 </div>
 
 <!-- ASSIGN SHEET -->
+<div class="sheet" id="ask">
+  <div class="sheet-in">
+    <div class="bar"><h1 id="askTitle"> </h1><button class="linkbtn" id="askCancel">Cancel</button></div>
+    <div class="scroll pad">
+      <div class="askbody" id="askMsg"></div>
+      <div class="field" id="askF1">
+        <label for="askIn1" id="askLab1"></label>
+        <input type="text" id="askIn1" autocomplete="off" autocapitalize="words" spellcheck="false">
+      </div>
+      <div class="field" id="askF2">
+        <label for="askIn2" id="askLab2"></label>
+        <input type="text" id="askIn2" autocomplete="off" autocapitalize="off" spellcheck="false">
+      </div>
+      <div class="hint" id="askNote"></div>
+      <div class="btnrow" id="askOkRow" style="margin-top:14px"><button type="button" class="go" id="askOk">OK</button></div>
+    </div>
+  </div>
+</div>
+
 <div class="sheet" id="sheet">
   <div class="sheet-in">
     <div class="bar"><h1 id="sheetTitle">Place</h1><button class="linkbtn" id="sheetClose">Close</button></div>
@@ -615,7 +761,7 @@ pre.out{
 (function(){
 'use strict';
 
-var BUILD='v3.13';
+var BUILD='v3.28';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -691,6 +837,34 @@ function scoreOf(r){
   if(ours.length<5) return null;
   return ours.slice(0,5).reduce(function(a,b){return a+b;},0);
 }
+/* Any race with a clock started and no end on it, whichever started last. The
+   race currently on screen is not excluded: leaving the boys clock to name the
+   girls is exactly when you need to see the boys clock. renderLive decides
+   visibility by screen instead. */
+function liveRace(){
+  var best=null;
+  SEASON.meets.forEach(function(m){
+    (m.races||[]).forEach(function(r){
+      if(r.t0Wall==null || r.endedMs!=null) return;
+      if(!best || r.t0Wall>best.race.t0Wall) best={meet:m,race:r};
+    });
+  });
+  return best;
+}
+/* A race is not long. Past this much quiet it was forgotten, not run. The
+   clock is never stopped on its own, because a race changing state while
+   nobody is looking is worse than a stale number on a strip. It is flagged
+   instead, and the flag is what gets you to End race. */
+var STALE_MS=60*60*1000;
+/* Quiet time, measured from the last finish rather than the start, so a long
+   race with runners still coming in is never called stale. */
+function quietFor(r){
+  if(!r || r.t0Wall==null || r.endedMs!=null) return 0;
+  var fin=r.fin||[];
+  var lastMs=fin.length?fin[fin.length-1].ms:0;
+  return (Date.now()-r.t0Wall)-lastMs;
+}
+function isStale(r){ return quietFor(r)>STALE_MS; }
 function meetsSorted(){
   return SEASON.meets.slice().sort(function(a,b){
     return (a.date||'').localeCompare(b.date||'');
@@ -703,7 +877,7 @@ function save(){
   try{ localStorage.setItem(KEY,JSON.stringify(S)); }catch(e){}
   if(S && S.meetId){
     var f=findRace(S.meetId,S.raceId);
-    if(f){ f.race.t0Wall=S.t0Wall; f.race.endedMs=S.endedMs; f.race.fin=S.fin; saveSeason(); }
+    if(f){ f.race.t0Wall=S.t0Wall; f.race.endedMs=S.endedMs; f.race.fin=S.fin; f.race.shift=S.shift||0; saveSeason(); }
   }
 }
 function load(){
@@ -718,7 +892,14 @@ function elapsed(){
   var e = now()-S.t0Mono;
   return e<0?0:e;
 }
-function endRace(){ S.endedMs=elapsed(); save(); }
+/* Ending a race you forgot about should not record an hour. Nobody stood at the
+   line that long, and the last finish is the only honest end the race has. */
+function endRace(){
+  var e=elapsed();
+  if(S && S.fin.length && isStale({t0Wall:S.t0Wall, endedMs:null, fin:S.fin}))
+    e=S.fin[S.fin.length-1].ms;
+  S.endedMs=e; save();
+}
 function reopenRace(){ S.endedMs=null; save(); }
 function fmt(ms,prec){
   if(ms==null) return '';
@@ -738,7 +919,7 @@ function show(id){
   for(var i=0;i<all.length;i++) all[i].classList.toggle('on', all[i].id===id);
   if(S && ['rosterEdit','home','meet','backup','signin','settings','account','about'].indexOf(id)<0) { S.screen=id; save(); }
   if(id==='home'){ renderHome(); hintRoster(); }
-  if(id==='rosterEdit') renderRosterPull();
+  if(id==='rosterEdit'){ renderRosterPull(); renderExtras(); }
   if(id==='backup') renderBackup();
   if(id==='signin') renderSignin();
   if(id==='settings') renderSettings();
@@ -750,6 +931,7 @@ function show(id){
     $('reconFinal').textContent=(S.endedMs!=null?'Final ':'Running ')+fmt(elapsed(),1);
   }
   if(id==='results') renderResults();
+  renderLive();
   if(id==='armed'){
     $('armedName').textContent=S.name;
     $('armedCount').textContent=fmtDate(S.date)+' \u00b7 '+
@@ -767,6 +949,36 @@ document.addEventListener('visibilitychange',function(){
 });
 
 /* ---------- clock ---------- */
+var liveMid=null, liveRid=null;
+/* Reads the season directly rather than S, because S is the race being looked
+   at, not the one running. Its clock comes off t0Wall for the same reason: the
+   performance.now anchor belongs to whatever race is loaded. */
+function renderLive(){
+  var el=$('liveStrip'), ok=false, ids=['home','recon','results','meet'];
+  for(var i=0;i<ids.length;i++) if($(ids[i]).classList.contains('on')) ok=true;
+  var f = ok ? liveRace() : null;
+  if(!f){
+    el.classList.remove('on');
+    document.body.classList.remove('haslive');
+    liveMid=liveRid=null;
+    return;
+  }
+  liveMid=f.meet.id; liveRid=f.race.id;
+  var fin=f.race.fin||[], ours=0;
+  fin.forEach(function(x){ if(x.h) ours++; });
+  var stale=isStale(f.race);
+  $('liveName').textContent=f.meet.name+', '+f.race.division;
+  $('liveTime').textContent=fmt(Date.now()-f.race.t0Wall,0);
+  $('liveMeta').textContent = stale
+    ? 'Clock left running \u00b7 '+fin.length+' in \u00b7 tap to end it'
+    : 'Running \u00b7 '+fin.length+' in, '+ours+' ours \u00b7 tap to go back';
+  el.classList.toggle('stale',stale);
+  el.classList.add('on');
+  /* Published so anything bottom-anchored can stay clear of it. Read after the
+     strip is on screen, so offsetHeight is the real thing. */
+  document.body.classList.add('haslive');
+  document.documentElement.style.setProperty('--striph', el.offsetHeight+'px');
+}
 function startClock(){
   if(raf) return;
   (function loop(){
@@ -793,9 +1005,139 @@ function parseList(text,g){
   return out;
 }
 function gradeTag(r){ return r && r.grade ? r.grade+'th' : ''; }
+/* Runners added at a meet live in their own list, concatenated last, so ids
+   already handed out to the two division lists never shift. Appending a girl to
+   the girls list would renumber every boy and orphan their names in past races.
+   This is the only safe place to grow the roster mid-season. */
+function parseExtras(text){
+  var out=[];
+  String(text).split('\n').forEach(function(line,li){
+    var l=line.trim(); if(!l) return;
+    var p=l.split('|'); if(p.length<2) return;
+    var nm=p[1].trim(); if(!nm) return;
+    /* A leading minus is a removed runner. The slot stays, and so does the
+       name, because a race last month still has that id on a finish. */
+    var d0=p[0], dead=false;
+    if(d0.charAt(0)==='-'){ dead=true; d0=d0.slice(1); }
+    var gr=parseInt(p[2],10);
+    out.push({name:nm, g:(d0==='M'?'M':'F'), grade:(gr>=5&&gr<=8)?gr:null,
+              ord:out.length, x:true, dead:dead, li:li});
+  });
+  return out;
+}
+/* An estimated row is not evidence, so it can go. A tapped one stays. */
+function deleteFinish(i){
+  if(!S || i<0 || i>=S.fin.length) return false;
+  if(!S.fin[i].m) return false;
+  S.fin.splice(i,1);
+  save();
+  return true;
+}
+/* Clearing tombstones frees their slots, which renumbers every extra behind
+   them. That is only safe if nothing stored points at an id that high, so it is
+   checked rather than assumed, and refused with a reason when it is not. */
+function extraBase(){
+  var n=parseList(txt(RKEY_G),'F').length+parseList(txt(RKEY_B),'M').length;
+  return n;
+}
+function refsAtOrAbove(id){
+  var hit=false;
+  function scan(fin){ (fin||[]).forEach(function(f){ if(f.r!=null && f.r>=id) hit=true; }); }
+  SEASON.meets.forEach(function(m){ (m.races||[]).forEach(function(r){ scan(r.fin); }); });
+  if(S) scan(S.fin);
+  return hit;
+}
+function purgeExtras(){
+  var lines=txt(RKEY_X).split('\n');
+  var list=parseExtras(txt(RKEY_X));
+  var first=-1;
+  for(var k=0;k<list.length;k++) if(list[k].dead){ first=k; break; }
+  if(first<0) return {ok:false, msg:'Nothing has been removed.'};
+  if(refsAtOrAbove(extraBase()+first))
+    return {ok:false, msg:'A stored race still names a runner added after this one. Clearing now would rename them. Remove is enough: they are already out of the picker.'};
+  var keep=[];
+  list.forEach(function(r){ if(!r.dead) keep.push(lines[r.li]); });
+  try{ localStorage.setItem(RKEY_X,keep.join('\n')); }catch(e){ return {ok:false, msg:'Could not write the roster.'}; }
+  if(S) S.roster=buildRoster();
+  return {ok:true, msg:''};
+}
+function setExtraDead(li,dead){
+  var lines=txt(RKEY_X).split('\n');
+  if(li<0 || li>=lines.length) return false;
+  var l=lines[li].trim(); if(!l) return false;
+  var p=l.split('|'); if(p.length<2) return false;
+  p[0]=(dead?'-':'')+p[0].replace(/^-/,'');
+  lines[li]=p.join('|');
+  try{ localStorage.setItem(RKEY_X,lines.join('\n')); }catch(e){ return false; }
+  if(S) S.roster=buildRoster();
+  return true;
+}
 function buildRoster(){
   var g=parseList(txt(RKEY_G),'F'), b=parseList(txt(RKEY_B),'M'), id=0;
-  return g.concat(b).map(function(r){ r.id=id++; return r; });
+  return g.concat(b).concat(parseExtras(txt(RKEY_X))).map(function(r){ r.id=id++; return r; });
+}
+function addExtra(name,g,grade){
+  var nm=String(name).replace(/[|\n\r]/g,' ').trim();
+  if(!nm) return null;
+  var t=txt(RKEY_X).replace(/\n+$/,'');
+  try{ localStorage.setItem(RKEY_X,(t?t+'\n':'')+g+'|'+nm+'|'+(grade||'')); }catch(e){ return null; }
+  S.roster=buildRoster();
+  for(var i=S.roster.length-1;i>=0;i--) if(S.roster[i].x && S.roster[i].name===nm) return S.roster[i].id;
+  return null;
+}
+
+/* A late clock start is a fixed error on every time in the race, so it is fixed
+   once, on the whole race. The shift is applied to the stored times rather than
+   layered over them at display, which keeps every reader of f.ms honest, and
+   the running total is kept so it can be backed out. */
+function shiftTimes(d){
+  if(!S || !d || !S.fin.length) return 0;
+  S.fin.forEach(function(f){ f.ms=Math.max(0,f.ms+d); });
+  S.shift=Math.round((S.shift||0)+d);
+  save();
+  return S.shift;
+}
+function parseClock(v){
+  var m=String(v).trim().match(/^(\d{1,3}):([0-5]?\d)(?:[.,](\d{1,3}))?$/);
+  if(!m) return null;
+  return (parseInt(m[1],10)*60+parseInt(m[2],10))*1000+parseInt((m[3]||'')+'000'.slice((m[3]||'').length),10);
+}
+/* Places are the array, so a splice renumbers everything below it for free.
+   The row is flagged so nothing downstream mistakes it for a tap. */
+function insertAt(i,ms){
+  if(!S) return -1;
+  if(i<0) i=0;
+  if(i>S.fin.length) i=S.fin.length;
+  S.fin.splice(i,0,{ms:ms, r:null, h:true, m:true, cid:uid()});
+  save();
+  return i;
+}
+function insertFinish(ms){
+  if(!S) return -1;
+  var i=0;
+  while(i<S.fin.length && S.fin[i].ms<=ms) i++;
+  return insertAt(i,ms);
+}
+/* A missed finish is discovered by counting, not by knowing a clock reading, so
+   the place is what is asked for and the time follows from its neighbours. Half
+   way between them is as good a guess as exists, and the row is marked as a
+   guess either way. */
+function midTime(i){
+  if(!S || !S.fin.length) return 0;
+  if(i<=0) return Math.max(0,S.fin[0].ms-1000);
+  if(i>=S.fin.length) return S.fin[S.fin.length-1].ms+1000;
+  return Math.round((S.fin[i-1].ms+S.fin[i].ms)/2);
+}
+function placeNote(i,ms){
+  if(!S) return '';
+  var before=i>0?S.fin[i-1]:null, after=i<S.fin.length?S.fin[i]:null;
+  var parts=[];
+  if(before) parts.push('after '+i+' at '+fmt(before.ms,1));
+  if(after) parts.push('before '+(i+2)+' at '+fmt(after.ms,1));
+  var txt2=parts.length?'Goes '+parts.join(', '):'The only finish in the race';
+  if(ms!=null && ((before&&ms<before.ms)||(after&&ms>after.ms)))
+    txt2+='. That time is out of order for this place.';
+  return txt2;
 }
 function txt(k){ try{ return localStorage.getItem(k)||''; }catch(e){ return ''; } }
 
@@ -882,7 +1224,7 @@ function openRace(mid,rid){
     team:txt(TKEY)||'Peachtree MS',
     roster:buildRoster(),
     t0Wall:r.t0Wall, t0Mono:null, endedMs:(r.endedMs===undefined?null:r.endedMs),
-    fin:r.fin||[], screen:'armed'
+    fin:r.fin||[], shift:r.shift||0, screen:'armed'
   };
   if(S.t0Wall!=null) S.t0Mono = now() - (Date.now()-S.t0Wall);
   $('tapHome').textContent=S.team+' Finisher';
@@ -893,7 +1235,7 @@ function openRace(mid,rid){
   else show('armed');
 }
 function startRace(){
-  S.t0Wall=Date.now(); S.t0Mono=now(); S.fin=[]; S.endedMs=null;
+  S.t0Wall=Date.now(); S.t0Mono=now(); S.fin=[]; S.endedMs=null; S.shift=0;
   save(); keepAwake();
   $('timeName').textContent=S.name;
   $('tapHome').textContent=S.team+' Finisher';
@@ -905,16 +1247,22 @@ function record(runnerId,home){
   S.fin.push({ms:ms, r:(runnerId==null?null:runnerId), h:(runnerId!=null||home===true), cid:uid()});
   save();
   freshIdx=S.fin.length-1;
+  /* Android buzzes. Safari never implemented the Vibration API and WebKit has
+     taken a position against it, so on an iPhone this does nothing and the
+     confirmation has to be something you can see. */
   if(navigator.vibrate) try{ navigator.vibrate(home||runnerId!=null?[14,30,14]:18); }catch(e){}
   renderChute(); renderCount();
+  echoTap(S.fin.length, (home||runnerId!=null)?'home':'field');
 }
 function undo(){
   if(!S.fin.length) return;
   /* The popped place may be the one the sheet is naming. */
   closeSheet();
+  var gone=S.fin.length;
   S.fin.pop(); save(); freshIdx=-1;
   if(navigator.vibrate) try{ navigator.vibrate([12,40,12]); }catch(e){}
   renderChute(); renderCount();
+  echoTap(gone,'undo');
 }
 function nameOf(id){
   if(id==null) return null;
@@ -1522,7 +1870,27 @@ function meetRow(m){
 
 /* ---------- renders ---------- */
 function renderCount(){
-  $('finCount').textContent=S.fin.length+' in, '+ourCount()+' ours';
+  $('cIn').textContent=S.fin.length;
+  $('cOurs').textContent=ourCount();
+}
+/* Restarting a CSS animation needs the class off, a reflow read, then the class
+   on. Without the reflow the browser coalesces both changes and nothing plays,
+   which matters here because taps come faster than the animation. */
+function replay(el,cls){
+  el.classList.remove(cls);
+  void el.offsetWidth;
+  el.classList.add(cls);
+}
+/* The place just banked, shown where the thumb already is. The chute row at the
+   top of the screen is the real record, but during a pack it is scrolling and
+   your eye is on the buttons, so the confirmation comes to the buttons. */
+function echoTap(place,kind){
+  var e=$('tapEcho');
+  e.textContent=place;
+  e.className='tapecho '+kind;
+  replay(e,'on');
+  replay($('cIn'),'bump');
+  if(kind==='home') replay($('cOurs'),'bump');
 }
 
 function renderChute(){
@@ -1536,7 +1904,7 @@ function renderChute(){
     d.className='row'+(f.h?' home':'')+(i===freshIdx?' fresh':'');
     d.innerHTML='<span class="pl num">'+(i+1)+'</span>'+
       '<span class="who'+cls+'">'+who+'</span>'+
-      '<span class="tm num">'+fmt(f.ms,1)+'</span>';
+      '<span class="tm num">'+(f.m?'~':'')+fmt(f.ms,1)+'</span>';
     /* Every row, not just ours. A finish filed in the wrong category is a real
        error and this is the only place to fix it without ending the race. */
     d.addEventListener('click',(function(n){ return function(){ openSheet(n); }; })(i));
@@ -1572,7 +1940,7 @@ function renderRecon(){
     b.className='rrow'+(f.h?' home':'')+(f.h&&!nm?' todo':'');
     b.innerHTML='<span class="pl num">'+(i+1)+'</span>'+
       '<span class="who'+cls+'">'+who+'</span>'+
-      '<span class="tm num">'+fmt(f.ms,1)+'</span>';
+      '<span class="tm num">'+(f.m?'~':'')+fmt(f.ms,1)+'</span>';
     b.addEventListener('click',function(){ openSheet(i); });
     c.appendChild(b);
   });
@@ -1609,10 +1977,79 @@ function openSheet(i){
   none.className='opt meta'; none.textContent='Not one of ours';
   none.addEventListener('click',function(){ assign(null,false); });
   l.appendChild(none);
+  /* Somebody shows up who was never on the list. Goes to the extras list, which
+     is concatenated last, so no existing id moves. */
+  var add=document.createElement('button');
+  add.className='opt meta'; add.textContent='Add a runner not on the roster';
+  add.addEventListener('click',function(){
+    var place=i;
+    askOpen({
+      title:'Add a runner',
+      msg:'Not on the '+S.division.toLowerCase()+' roster. Goes on the end of the list, so nobody else is renumbered. You can remove them later under Settings, Roster.',
+      ok:'Add and name place '+(place+1),
+      fields:[{label:'Name, and a grade if you know it', value:'', placeholder:'Sarah Miller, 7'}],
+      onOk:function(v){
+        var gr=null, t=String(v[0]).trim();
+        var g=t.match(/[,\s]+([5-8])(?:st|nd|rd|th)?\s*$/i);
+        if(g){ gr=parseInt(g[1],10); t=t.slice(0,g.index).trim(); }
+        if(!t) return 'Type a name.';
+        var id=addExtra(t,divCode(),gr);
+        if(id==null) return 'Could not save that name.';
+        sheetPlace=place;
+        assign(id,true);
+        return null;
+      }
+    });
+  });
+  l.appendChild(add);
+  /* Only on a row that was entered rather than tapped. A tapped time is the
+     record of what happened and is not editable from here. */
+  if(S.fin[i].m){
+    var place=i;
+    var ed=document.createElement('button');
+    ed.className='opt meta'; ed.textContent='Adjust this time';
+    ed.addEventListener('click',function(){
+      askOpen({
+        title:'Adjust place '+(place+1),
+        msg:'This finish was entered, not tapped, so its time is an estimate. The place does not move.',
+        ok:'Save time',
+        fields:[{label:'Time', value:fmt(S.fin[place].ms,1), placeholder:'m:ss.t'}],
+        note:placeNote(place,S.fin[place].ms),
+        onInput:function(v){ askNote(placeNote(place,parseClock(v[0]))); },
+        onOk:function(v){
+          var ms=parseClock(v[0]);
+          if(ms==null) return 'Use a time like 19:08.3';
+          S.fin[place].ms=ms; save();
+          closeSheet();
+          if($('timing').classList.contains('on')){ renderChute(); renderCount(); } else renderRecon();
+          return null;
+        }
+      });
+    });
+    l.appendChild(ed);
+    var del=document.createElement('button');
+    del.className='opt meta'; del.textContent='Delete this row';
+    del.addEventListener('click',function(){
+      askOpen({
+        title:'Delete place '+(place+1),
+        msg:'This row was entered by hand, so nothing recorded is lost. Everything below it moves back up a place.',
+        ok:'Delete place '+(place+1),
+        fields:[],
+        onOk:function(){
+          if(!deleteFinish(place)) return 'Only an entered row can be deleted.';
+          closeSheet();
+          if($('timing').classList.contains('on')){ renderChute(); renderCount(); } else renderRecon();
+          return null;
+        }
+      });
+    });
+    l.appendChild(del);
+  }
 
   // only runners not already placed somewhere else, in expected finish order
   var here=[], other=[];
   S.roster.forEach(function(r){
+    if(r.dead && S.fin[i].r!==r.id) return;
     if(isTaken(r.id) && S.fin[i].r!==r.id) return;
     (inDivision(r)?here:other).push(r);
   });
@@ -1662,6 +2099,58 @@ function openSheet(i){
   }
   $('sheet').classList.add('on');
 }
+/* Everything that used to be a browser prompt. One or two fields, a live note
+   under them, and a submit that can refuse by handing back a message. Callback
+   rather than a return value, because a sheet cannot block the way prompt did. */
+var askCfg=null;
+function askClose(){ askCfg=null; $('ask').classList.remove('on'); }
+function askNote(msg,warn){
+  $('askNote').textContent=msg||'';
+  $('askNote').className='hint'+(warn?' warn':'');
+}
+function askOpen(cfg){
+  askCfg=cfg;
+  $('askTitle').textContent=cfg.title||'';
+  $('askMsg').textContent=cfg.msg||'';
+  $('askMsg').style.display=cfg.msg?'':'none';
+  $('askOkRow').style.display='';
+  $('askCancel').textContent='Cancel';
+  $('askOk').textContent=cfg.ok||'OK';
+  var f=cfg.fields||[];
+  [1,2].forEach(function(n){
+    var d=f[n-1];
+    $('askF'+n).style.display=d?'':'none';
+    if(!d) return;
+    $('askLab'+n).textContent=d.label||'';
+    $('askIn'+n).value=d.value==null?'':String(d.value);
+    $('askIn'+n).placeholder=d.placeholder||'';
+    $('askIn'+n).setAttribute('inputmode',d.mode||'text');
+  });
+  askNote(cfg.note||'');
+  $('ask').classList.add('on');
+  if(f.length) setTimeout(function(){ try{ $('askIn1').focus(); }catch(e){} },30);
+}
+/* The same sheet with nothing to fill in. There is no primary action on a
+   thing you only read, so the button row goes and the bar carries Close. */
+function infoOpen(title,paras){
+  askCfg=null;
+  $('askTitle').textContent=title;
+  $('askMsg').style.display='';
+  $('askMsg').innerHTML=paras.map(function(t){ return '<p>'+t+'</p>'; }).join('');
+  $('askF1').style.display='none';
+  $('askF2').style.display='none';
+  $('askOkRow').style.display='none';
+  $('askCancel').textContent='Close';
+  askNote('');
+  $('ask').classList.add('on');
+}
+function askVals(){ return [$('askIn1').value, $('askIn2').value]; }
+function askSubmit(){
+  if(!askCfg) return;
+  var err=askCfg.onOk(askVals());
+  if(err){ askNote(err,true); return; }
+  askClose();
+}
 function closeSheet(){ sheetPlace=-1; $('sheet').classList.remove('on'); }
 function assign(id,home){
   /* Undo can pop the place the sheet is pointing at. Everything that could
@@ -1678,7 +2167,7 @@ function assign(id,home){
   else renderRecon();
 }
 
-var resFull=false;
+var resFull=false, resNote=[];
 function renderResults(){
   commitHistory();
   var ours=[];
@@ -1692,30 +2181,40 @@ function renderResults(){
   var complete=ours.length>=5;
   var unnamed=ours.filter(function(r){return !r.name;}).length;
 
-  var h='';
-  h+='<div class="score"><div class="big num">'+(complete?score:'&#183;')+'</div>'+
-     '<div class="cap">'+(complete
-        ? esc(S.team)+' team score, places '+top5.map(function(r){return r.place;}).join(' + ')
-        : 'Need 5 finishers to score. You have '+ours.length+'.')+'</div></div>';
-
+  var disp=[];
+  ours.forEach(function(r,i){ if(scoringRole(i+1)==='displacer') disp.push(r.place); });
   var sst=scoringStats();
-  if(sst) h+='<div class="note">Scoring five: average '+fmt(sst.avg,0)+
-             ', spread '+fmt(sst.spread,0)+'.</div>';
 
-  h+='<div class="note">Places are raw order across the whole field. If any other team ran fewer than five, official scoring removes their runners first and these totals will shift.'+
-     (unnamed?' '+unnamed+' of your places still need a name, but the score above is already final.':'')+'</div>';
+  /* The score, the five that made it, and the two behind them, in one block.
+     Everything that explains the number lives behind the info button instead of
+     as a paragraph, because on a phone that paragraph pushed the first finisher
+     off the bottom of the screen. */
+  var h='';
+  h+='<div class="rhead">'+
+     '<div class="rid"><span class="ridtext">'+esc(S.name)+'</span>'+
+     '<button type="button" class="info" id="resInfo" aria-label="About this score">i</button></div>'+
+     '<div class="rwhen num">'+esc([S.date?fmtDate(S.date,true):'', meetDist()].filter(Boolean).join(' \u00b7 '))+'</div>'+
+     '<div class="rgrid">'+
+       '<div class="rscore num">'+(complete?score:'&#183;')+'</div>'+
+       '<div class="rside">'+
+         '<div class="req num">'+(complete
+            ? top5.map(function(r){return r.place;}).join('<span class="op">+</span>')+
+              (disp.length?'<span class="disp">('+disp.join(', ')+')</span>':'')
+            : 'Need 5 finishers to score. You have '+ours.length+'.')+'</div>'+
+         (sst?'<div class="rstat num">Top 5 Avg '+fmt(sst.avg,0)+' \u00b7 Spread '+fmt(sst.spread,0)+'</div>':'')+
+       '</div>'+
+     '</div></div>';
 
   /* Same toggle as reconcile, so the two screens behave alike. The score
      above never changes with it: the view switches, the race does not. */
   h+='<div class="seg2">'+
-     '<button type="button" id="resSegOurs" aria-pressed="'+(!resFull)+'">Ours</button>'+
-     '<button type="button" id="resSegAll" aria-pressed="'+resFull+'">Full field</button></div>';
+     '<button type="button" id="resSegOurs" aria-pressed="'+(!resFull)+'">Team</button>'+
+     '<button type="button" id="resSegAll" aria-pressed="'+resFull+'">All</button></div>';
 
-  var when = [S.date?fmtDate(S.date,true):'', meetDist()].filter(Boolean).join(' \u00b7 ');
-  when = when ? ' \u00b7 '+esc(when) : '';
+  /* No band above the list. The date and distance are in the header now, the
+     segment above says whose finishers these are, and the count was the list
+     restating its own length. */
   if(resFull){
-    h+='<div class="sect">Full field, '+S.fin.length+
-       (S.fin.length===1?' finisher':' finishers')+when+'</div>';
     var seen=0;
     S.fin.forEach(function(f,i){
       var nm=nameOf(f.r), run=runnerById(f.r), tags=[];
@@ -1732,8 +2231,6 @@ function renderResults(){
          '<span class="tm num">'+fmt(f.ms,3)+'</span></div>';
     });
   } else {
-    h+='<div class="sect">'+ours.length+' '+esc(S.team)+
-       (ours.length===1?' finisher':' finishers')+when+'</div>';
     ours.forEach(function(r,i){
       var tags=[];
       if(r.grade) tags.push(r.grade+'th');
@@ -1745,14 +2242,23 @@ function renderResults(){
     });
   }
 
-  h+='<div class="copyrow">'+
-     '<button id="copyChat">Copy for chat, '+(resFull?'full field':'ours')+'</button>'+
-     '<button id="copyCsv">Copy CSV, '+(resFull?'full field':'ours')+'</button></div>';
-  h+='<div class="sect" style="padding-bottom:18px">Build '+BUILD+'</div>';
-
+  /* The copy buttons live in the markup and are pinned below the list, so they
+     are reachable without scrolling to the end of a hundred finishers. Only
+     their labels are rendered, and only because the segment above changes what
+     gets copied. The build number belongs on the About screen, not here. */
   $('resultBody').innerHTML=h;
-  $('copyChat').addEventListener('click',function(){ copyOut(buildChat(), this); });
-  $('copyCsv').addEventListener('click',function(){ copyOut(buildCsv(), this); });
+  resNote=['Places are <b>raw order across the whole field</b>. Official scoring removes any team that ran fewer than five before assigning points, so these totals will shift.'];
+  if(unnamed) resNote.push('<b>'+unnamed+' of your '+(unnamed===1?'places':'places')+' still '+(unnamed===1?'needs':'need')+' a name.</b> The score above is already final, since it only depends on where your runners crossed.');
+  if(disp.length) resNote.push('The '+(disp.length===1?'one':'two')+' in brackets '+(disp.length===1?'is a <b>displacer</b>. It scores':'are <b>displacers</b>. They score')+' no points of '+(disp.length===1?'its':'their')+' own, '+(disp.length===1?'it pushes':'they push')+' other teams\' runners further back.');
+  $('resInfo').addEventListener('click',function(){ infoOpen('About this score',resNote); });
+  /* The scope is named on the button rather than left to the segment above,
+     because the copy is the thing you cannot take back once it is pasted. */
+  var scope=resFull?'All':'Team';
+  [['copyChat','Copy Text - '],['copyCsv','Copy CSV - ']].forEach(function(p){
+    var b=$(p[0]), t=p[1]+scope;
+    b.setAttribute('data-label',t);
+    if(b.textContent!=='Copied' && b.textContent!=='Select the text below') b.textContent=t;
+  });
   $('resSegOurs').addEventListener('click',function(){ resFull=false; renderResults(); });
   $('resSegAll').addEventListener('click',function(){ resFull=true; renderResults(); });
 }
@@ -1824,7 +2330,7 @@ function buildCsv(full){
     if(f.h){ seen++; sc = scoringRole(seen); }
     if(!full && !f.h) return;
     var r=runnerById(f.r);
-    out+=(i+1)+','+fmt(f.ms,3)+','+csvCell(nameOf(f.r)||'')+','+
+    out+=(i+1)+','+fmt(f.ms,3)+(f.m?'*':'')+','+csvCell(nameOf(f.r)||'')+','+
          csvCell(f.h?S.team:'')+','+(r&&r.grade?r.grade:'')+','+sc+'\n';
   });
   return out;
@@ -1833,7 +2339,7 @@ function csvCell(v){
   v=String(v);
   return /[",\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v;
 }
-/* Follows the Ours / Full field toggle, the same way buildCsv does, so what
+/* Follows the Team / All toggle, the same way buildCsv does, so what
    you copy is what you were looking at. The header block never changes with
    it, for the same reason it does not in the CSV: the score is a fact about
    the race, not about the filter.
@@ -1903,7 +2409,10 @@ function copyOut(text,btn){
   var label=btn.textContent;
   function done(ok){
     btn.textContent = ok ? 'Copied' : 'Select the text below';
-    setTimeout(function(){ btn.textContent=label; }, 1600);
+    /* Read at restore rather than captured, because the results buttons are no
+       longer rebuilt on every render: switching Team to All mid-feedback
+       would otherwise put the old label back. */
+    setTimeout(function(){ btn.textContent=btn.getAttribute('data-label')||label; }, 1600);
   }
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(text).then(function(){done(true);},function(){fallback(text,done);});
@@ -1926,7 +2435,7 @@ function esc(s){
 }
 
 /* ---------- wiring ---------- */
-var RKEY_G='chute.roster.girls.v1', RKEY_B='chute.roster.boys.v1';
+var RKEY_G='chute.roster.girls.v1', RKEY_B='chute.roster.boys.v1', RKEY_X='chute.roster.extra.v1';
 var TKEY='chute.team.v1', HKEY='chute.history.v1';
 
 function sideHint(list,el){
@@ -1940,6 +2449,28 @@ function sideHint(list,el){
   el.textContent=list.length+' runners'+(g.length?', '+g.join(', '):'')+'. '+
     (seeded ? seeded+' ordered by last race time, the rest in the order above.'
             : 'Order above is the picker order until they race.');
+}
+function renderExtras(){
+  var c=$('extraList'); c.innerHTML='';
+  var list=parseExtras(txt(RKEY_X));
+  $('extraField').style.display=list.length?'':'none';
+  list.forEach(function(r){
+    var row=document.createElement('div');
+    row.className='xrow'+(r.dead?' gone':'');
+    var nm=document.createElement('span');
+    nm.className='xn';
+    nm.innerHTML=esc(r.name)+'<span class="xg">'+esc((r.g==='M'?'Boys':'Girls')+(r.grade?', '+r.grade+'th':''))+'</span>';
+    var b=document.createElement('button');
+    b.className='linkbtn';
+    b.textContent=r.dead?'Undo':'Remove';
+    b.addEventListener('click',function(){ setExtraDead(r.li,!r.dead); renderExtras(); });
+    row.appendChild(nm); row.appendChild(b);
+    c.appendChild(row);
+  });
+  var anyDead=false;
+  list.forEach(function(r){ if(r.dead) anyDead=true; });
+  $('extraPurgeRow').style.display=anyDead?'':'none';
+  if(!anyDead) $('extraPurgeMsg').textContent='';
 }
 function hintRoster(){
   var g=parseList($('rosterG').value,'F'), b=parseList($('rosterB').value,'M');
@@ -2053,7 +2584,9 @@ $('gun').addEventListener('click',startRace);
 $('tap').addEventListener('click',function(){ record(null,false); });
 $('tapHome').addEventListener('click',function(){ record(null,true); });
 $('undo').addEventListener('click',undo);
-$('stop').addEventListener('click',function(){ endRace(); show('recon'); });
+$('stop').addEventListener('click',function(){
+  armTwoTap(this,'Again to end',function(){ endRace(); show('recon'); });
+});
 $('backTiming').addEventListener('click',function(){
   reopenRace(); keepAwake();
   show('timing'); renderChute(); renderCount();
@@ -2091,10 +2624,93 @@ $('histClear').addEventListener('click',function(){
     renderBackup(); hintRoster();
   });
 });
+$('extraPurge').addEventListener('click',function(){
+  var b=this;
+  armTwoTap(b,'Tap again to clear',function(){
+    var r=purgeExtras();
+    $('extraPurgeMsg').className='hint'+(r.ok?'':' warn');
+    $('extraPurgeMsg').textContent=r.ok?'Cleared.':r.msg;
+    renderExtras();
+  });
+});
+$('copyChat').addEventListener('click',function(){ copyOut(buildChat(), this); });
+$('copyCsv').addEventListener('click',function(){ copyOut(buildCsv(), this); });
 $('rosterPull').addEventListener('click',pullRoster);
 $('rosterDone').addEventListener('click',function(){ goBack('rosterEdit'); });
 $('backSetup').addEventListener('click',function(){ show('home'); });
 $('resHome').addEventListener('click',function(){ show('home'); });
+$('liveStrip').addEventListener('click',function(){
+  if(liveMid!=null) openRace(liveMid,liveRid);
+});
+/* Four a second is plenty for a clock shown to the tenth of a minute, and it
+   costs nothing when no race is running. */
+setInterval(renderLive,250);
+
+/* No confirmation. The race keeps running, the strip brings you back, and you
+   are one tap from the chute again. Nothing is lost, so nothing is asked. */
+$('leaveClock').addEventListener('click',function(){ show('home'); });
+
+$('askCancel').addEventListener('click',askClose);
+$('ask').addEventListener('click',function(e){ if(e.target===this) askClose(); });
+$('askOk').addEventListener('click',askSubmit);
+[1,2].forEach(function(n){
+  $('askIn'+n).addEventListener('input',function(){
+    if(askCfg && askCfg.onInput) askCfg.onInput(askVals(),n);
+  });
+  $('askIn'+n).addEventListener('keydown',function(e){ if(e.key==='Enter') askSubmit(); });
+});
+
+$('addMissed').addEventListener('click',function(){
+  var n=S.fin.length, timeDirty=false;
+  function idxOf(v){ var k=parseInt(String(v).replace(/[^0-9]/g,''),10); return isFinite(k)?k-1:null; }
+  askOpen({
+    title:'Missed finish',
+    msg:'Which place was missed? Everything below it moves down one. The time starts half way between its neighbours and you can change it.',
+    ok:'Insert',
+    fields:[
+      {label:'Place it should take', value:n+1, mode:'numeric', placeholder:'1 to '+(n+1)},
+      {label:'Time', value:fmt(midTime(n),1), mode:'text', placeholder:'m:ss.t'}
+    ],
+    note:placeNote(n,null),
+    onInput:function(v,which){
+      if(which===2){ timeDirty=true; }
+      var i=idxOf(v[0]);
+      if(i==null || i<0 || i>n){ askNote('Pick a place from 1 to '+(n+1),true); return; }
+      if(which===1 && !timeDirty) $('askIn2').value=fmt(midTime(i),1);
+      askNote(placeNote(i,parseClock($('askIn2').value)));
+    },
+    onOk:function(v){
+      var i=idxOf(v[0]);
+      if(i==null || i<0 || i>n) return 'Pick a place from 1 to '+(n+1);
+      var ms=parseClock(v[1]);
+      if(ms==null) return 'Could not read "'+v[1]+'". Use a time like 19:08.3';
+      var at=insertAt(i,ms);
+      renderRecon();
+      setTimeout(function(){ openSheet(at); },60);
+      return null;
+    }
+  });
+});
+
+$('shiftAll').addEventListener('click',function(){
+  var cur=(S.shift||0)/1000;
+  askOpen({
+    title:'Shift all times',
+    msg:'Moves every time in this race. Places do not change. A late clock start is a positive number.',
+    ok:'Shift',
+    fields:[{label:'Seconds', value:'', mode:'text', placeholder:'16.2'}],
+    note:cur?('Already shifted by '+(cur>0?'+':'')+cur.toFixed(1)+'s.'):'',
+    onOk:function(v){
+      var d=parseFloat(String(v[0]).replace(/[^0-9.+-]/g,''));
+      if(!isFinite(d)||!d) return 'Use a number of seconds, like 16.2 or -3.5';
+      shiftTimes(Math.round(d*1000));
+      renderRecon();
+      $('reconFinal').textContent=(S.endedMs!=null?'Final ':'Running ')+fmt(elapsed(),1);
+      return null;
+    }
+  });
+});
+
 $('sheetClose').addEventListener('click',closeSheet);
 $('sheet').addEventListener('click',function(e){ if(e.target===this) closeSheet(); });
 
@@ -2178,7 +2794,9 @@ document.addEventListener('keydown',function(e){
   // Resume straight into a race that is still on the clock; otherwise home.
   if(prev && prev.meetId){
     var f=findRace(prev.meetId,prev.raceId);
-    if(f && raceState(f.race)==='live'){ openRace(prev.meetId,prev.raceId); return; }
+    /* Straight back onto the clock, but not for a race that was left running
+       overnight. That one wants the home screen and the strip telling you. */
+    if(f && raceState(f.race)==='live' && !isStale(f.race)){ openRace(prev.meetId,prev.raceId); return; }
   }
   try{ localStorage.removeItem(KEY); }catch(e){}
   S=null;
