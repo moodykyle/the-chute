@@ -422,6 +422,11 @@ input.code{
    is pending by definition and colouring them all would be noise. */
 .rrow .who.pending{color:var(--tape)}
 .rrow.todo{box-shadow:inset 3px 0 0 var(--tape)}
+/* a place that just arrived from the timer's phone */
+.rrow.arrive{box-shadow:inset 3px 0 0 var(--tape),inset 0 0 0 1px var(--tape)}
+.bar .count .upd{display:block;font-size:11px;line-height:1.2;text-align:center}
+.bar .count .upd.late{color:var(--tape);font-weight:600}
+.note .notebtn{display:block;margin-top:10px;padding:10px 14px;border-radius:10px;background:var(--red);color:#fff;font-weight:600}
 
 .score{padding:22px 16px;border-bottom:1px solid var(--rule)}
 .score .big{font-size:66px;font-weight:700;line-height:1;letter-spacing:-.03em}
@@ -560,7 +565,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
       <input type="text" id="mvenue" placeholder="Murphey Candler Park" autocomplete="off">
     </div>
     <div class="field">
-      <label class="check"><input type="checkbox" id="mtest"> Test meet</label>
+      <label class="check" id="mtestRow"><input type="checkbox" id="mtest"> Test meet</label>
       <div class="hint" id="mtestHint"></div>
     </div>
     <div class="hint">Every meet holds a girls race and a boys race. Each keeps its own clock and its own results.</div>
@@ -784,7 +789,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.2';
+var BUILD='v4.5';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -909,9 +914,13 @@ function save(){
     if(f){
       var rc=f.race;
       /* start, end, reopen and shift all land here, so this is the one place a
-         race is marked as needing to be sent */
-      if(rc.t0Wall!==S.t0Wall || (rc.endedMs==null?null:rc.endedMs)!==(S.endedMs==null?null:S.endedMs) || (rc.shift||0)!==(S.shift||0)) touch(rc);
-      rc.t0Wall=S.t0Wall; rc.endedMs=S.endedMs; rc.fin=S.fin; rc.shift=S.shift||0; saveSeason();
+         race is marked as needing to be sent. A race timed on another phone
+         takes its state from that phone, never from this one's copy. */
+      if(ownsRace(rc)){
+        if(rc.t0Wall!==S.t0Wall || (rc.endedMs==null?null:rc.endedMs)!==(S.endedMs==null?null:S.endedMs) || (rc.shift||0)!==(S.shift||0)) touch(rc);
+        rc.t0Wall=S.t0Wall; rc.endedMs=S.endedMs; rc.shift=S.shift||0;
+      }
+      rc.fin=S.fin; saveSeason();
     }
   }
 }
@@ -961,9 +970,10 @@ function show(id){
   if(id==='account') renderAccount();
   if(id==='about') renderAbout();
   if(id==='timing') startClock(); else stopClock();
+  if(wantAwake() && (id==='timing' || id==='recon')) keepAwake(); else releaseAwake();
   if(id==='recon'){
     renderRecon();
-    $('reconFinal').textContent=(S.endedMs!=null?'Final ':'Running ')+fmt(elapsed(),1);
+    renderReconBar();
   }
   if(id==='results') renderResults();
   renderLive();
@@ -976,11 +986,19 @@ function show(id){
 
 /* ---------- wake lock ---------- */
 function keepAwake(){
-  if(!('wakeLock' in navigator)) return;
-  navigator.wakeLock.request('screen').then(function(w){ wake=w; }).catch(function(){});
+  if(!('wakeLock' in navigator) || wake) return;
+  navigator.wakeLock.request('screen').then(function(w){ wake=w; w.addEventListener && w.addEventListener('release',function(){ if(wake===w) wake=null; }); }).catch(function(){});
+}
+/* The screen stays on only while a live race is in front of you: the clock you
+   are tapping, or the list you are naming. Anywhere else it is let go, so a
+   phone left on home or results can sleep. */
+function releaseAwake(){ if(wake){ try{ wake.release(); }catch(e){} wake=null; } }
+function wantAwake(){
+  if(!S || S.t0Wall==null || S.endedMs!=null) return false;
+  return S.screen==='timing' || (S.screen==='recon' && remoteRace(currentRace()));
 }
 document.addEventListener('visibilitychange',function(){
-  if(document.visibilityState==='visible' && S && S.t0Mono!=null && S.screen==='timing') keepAwake();
+  if(document.visibilityState==='visible' && wantAwake()) keepAwake();
 });
 
 /* ---------- clock ---------- */
@@ -1020,6 +1038,12 @@ function startClock(){
   if(raf) return;
   (function loop(){
     var ms=elapsed(), t=fmt(ms,1), i=t.indexOf('.');
+    /* An hour with no tap is a forgotten clock, not a long race. Show where
+       the race actually stopped instead of counting up for days. */
+    if(S && S.endedMs==null && quietFor({t0Wall:S.t0Wall, endedMs:null, fin:S.fin})>STALE_MS){
+      var last=S.fin.length ? S.fin[S.fin.length-1].ms : 0, lt=fmt(last,1), li=lt.indexOf('.');
+      $('clock').innerHTML = lt.slice(0,li)+'<span class="ms">'+lt.slice(li)+' left running</span>';
+    } else
     $('clock').innerHTML = t.slice(0,i)+'<span class="ms">'+t.slice(i)+'</span>';
     raf=requestAnimationFrame(loop);
   })();
@@ -1262,15 +1286,17 @@ function relinkFinishes(fin,roster){
     if(!(k in byK)) byK[k]=r;
   });
   fin.forEach(function(f){
-    if(f.n==null) return;
-    var r=(f.a && byA[f.a]) || byK[histKey({g:f.g, name:f.n})] || null;
+    if(f.n==null && !f.a) return;
+    var r=(f.a && byA[f.a]) || (f.n!=null ? byK[histKey({g:f.g, name:f.n})] : null) || null;
     var id=r?r.id:null;
     if(f.r!==id){ f.r=id; moved++; }
     if(r){
       var a=map[histKey(r)];
       if(a && f.a!==a){ f.a=a; touch(f); }
       /* matched by id under a different spelling: the database corrected it */
-      if(a && r.name!==f.n){ f.n=r.name; touch(f); }
+      if(a && f.n!=null && r.name!==f.n){ f.n=r.name; touch(f); }
+      /* named on another phone, which only sent the id */
+      if(f.n==null){ f.n=r.name; f.g=r.g; }
     }
   });
   return moved;
@@ -1316,7 +1342,10 @@ function editMeet(id){
   /* Never inherited from the last meet, unlike distance. One test race the
      night before must not turn the real meet into a test. */
   $('mtest').checked=!!(m && m.test);
-  $('mtestHint').textContent=TEST_HINT;
+  /* A real meet in the database cannot become a test, so it is not offered. */
+  var locked=!!(m && !m.test && meetUploaded(m));
+  $('mtestRow').style.display = locked ? 'none' : '';
+  $('mtestHint').textContent = locked ? LOCKED_HINT : TEST_HINT;
   $('meetDelete').style.display=m?'':'none';
   show('meet');
 }
@@ -1356,12 +1385,17 @@ function openRace(mid,rid){
   $('tapHome').textContent=S.team+' Finisher';
   $('timeName').textContent=S.name;
   save();
-  if(raceState(r)==='done') show('results');
+  if(remoteRace(r) && raceState(r)==='live') show('recon');
+  else if(raceState(r)==='done') show('results');
   else if(raceState(r)==='live'){ keepAwake(); show('timing'); renderChute(); renderCount(); }
   else show('armed');
 }
 function startRace(){
   S.t0Wall=Date.now(); S.t0Mono=now(); S.fin=[]; S.endedMs=null; S.shift=0;
+  /* Whoever starts the clock times this race. The claim goes to the database
+     with the start, and the first phone to get there keeps it. */
+  var sf=findRace(S.meetId,S.raceId);
+  if(sf){ sf.race.timedBy=deviceId(); delete sf.race.lost; }
   save(); keepAwake();
   $('timeName').textContent=S.name;
   $('tapHome').textContent=S.team+' Finisher';
@@ -1518,11 +1552,12 @@ function ensureFresh(){
    A tap never waits on any of this. record() does not know sync exists; the
    timer below finds new finishes by their missing `up`.
 
-   Test meets are skipped entirely. Nothing in them is sent, and nothing in
-   them leaves a tombstone. */
+   Test meets sync like any other, marked as tests in the database, so two
+   phones can practice on one. */
 var BAD_RETRY_MS=60000, SYNC_MS=2500, SYNC_INIT='chute.sync.init.v1', HOME_KEY='chute.team.home.v1';
 var UUID_RE=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-var TEST_HINT='Never saved to the database, and deletes in one tap.';
+var TEST_HINT='Saved to the database marked as a test, so two phones can practice on it. Deleting it removes it everywhere, in one tap.';
+var LOCKED_HINT='Real meet \u00b7 saved to the database. It can\u2019t be made a test.';
 var syncBusy=false, syncErr='';
 
 function touch(o){ if(o){ o.d=(o.d||0)+1; delete o.bad; } }
@@ -1547,7 +1582,7 @@ function meetUploaded(m){
 function tombstone(f){
   if(!f || !f.cid || !S) return;
   var fr=findRace(S.meetId,S.raceId);
-  if(!fr || fr.meet.test) return;
+  if(!fr || !ownsRace(fr.race) || fr.race.lost) return;
   (fr.race.gone=fr.race.gone||[]).push(f.cid);
 }
 /* The database will not change a time, so a changed estimate is a new row. */
@@ -1565,14 +1600,15 @@ function distMeters(s){
   return null;
 }
 function isoAt(ms){ return ms==null ? null : new Date(ms).toISOString(); }
-function meetBody(m){ return {id:m.id, name:m.name, meet_date:m.date, venue:m.venue||null}; }
-function meetPatch(m){ return {name:m.name, meet_date:m.date, venue:m.venue||null}; }
+function meetBody(m){ return {id:m.id, name:m.name, meet_date:m.date, venue:m.venue||null, is_test:!!m.test}; }
+function meetPatch(m){ return {name:m.name, meet_date:m.date, venue:m.venue||null, is_test:!!m.test}; }
 function racePatch(m,r){
   return {
     started_at:isoAt(r.t0Wall),
     ended_at:(r.t0Wall!=null && r.endedMs!=null) ? isoAt(r.t0Wall+r.endedMs) : null,
     shift_ms:Math.round(r.shift||0),
-    distance_m:distMeters(m.dist)
+    distance_m:distMeters(m.dist),
+    timed_by:r.timedBy||null
   };
 }
 function raceBody(m,r){
@@ -1592,24 +1628,28 @@ function finBody(r,f,i,home){
 }
 /* What still has to go, for one meet or the whole season. */
 function syncWork(only){
-  var w={meets:[], races:[], gone:[], fins:[], bad:0, total:0};
+  var w={drop:[], meets:[], races:[], gone:[], fins:[], bad:0, total:0};
+  if(!only) w.drop=(SEASON.goneMeets||[]).slice();
   SEASON.meets.forEach(function(m){
-    if(m.test || (only && m!==only)) return;
+    if(only && m!==only) return;
     if(!UUID_RE.test(m.id)){ w.bad++; return; }
     if(resting(m)) w.bad++;
     else if(!m.up || m.d) w.meets.push(m);
     (m.races||[]).forEach(function(r){
       if(!UUID_RE.test(r.id)){ w.bad++; return; }
+      /* This phone sends a race's state and its taps only if it times that
+         race. Names go up from any phone. */
+      var own=ownsRace(r) && !r.lost;
       if(resting(r)) w.bad++;
-      else if(!r.up || r.d) w.races.push({m:m, r:r});
-      if(r.gone && r.gone.length) w.gone.push({m:m, r:r});
+      else if(own && (!r.up || r.d)) w.races.push({m:m, r:r});
+      if(own && r.gone && r.gone.length) w.gone.push({m:m, r:r});
       (r.fin||[]).forEach(function(f,i){
         if(resting(f)){ w.bad++; return; }
-        if(!f.up || f.d) w.fins.push({m:m, r:r, f:f, i:i});
+        if(f.up ? f.d : own) w.fins.push({m:m, r:r, f:f, i:i});
       });
     });
   });
-  w.total=w.meets.length+w.races.length+w.gone.length+w.fins.length;
+  w.total=w.drop.length+w.meets.length+w.races.length+w.gone.length+w.fins.length;
   return w;
 }
 function pendingCount(w){
@@ -1618,13 +1658,17 @@ function pendingCount(w){
   return n;
 }
 function syncShort(m){
-  if(m && m.test) return 'Test';
   var n=pendingCount(syncWork(m));
   return n ? n+' waiting' : 'Saved';
 }
 function syncLine(m){
   if(!m) return '';
-  if(m.test) return 'TEST MEET \u00b7 NOT SAVED TO THE DATABASE';
+  var line=syncLineBase(m);
+  return m.test ? 'TEST MEET \u00b7 '+line.toUpperCase() : line;
+}
+function syncLineBase(m){
+  var fr=S ? findRace(S.meetId,S.raceId) : null;
+  if(fr && fr.meet===m && fr.race.lost) return 'Another phone started this race first. These taps stay on this phone';
   var w=syncWork(m), n=pendingCount(w), bad=w.bad ? ' \u00b7 '+w.bad+' could not be saved' : '';
   if(!n) return w.bad ? w.bad+' could not be saved, trying again shortly' : 'Saved to the database';
   var why = !signedIn() ? 'Not signed in'
@@ -1735,6 +1779,7 @@ function syncDrain(w,home){
   w.fins.forEach(function(x){ (byRace[x.r.id]=byRace[x.r.id]||{m:x.m, r:x.r, list:[]}).list.push(x); });
   w.gone.forEach(function(x){ byRace[x.r.id]=byRace[x.r.id]||{m:x.m, r:x.r, list:[]}; });
   return seq([
+    function(){ return seq(w.drop, dropMeet); },
     function(){ return insertBatch('meets','id',function(m){ return m.id; },
                   w.meets.filter(function(m){ return !m.up; }), meetBody); },
     function(){ return seq(w.meets.filter(function(m){ return m.up && m.d; }), function(m){
@@ -1745,12 +1790,13 @@ function syncDrain(w,home){
                     fresh.map(function(x){ return x.r; }),
                     function(r){ return raceBody(meetOf[r.id],r); }); },
     function(){ return seq(w.races.filter(function(x){ return x.r.up && x.r.d; }), function(x){
-                  return patchOne('/rest/v1/races?id=eq.'+x.r.id, x.r, racePatch(x.m,x.r)); }); },
+                  return patchRace(x.m,x.r); }); },
     function(){ return seq(Object.keys(byRace).map(function(k){ return byRace[k]; }), function(g){
                   return drainRace(g.m,g.r,g.list,home); }); }
   ], function(step){ return step(); });
 }
 function drainRace(m,r,list,home){
+  if(r.lost) return true;
   if(!r.up){
     /* nothing from a race the server has never seen can be there to delete */
     if(r.gone) r.gone=[];
@@ -1792,6 +1838,251 @@ function drainRace(m,r,list,home){
     }
   ], function(step){ return step(); });
 }
+
+/* ---------- two phones ----------
+   Every phone has a device id. The phone that starts a race's clock writes its
+   id into the race, and that phone times it. Every other phone sees the race as
+   timed elsewhere: it reads the taps, names them, and never changes the race. */
+var DEVICE_KEY='chute.device.v1', POLL_MS=3000, HOME_PULL_MS=5000, IDLE_PULL_MS=60000, WATCH_AFTER_MS=30*60*1000;
+var pollBusy=false, lastPull=0, lastPollOk=0, arrivedAt={};
+
+function deviceId(){
+  var d=''; try{ d=localStorage.getItem(DEVICE_KEY)||''; }catch(e){}
+  if(!UUID_RE.test(d)){ d=uid(); try{ localStorage.setItem(DEVICE_KEY,d); }catch(e){} }
+  return d;
+}
+function ownsRace(r){
+  if(!r) return false;
+  if(r.timedBy) return r.timedBy===deviceId();
+  /* No timer on record. A race nobody has started is anyone's to start. One
+     started before 4.3 recorded timers belongs to the phone holding its taps,
+     never to a phone that only pulled it from the database. */
+  return r.t0Wall==null || !r.pulled;
+}
+function remoteRace(r){ return !!r && !ownsRace(r); }
+function currentRace(){ var fr=(S && S.meetId) ? findRace(S.meetId,S.raceId) : null; return fr ? fr.race : null; }
+function agoText(ms){
+  var h=Math.floor(ms/3600000);
+  if(h>=48) return Math.floor(h/24)+' days ago';
+  if(h>=1) return h+(h===1?' hour ago':' hours ago');
+  return Math.max(1,Math.floor(ms/60000))+' minutes ago';
+}
+function distLabel(m){
+  if(!m) return '';
+  var opts=['1 mile','1.5 miles','2 miles','2.5 miles','3 miles','2K','3K','4K','5K'];
+  for(var i=0;i<opts.length;i++) if(distMeters(opts[i])===m) return opts[i];
+  return m%1000===0 ? (m/1000)+'K' : '';
+}
+function justArrived(f){ return !!(f && arrivedAt[f.cid] && Date.now()-arrivedAt[f.cid]<4000); }
+
+/* The claim. A race row with no timer, or with this phone as its timer, takes
+   the update; any other timer means another phone started first. */
+function patchRace(m,r){
+  var snap=r.d||0, me=deviceId();
+  /* select carries timed_by on purpose. PostgREST applies an or= filter a
+     second time to the returned rows, and fails if the column is not in them. */
+  return sbFetch('/rest/v1/races?id=eq.'+r.id+'&or=(timed_by.is.null,timed_by.eq.'+me+')&select=id,timed_by',
+                 {method:'PATCH', auth:true, prefer:'return=representation', body:racePatch(m,r)})
+    .then(function(res){
+      if(res.ok){
+        if(!(res.data||[]).length && r.timedBy===me) r.lost=true;
+        settle(r,snap);
+        return true;
+      }
+      if(syncFatal(res)) return false;
+      setAside(r);
+      return true;
+    });
+}
+function dropMeet(id){
+  return sbFetch('/rest/v1/meets?id=eq.'+id,{method:'DELETE', auth:true, prefer:'return=minimal'})
+    .then(function(res){
+      if(!res.ok && syncFatal(res)) return false;
+      SEASON.goneMeets=(SEASON.goneMeets||[]).filter(function(x){ return x!==id; });
+      return true;
+    });
+}
+
+/* Server race row onto a local race. Returns whether anything changed. */
+function applyRaceRow(r,sr){
+  var t0=sr.started_at ? Date.parse(sr.started_at) : null;
+  var end=(t0!=null && sr.ended_at) ? Date.parse(sr.ended_at)-t0 : null;
+  var sh=sr.shift_ms||0, tb=sr.timed_by||null;
+  var ch = r.t0Wall!==t0 || (r.endedMs==null?null:r.endedMs)!==end || (r.shift||0)!==sh || (r.timedBy||null)!==tb;
+  if((r.shift||0)!==sh) (r.fin||[]).forEach(function(f){ if(f.raw!=null) f.ms=f.raw+sh; });
+  r.t0Wall=t0; r.endedMs=end; r.shift=sh;
+  if(tb) r.timedBy=tb; else delete r.timedBy;
+  /* the open race too, or the next save would write the old values back */
+  if(S && S.raceId===r.id){
+    S.t0Wall=t0; S.endedMs=end; S.shift=sh;
+    S.t0Mono = t0!=null ? now()-(Date.now()-t0) : null;
+  }
+  return ch;
+}
+function mergePulled(meets,races){
+  var skip=(SEASON.goneMeets||[]).concat(SEASON.hiddenMeets||[]), changed=false, byMeet={};
+  races.forEach(function(sr){ (byMeet[sr.meet_id]=byMeet[sr.meet_id]||[]).push(sr); });
+  /* A test meet this phone got from the database and the database no longer
+     has was deleted on another phone. Real meets cannot be deleted there. */
+  var year=todayStr().slice(0,4), live={};
+  meets.forEach(function(sm){ live[sm.id]=true; });
+  SEASON.meets=SEASON.meets.filter(function(m){
+    var goneElsewhere = m.test && m.up && !live[m.id] && (m.date||'')>=year+'-01-01';
+    if(goneElsewhere) changed=true;
+    return !goneElsewhere;
+  });
+  meets.forEach(function(sm){
+    if(skip.indexOf(sm.id)>=0) return;
+    var srs=(byMeet[sm.id]||[]).sort(function(a,b){ return a.division===b.division?0:(a.division==='F'?-1:1); });
+    var lm=findMeet(sm.id);
+    if(!lm){
+      lm={id:sm.id, name:sm.name, date:sm.meet_date, venue:sm.venue||'', dist:distLabel(srs[0] && srs[0].distance_m),
+          test:!!sm.is_test, up:true, races:srs.map(function(sr){
+            var r={id:sr.id, division:sr.division==='M'?'Boys':'Girls', t0Wall:null, endedMs:null, fin:[], up:true, pulled:true};
+            applyRaceRow(r,sr); return r;
+          })};
+      SEASON.meets.push(lm); changed=true;
+      return;
+    }
+    lm.up=true;
+    if(!lm.d && (lm.name!==sm.name || lm.date!==sm.meet_date || (lm.venue||'')!==(sm.venue||'') || !!lm.test!==!!sm.is_test)){
+      lm.name=sm.name; lm.date=sm.meet_date; lm.venue=sm.venue||''; lm.test=!!sm.is_test; changed=true;
+    }
+    srs.forEach(function(sr){
+      var lr=null; (lm.races||[]).forEach(function(r){ if(r.id===sr.id) lr=r; });
+      if(!lr) return;
+      lr.up=true;
+      /* a race this phone times keeps its own state; anything else follows the database */
+      if((!ownsRace(lr) || lr.t0Wall==null) && !lr.d && applyRaceRow(lr,sr)) changed=true;
+    });
+  });
+  return changed;
+}
+/* Server finishes onto a local race. The timing phone owns which rows exist
+   and their times, so it only takes names. A naming phone takes everything.
+   A name this phone has not sent yet always beats the database. */
+function mergeFinishes(r,rows){
+  var mine=ownsRace(r), fin=r.fin||(r.fin=[]), byCid={}, added=[], changed=false, g=divOf(r);
+  fin.forEach(function(f){ byCid[f.cid]=f; });
+  rows.forEach(function(x){
+    var at=Date.parse(x.updated_at);
+    if(!r.cursor || at>r.cursor) r.cursor=at;
+    var f=byCid[x.client_id];
+    if(x.deleted_at){
+      if(f && !mine){ fin.splice(fin.indexOf(f),1); delete byCid[x.client_id]; changed=true; }
+      return;
+    }
+    if(!f){
+      if(mine) return;
+      f={cid:x.client_id, raw:x.elapsed_ms, ms:x.elapsed_ms+(r.shift||0), seq:x.seq, m:!!x.entered, h:x.team_id!=null, r:null, up:true};
+      if(x.athlete_id) f.a=x.athlete_id;
+      else if(x.runner_name){ f.n=x.runner_name; f.g=g; }
+      fin.push(f); byCid[f.cid]=f; added.push(f.cid); changed=true;
+      return;
+    }
+    if(!mine && f.raw!==x.elapsed_ms){ f.raw=x.elapsed_ms; f.ms=x.elapsed_ms+(r.shift||0); f.seq=x.seq; changed=true; }
+    if(f.d) return;
+    var h=x.team_id!=null, a=x.athlete_id||null, n=a ? null : (x.runner_name||null);
+    if(f.h!==h || (f.a||null)!==a || (!a && (f.n||null)!==n)){
+      f.h=h;
+      if(a){ if(f.a!==a){ f.a=a; delete f.n; delete f.g; } }
+      else { delete f.a; if(n){ f.n=n; f.g=g; } else { delete f.n; delete f.g; } }
+      f.r=null; changed=true;
+    }
+  });
+  if(changed && !mine) fin.sort(function(p,q){ return (p.ms-q.ms) || ((p.seq==null?1e9:p.seq)-(q.seq==null?1e9:q.seq)); });
+  var t=Date.now(); added.forEach(function(c){ arrivedAt[c]=t; });
+  return {changed:changed, added:added};
+}
+
+var RACE_COLS='id,meet_id,division,distance_m,started_at,ended_at,shift_ms,timed_by';
+function pullMeets(){
+  var year=todayStr().slice(0,4);
+  return sbFetch('/rest/v1/meets?select=id,name,meet_date,venue,is_test&meet_date=gte.'+year+'-01-01',{auth:true})
+    .then(function(res){
+      if(!res.ok) return false;
+      var meets=res.data||[];
+      if(!meets.length){ lastPull=Date.now(); return mergePulled([],[]); }
+      return sbFetch('/rest/v1/races?select='+RACE_COLS+'&meet_id='+inList(meets.map(function(m){ return m.id; })),{auth:true})
+        .then(function(rr){
+          if(!rr.ok) return false;
+          lastPull=Date.now();
+          return mergePulled(meets, rr.data||[]);
+        });
+    });
+}
+function pollRace(r){
+  var since = r.cursor ? new Date(r.cursor-5000).toISOString() : null;
+  return Promise.all([
+    sbFetch('/rest/v1/races?select='+RACE_COLS+'&id=eq.'+r.id,{auth:true}),
+    sbFetch('/rest/v1/finishes?select=client_id,elapsed_ms,seq,entered,team_id,athlete_id,runner_name,deleted_at,updated_at'+
+            '&race_id=eq.'+r.id+'&order=updated_at.asc'+(since?'&updated_at=gte.'+encodeURIComponent(since):''),{auth:true})
+  ]).then(function(rs){
+    if(!rs[0].ok || !rs[1].ok) return {changed:false, added:[]};
+    var raceCh=false, sr=rs[0].data && rs[0].data[0];
+    if(sr && (!ownsRace(r) || r.t0Wall==null) && !r.d) raceCh=applyRaceRow(r,sr);
+    var out=mergeFinishes(r, rs[1].data||[]);
+    r.read=true;
+    lastPollOk=Date.now();
+    if(raceCh) out.changed=true;
+    return out;
+  });
+}
+/* A race is worth watching while it runs and for a while after, since the
+   namer is usually still working when the timer taps End race. */
+function watchable(r){
+  if(!r || !r.up || r.t0Wall==null) return false;
+  if(r.endedMs==null) return true;
+  return Date.now()-(r.t0Wall+r.endedMs) < WATCH_AFTER_MS;
+}
+function onScreen(id){ return $(id).classList.contains('on'); }
+function firstUnread(){
+  var hit=null;
+  SEASON.meets.forEach(function(m){ (m.races||[]).forEach(function(r){
+    if(hit || !r.pulled || !r.up || r.t0Wall==null || r.read) return;
+    if(r.fillAt && Date.now()-r.fillAt<30000) return;
+    hit=r;
+  }); });
+  return hit;
+}
+function pollTick(){
+  if(pollBusy || !signedIn() || navigator.onLine===false || document.hidden) return;
+  var r=currentRace();
+  /* Watched while live or just ended, and once for any race this phone has
+     never read, so a phone that did not time a finished race can still see it. */
+  var watch = !!(r && r.up && r.t0Wall!=null && (watchable(r) || !r.read) &&
+                 (onScreen('recon') || onScreen('timing') || onScreen('results')));
+  /* A meet pulled from the database arrives without its finishes. Read them in
+     the background, one race a tick, so home shows real scores. */
+  var fill = watch ? null : firstUnread();
+  var today=todayStr(), hasToday=SEASON.meets.some(function(m){ return m.date===today; });
+  var homeDue = onScreen('home') && Date.now()-lastPull > (hasToday ? HOME_PULL_MS : IDLE_PULL_MS);
+  if(!watch && !homeDue && !fill) return;
+  pollBusy=true;
+  if(fill) fill.fillAt=Date.now();
+  var pulled=false;
+  /* Reads need a live token as much as writes do. An access token lasts an
+     hour, and a phone with nothing to send never had the sync refresh it, so
+     every pull after that came back 401. */
+  ensureFresh().then(function(ok){
+    if(!ok) throw new Error('signed out');
+    return homeDue ? pullMeets() : false;
+  }).then(function(ch){
+    pulled=ch;
+    return watch ? pollRace(r) : (fill ? pollRace(fill) : {changed:false, added:[]});
+  }).then(function(out){
+    pollBusy=false;
+    if(pulled || out.changed) saveSeason();
+    if(out.changed && S && currentRace()===r){
+      relinkFinishes(S.fin,S.roster);
+      if(onScreen('recon')) renderRecon();
+      if(onScreen('results')) renderResults();
+      if(onScreen('timing')){ renderChute(); renderCount(); }
+    }
+    if((pulled || (fill && out.changed)) && onScreen('home')) renderHome();
+  }, function(){ pollBusy=false; });
+}
+
 function syncTick(){
   if(syncBusy) return;
   var w=syncWork(null);
@@ -2286,12 +2577,15 @@ function raceRow(m,r){
   var n=(r.fin||[]).length, ours=(r.fin||[]).filter(function(f){return f.h;}).length;
   var sub, label, ghost=false;
   if(st==='new'){ sub='Not started'; label='Start'; }
+  else if(st==='live' && remoteRace(r)){ sub='Timing on another phone \u00b7 '+n+' in'; label='Name runners'; }
   else if(st==='live'){ sub=n+' in, '+ours+' ours'; label='Resume'; }
+  else if(r.pulled && !r.read){ sub='Loading from the database'; label='Results'; ghost=true; }
   else {
     var sc=scoreOf(r);
     sub = (sc!=null? 'Team score '+sc : ours+' finishers, no score') + ' \u00b7 '+n+' in field';
     label='Results'; ghost=true;
   }
+  if(r.lost) sub='Started on another phone first \u00b7 these taps stay here';
   row.innerHTML='<div><div class="lbl">'+esc(r.division)+'</div><div class="st">'+esc(sub)+'</div></div>';
   var btn=document.createElement('button');
   btn.className='rbtn'+(ghost?' ghost':'');
@@ -2372,21 +2666,38 @@ function setReconAll(v){
   renderRecon();
 }
 function renderRecon(){
-  var c=$('reconList'); c.innerHTML='';
+  var c=$('reconList');
+  /* A list that grows while you read it should not jump. Stay pinned to the
+     bottom only if you were already there. */
+  var pinnedBottom = c.scrollHeight - c.scrollTop - c.clientHeight < 40;
+  c.innerHTML='';
+  var remote=remoteRace(currentRace());
+  $('reconActions').style.display = remote ? 'none' : '';
+  if(remote && !Object.keys(aidMap()).length){
+    var w=document.createElement('div');
+    w.className='note';
+    w.innerHTML='<b style="color:var(--tape)">Load the roster before naming.</b> This phone has not loaded the roster, so there are no names to pick from and nothing it names can reach the timer.';
+    var lb=document.createElement('button');
+    lb.className='notebtn'; lb.textContent='Load roster';
+    lb.addEventListener('click',function(){ show('rosterEdit'); });
+    w.appendChild(lb);
+    c.appendChild(w);
+  }
   if(!S.fin.length){
-    c.innerHTML='<div class="note">No finishers recorded.</div>';
+    c.insertAdjacentHTML('beforeend','<div class="note">'+(remote?'Waiting for the first finisher.':'No finishers recorded.')+'</div>');
     return;
   }
-  var shown=0, unnamed=0;
+  var shown=0, unnamed=0, named=0;
   S.fin.forEach(function(f,i){
     if(!reconAll && !f.h) return;
     shown++;
     var nm=(nameOf(f.r)||f.n||null);
     if(f.h && !nm) unnamed++;
+    if(f.h && nm) named++;
     var who = nm ? esc(nm) : (f.h ? 'Tap to name' : 'Field');
     var cls = nm ? '' : (f.h ? ' pending' : ' anon');
     var b=document.createElement('button');
-    b.className='rrow'+(f.h?' home':'')+(f.h&&!nm?' todo':'');
+    b.className='rrow'+(f.h?' home':'')+(f.h&&!nm?' todo':'')+(justArrived(f)?' arrive':'');
     b.innerHTML='<span class="pl num">'+(i+1)+'</span>'+
       '<span class="who'+cls+'">'+who+'</span>'+
       '<span class="tm num">'+(f.m?'~':'')+fmt(f.ms,1)+'</span>';
@@ -2394,16 +2705,34 @@ function renderRecon(){
     c.appendChild(b);
   });
   if(!shown){
-    c.innerHTML='<div class="note">No '+esc(S.team)+' finishers recorded.</div>';
+    c.insertAdjacentHTML('beforeend','<div class="note">No '+esc(S.team)+' finishers '+(remote?'yet.':'recorded.')+'</div>');
     return;
   }
   var n=document.createElement('div');
   n.className='note';
-  n.textContent = reconAll
+  n.textContent = remote
+    ? named+' of '+(named+unnamed)+' named \u00b7 '+S.fin.length+' in field'
+    : reconAll
     ? 'Every place in the race, in order. Field runners hold a place and need no name.'
     : (unnamed ? unnamed+' still need a name. Work down the list in order.'
                : 'All named. Places and times never change, only who ran them.');
   c.appendChild(n);
+  if(remote && pinnedBottom) c.scrollTop=c.scrollHeight;
+}
+function renderReconBar(){
+  var el=$('reconFinal');
+  if(!S) return;
+  var remote=remoteRace(currentRace());
+  $('backTiming').textContent = remote ? 'Home' : 'Reopen clock';
+  if(!remote){
+    el.textContent=(S.endedMs!=null?'Final ':'Running ')+fmt(elapsed(),1);
+    return;
+  }
+  var clock = S.endedMs!=null ? 'Final '+fmt(S.endedMs,1) : fmt(elapsed(),0);
+  var age = lastPollOk ? Math.floor((Date.now()-lastPollOk)/1000) : null;
+  var late = age==null || age>15;
+  var upd = age==null ? 'Connecting' : (late ? 'No update for '+age+'s' : 'Updated '+age+'s ago');
+  el.innerHTML=esc(clock)+'<span class="upd'+(late?' late':'')+'">'+esc(upd)+'</span>';
 }
 
 /* One sheet, one list, one code path, whether it was opened off the chute
@@ -2453,7 +2782,7 @@ function openSheet(i){
   l.appendChild(add);
   /* Only on a row that was entered rather than tapped. A tapped time is the
      record of what happened and is not editable from here. */
-  if(S.fin[i].m){
+  if(S.fin[i].m && !remoteRace(currentRace())){
     var place=i;
     var ed=document.createElement('button');
     ed.className='opt meta'; ed.textContent='Adjust this time';
@@ -3043,8 +3372,21 @@ $('stop').addEventListener('click',function(){
   armTwoTap(this,'Again to end',function(){ endRace(); show('recon'); });
 });
 $('backTiming').addEventListener('click',function(){
-  reopenRace(); keepAwake();
-  show('timing'); renderChute(); renderCount();
+  if(S && remoteRace(currentRace())){ show('home'); return; }
+  function reopen(){ reopenRace(); keepAwake(); show('timing'); renderChute(); renderCount(); }
+  /* Reopen is for an End race tapped by mistake a minute ago. Hours later it
+     is almost never meant, and a missed finish or a name is fixed right here. */
+  var endedAgo=(S && S.t0Wall!=null && S.endedMs!=null) ? Date.now()-(S.t0Wall+S.endedMs) : 0;
+  if(endedAgo>STALE_MS){
+    askOpen({
+      title:'Reopen the clock?',
+      msg:'This race ended '+agoText(endedAgo)+'. To add a missed finish, fix a name or shift the times, stay on this screen; none of that needs the clock running.',
+      ok:'Reopen anyway',
+      onOk:function(){ reopen(); return null; }
+    });
+    return;
+  }
+  reopen();
 });
 $('segOurs').addEventListener('click',function(){ setReconAll(false); });
 $('segAll').addEventListener('click',function(){ setReconAll(true); });
@@ -3063,6 +3405,12 @@ $('meetDelete').addEventListener('click',function(){
   var dm=editingMeet?findMeet(editingMeet):null;
   function del(){
     if(editingMeet){
+      /* A test meet that reached the database is deleted there too. A real one
+         stays there and is only hidden here, so a pull does not bring it back. */
+      if(dm && meetUploaded(dm)){
+        var list = dm.test ? (SEASON.goneMeets=SEASON.goneMeets||[]) : (SEASON.hiddenMeets=SEASON.hiddenMeets||[]);
+        if(list.indexOf(dm.id)<0) list.push(dm.id);
+      }
       SEASON.meets=SEASON.meets.filter(function(m){ return m.id!==editingMeet; });
       saveSeason();
       if(S && S.meetId===editingMeet){ S=null; try{localStorage.removeItem(KEY);}catch(e){} }
@@ -3114,8 +3462,11 @@ $('liveStrip').addEventListener('click',function(){
 /* Four a second is plenty for a clock shown to the tenth of a minute, and it
    costs nothing when no race is running. */
 setInterval(renderLive,250);
+setInterval(function(){ if(S && onScreen('recon') && remoteRace(currentRace())) renderReconBar(); },1000);
 setInterval(syncTick,SYNC_MS);
+setInterval(pollTick,POLL_MS);
 window.addEventListener('online',syncTick);
+document.addEventListener('visibilitychange',function(){ if(!document.hidden){ lastPull=0; pollTick(); } });
 
 /* No confirmation. The race keeps running, the strip brings you back, and you
    are one tap from the chute again. Nothing is lost, so nothing is asked. */
