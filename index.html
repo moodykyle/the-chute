@@ -140,7 +140,13 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
 .rbtn{background:var(--red);color:#fff;border:none;border-radius:7px;
   padding:10px 16px;font-size:14px;font-weight:600;min-height:42px}
 .rbtn.ghost{background:transparent;color:var(--ink);border:1px solid var(--rule);font-weight:500}
-.hsect{padding:20px 0 4px;font-size:12px;font-weight:600;letter-spacing:.1em;color:var(--ink-soft)}
+/* Section headers in the wordmark's face, in the soft ink so the meet names
+   stay the brightest thing on the list, with a red tick. The gap above sets
+   the groups apart; the first header sits right under the bar. */
+.hsect{display:flex;align-items:center;gap:10px;padding:32px 0 6px;
+  font-family:'Bebas Neue','Saira Condensed',system-ui,sans-serif;font-size:24px;font-weight:400;
+  letter-spacing:.05em;line-height:1;color:var(--ink-soft)}
+.hsect::before{content:'';flex:0 0 auto;width:4px;height:20px;border-radius:2px;background:var(--red)}
 .hsect:first-child{padding-top:0}
 /* Every meet is a row that opens in place. Open, it is a panel on chalk. */
 .mcard{border-bottom:1px solid var(--rule)}
@@ -799,7 +805,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.11';
+var BUILD='v4.12';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1931,15 +1937,18 @@ function applyRaceRow(r,sr){
   }
   return ch;
 }
-function mergePulled(meets,races){
+function mergePulled(meets,races,upBefore){
   var skip=(SEASON.goneMeets||[]).concat(SEASON.hiddenMeets||[]), changed=false, byMeet={};
   races.forEach(function(sr){ (byMeet[sr.meet_id]=byMeet[sr.meet_id]||[]).push(sr); });
   /* A test meet this phone got from the database and the database no longer
-     has was deleted on another phone. Real meets cannot be deleted there. */
+     has was deleted on another phone. Real meets cannot be deleted there.
+     Only a meet that was already up when the pull asked counts: one the sync
+     inserted while the pull was in flight is missing from a list that predates
+     it, and dropping it made a just-saved test meet vanish until the next pull. */
   var year=todayStr().slice(0,4), live={};
   meets.forEach(function(sm){ live[sm.id]=true; });
   SEASON.meets=SEASON.meets.filter(function(m){
-    var goneElsewhere = m.test && m.up && !live[m.id] && (m.date||'')>=year+'-01-01';
+    var goneElsewhere = m.test && m.up && !!(upBefore && upBefore[m.id]) && !live[m.id] && (m.date||'')>=year+'-01-01';
     if(goneElsewhere) changed=true;
     return !goneElsewhere;
   });
@@ -2009,17 +2018,18 @@ function mergeFinishes(r,rows){
 
 var RACE_COLS='id,meet_id,division,distance_m,started_at,ended_at,shift_ms,timed_by';
 function pullMeets(){
-  var year=todayStr().slice(0,4);
+  var year=todayStr().slice(0,4), upBefore={};
+  SEASON.meets.forEach(function(m){ if(m.up) upBefore[m.id]=true; });
   return sbFetch('/rest/v1/meets?select=id,name,meet_date,venue,is_test&meet_date=gte.'+year+'-01-01',{auth:true})
     .then(function(res){
       if(!res.ok) return false;
       var meets=res.data||[];
-      if(!meets.length){ lastPull=Date.now(); return mergePulled([],[]); }
+      if(!meets.length){ lastPull=Date.now(); return mergePulled([],[],upBefore); }
       return sbFetch('/rest/v1/races?select='+RACE_COLS+'&meet_id='+inList(meets.map(function(m){ return m.id; })),{auth:true})
         .then(function(rr){
           if(!rr.ok) return false;
           lastPull=Date.now();
-          return mergePulled(meets, rr.data||[]);
+          return mergePulled(meets, rr.data||[], upBefore);
         });
     });
 }
@@ -2480,7 +2490,7 @@ function renderHome(){
 
   /* Sectioned by what has happened to a meet, not by where its date falls.
      A meet scored this morning is finished even though the date has not
-     passed. Today's meet leads UPCOMING because the list is in date order. */
+     passed. Today's meet leads UPCOMING MEETS because the list is in date order. */
   var coming=ms.filter(function(m){ return !meetFinished(m) && m.date>=today; });
   var done  =ms.filter(meetFinished).reverse();
   var missed=ms.filter(function(m){ return !meetFinished(m) && m.date<today; }).reverse();
@@ -2494,8 +2504,8 @@ function renderHome(){
       b.appendChild(c);
     });
   }
-  group('UPCOMING',coming);
-  group('SCORED',done);
+  group('UPCOMING MEETS',coming);
+  group('SCORED MEETS',done);
   group('NOT TIMED',missed);
 
   b.scrollTop=top;
