@@ -156,8 +156,10 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
 .mday .mdm{font-size:10px;font-weight:600;letter-spacing:.1em;color:var(--ink-soft)}
 .mday .mdd{font-family:'Saira Condensed','Saira',system-ui,sans-serif;font-size:24px;font-weight:700;line-height:1;color:var(--ink)}
 .mday.today .mdm,.mday.today .mdd{color:#fff}
-.mrow .mn{font-size:15px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mrow .mbody{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.mrow .mn{font-size:15px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mcard.open .mn{white-space:normal;overflow-wrap:anywhere;font-weight:600}
+.mrow .mmeta{font-size:13px;color:var(--ink-soft);overflow-wrap:anywhere}
 .mrow .mt{flex:0 0 auto;font-size:11px;padding:3px 9px;border-radius:20px;background:var(--chalk);
   color:var(--ink-soft);white-space:nowrap}
 .mcard.open .mt{background:var(--field)}
@@ -167,7 +169,6 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
 .mrow .chev{flex:0 0 12px;width:12px;height:12px;color:var(--ink-soft);transition:transform .15s}
 .mcard.open .chev{transform:rotate(180deg)}
 .mpanel{padding:0 0 2px}
-.msub{font-size:13px;color:var(--ink-soft);margin:-6px 0 10px;overflow-wrap:anywhere}
 .mpanel .morelink{border-bottom:none}
 .morelink{display:block;width:100%;text-align:left;padding:13px 0;font-size:14px;
   color:var(--tape);border-bottom:1px solid var(--rule);min-height:46px}
@@ -798,7 +799,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.10';
+var BUILD='v4.11';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -2547,14 +2548,6 @@ function meetCard(m,today){
   if(!open) return card;
   var p=document.createElement('div');
   p.className='mpanel';
-  /* The row already carries the date, so the panel adds only what it lacks. */
-  var extra=[m.dist, m.venue].filter(Boolean).join(' \u00b7 ');
-  if(extra){
-    var sub=document.createElement('div');
-    sub.className='msub';
-    sub.textContent=extra;
-    p.appendChild(sub);
-  }
   m.races.forEach(function(r){ p.appendChild(raceRow(m,r)); });
   var edit=document.createElement('button');
   edit.className='morelink';
@@ -2611,10 +2604,14 @@ function meetRow(m,open,today){
      would change, and the name needs the room. */
   else tag = fin ? 'No score' : (anyRun ? 'In progress' : '');
   var raceDay=(m.date===today && !fin), p=(m.date||'').split('-'), ok=(p.length===3);
+  var meta=[m.dist, m.venue].filter(Boolean).join(' \u00b7 ');
   var mon = raceDay ? 'TODAY' : (ok ? MON[parseInt(p[1],10)-1].toUpperCase() : '');
   var day = ok ? String(parseInt(p[2],10)) : '';
   row.innerHTML='<span class="mday'+(raceDay?' today':'')+'"><span class="mdm">'+mon+'</span><span class="mdd">'+day+'</span></span>'+
-    '<span class="mn">'+esc(m.name)+'</span>'+
+    /* Open, distance and venue sit under the name, so the date tile spans
+       both lines instead of the detail running under the tile. */
+    '<span class="mbody"><span class="mn">'+esc(m.name)+'</span>'+
+      ((open && meta) ? '<span class="mmeta">'+esc(meta)+'</span>' : '')+'</span>'+
     (m.test?'<span class="mt test">TEST</span>':'')+
     (tag ? '<span class="'+cls+'">'+esc(tag)+'</span>' : '')+
     '<svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8 9.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
