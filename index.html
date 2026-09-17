@@ -423,6 +423,27 @@ input.code{
 .rrow .who{font-size:16px}
 .rrow .who.anon{color:var(--ink-soft)}
 .rrow .tm{font-size:16px;font-weight:600;color:var(--ink-soft)}
+/* Results only: a column for the gap to the winner, left of the time. The
+   name gives way first and ellipsizes; the numbers never wrap. */
+/* Results only. Each row can carry a second line on both sides: grade and
+   displacer under the name, the gap to the winner under the time. Tags sit on
+   their own line so a long name never cuts them off. Which appear is set per
+   phone under Settings, Results. */
+#resultBody .rrow .who{line-height:1.2}
+#resultBody .rrow .who .wn{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#resultBody .rrow .who .wt{display:block;margin-top:1px;font-size:13px;font-weight:500;font-style:normal;color:var(--ink-soft)}
+#resultBody .rrow .tm{text-align:right;line-height:1.15}
+#resultBody .rrow .tm .gap{display:block;font-size:13px;font-weight:500;color:var(--ink-soft);opacity:.8}
+/* A switch row. On is red, the same as a pressed segment. */
+.trow{display:flex;align-items:center;gap:14px;width:100%;padding:14px 2px;border-bottom:1px solid var(--rule);min-height:64px}
+.trow .tt{flex:1;min-width:0}
+.trow .tn{display:block;font-size:16px;color:var(--ink)}
+.trow .th{display:block;font-size:13px;color:var(--ink-soft);margin-top:2px}
+.sw{appearance:none;-webkit-appearance:none;flex:0 0 auto;position:relative;width:50px;height:30px;margin:0;
+  border-radius:15px;background:var(--chalk);border:1px solid var(--rule);transition:background .15s}
+.sw::after{content:'';position:absolute;top:2px;left:2px;width:24px;height:24px;border-radius:50%;background:var(--ink-soft);transition:transform .15s,background .15s}
+.sw:checked{background:var(--red);border-color:var(--red)}
+.sw:checked::after{transform:translateX(20px);background:#fff}
 .rrow.home{background:var(--home-wash)}
 .seg2{display:flex;gap:8px;padding:12px 16px;border-bottom:1px solid var(--rule)}
 .seg2 button{
@@ -665,6 +686,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
   <div class="scroll pad">
     <button class="srow" id="setAccount"><span class="sn">Account</span><span class="ss" id="subAccount"></span><span class="chev">&#8250;</span></button>
     <button class="srow" id="setRoster"><span class="sn">Roster</span><span class="ss" id="subRoster"></span><span class="chev">&#8250;</span></button>
+    <button class="srow" id="setResults"><span class="sn">Results</span><span class="ss" id="subResults"></span><span class="chev">&#8250;</span></button>
     <button class="srow" id="setBackup"><span class="sn">Season data</span><span class="ss" id="subBackup"></span><span class="chev">&#8250;</span></button>
     <button class="srow" id="setAbout"><span class="sn">About</span><span class="ss" id="subAbout"></span><span class="chev">&#8250;</span></button>
   </div>
@@ -677,6 +699,17 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
     <p class="lede">Signing in is what lets the app read the roster from the database. Timing, scoring and export all work without it.</p>
     <div class="acct" id="acctState"></div>
     <div class="btnrow" style="margin-top:14px"><button type="button" id="acctBtn">Sign in</button></div>
+  </div>
+</section>
+
+<!-- RESULTS DISPLAY -->
+<section class="screen" id="resPrefs">
+  <div class="bar"><h1>Results</h1><button class="linkbtn" id="resPrefsDone">Back</button></div>
+  <div class="scroll pad">
+    <p class="lede">What the Results screen shows on this phone. Scores, Copy Text and CSV do not change.</p>
+    <label class="trow"><span class="tt"><span class="tn">Grade</span><span class="th">Under each runner's name</span></span><input type="checkbox" class="sw" id="prefGrade"></label>
+    <label class="trow"><span class="tt"><span class="tn">Displacer</span><span class="th">Marks your 6th and 7th finishers</span></span><input type="checkbox" class="sw" id="prefDisp"></label>
+    <label class="trow"><span class="tt"><span class="tn">Gap to first</span><span class="th">Time behind the race winner, under each time</span></span><input type="checkbox" class="sw" id="prefGap"></label>
   </div>
 </section>
 
@@ -805,7 +838,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.12';
+var BUILD='v4.14';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -977,14 +1010,22 @@ function show(id){
   closeSheet();
   var all=document.querySelectorAll('.screen');
   for(var i=0;i<all.length;i++) all[i].classList.toggle('on', all[i].id===id);
-  if(S && ['rosterEdit','home','meet','backup','signin','settings','account','about'].indexOf(id)<0) { S.screen=id; save(); }
-  if(id==='home'){ renderHome(); hintRoster(); }
+  if(S && ['rosterEdit','home','meet','backup','signin','settings','account','about','resPrefs'].indexOf(id)<0) { S.screen=id; save(); }
+  if(id==='home'){
+    renderHome(); hintRoster();
+    /* Pull as home opens, so a meet created on the other phone is there when
+       you come back to the list rather than up to a pull interval later.
+       Not again if the last pull was moments ago, since backing out of a meet
+       and in again should not hammer the database. */
+    if(Date.now()-lastPull>HOME_PULL_MS){ lastPull=0; setTimeout(pollTick,0); }
+  }
   if(id==='rosterEdit'){ renderRosterPull(); renderExtras(); }
   if(id==='backup') renderBackup();
   if(id==='signin') renderSignin();
   if(id==='settings') renderSettings();
   if(id==='account') renderAccount();
   if(id==='about') renderAbout();
+  if(id==='resPrefs') renderResPrefs();
   if(id==='timing') startClock(); else stopClock();
   if(wantAwake() && (id==='timing' || id==='recon')) keepAwake(); else releaseAwake();
   if(id==='recon'){
@@ -1861,7 +1902,7 @@ function drainRace(m,r,list,home){
    Every phone has a device id. The phone that starts a race's clock writes its
    id into the race, and that phone times it. Every other phone sees the race as
    timed elsewhere: it reads the taps, names them, and never changes the race. */
-var DEVICE_KEY='chute.device.v1', POLL_MS=3000, HOME_PULL_MS=5000, IDLE_PULL_MS=60000, WATCH_AFTER_MS=30*60*1000;
+var DEVICE_KEY='chute.device.v1', POLL_MS=3000, HOME_PULL_MS=5000, IDLE_PULL_MS=15000, WATCH_AFTER_MS=30*60*1000;
 var pollBusy=false, lastPull=0, lastPollOk=0, arrivedAt={};
 
 function deviceId(){
@@ -2101,7 +2142,9 @@ function pollTick(){
       if(onScreen('results')) renderResults();
       if(onScreen('timing')){ renderChute(); renderCount(); }
     }
-    if((pulled || (fill && out.changed)) && onScreen('home')) renderHome();
+    /* Every read of a pulled race redraws home, changed or not: a race with no
+       finishes reads as unchanged, and its Loading pill would otherwise stay. */
+    if((pulled || fill) && onScreen('home')) renderHome();
   }, function(){ pollBusy=false; });
 }
 
@@ -2407,6 +2450,7 @@ function renderSettings(){
   $('subRoster').textContent = (g+b) ? (g+b)+' runners' : 'Not loaded';
   var st=seasonStats();
   $('subBackup').textContent = st.meets ? st.meets+(st.meets===1?' meet':' meets') : 'Empty';
+  $('subResults').textContent = resPrefsLine();
   $('subAbout').textContent = BUILD;
 }
 function renderAbout(){
@@ -2602,8 +2646,13 @@ function meetRow(m,open,today){
   /* Scores carry their division, since two bare numbers do not say which is
      which. A finished meet with too few finishers to score says so rather
      than In progress. */
+  /* A race pulled from the other phone arrives without its finishes, and
+     they fill in one race a poll. Until they have, any score would be wrong,
+     so say they are on the way rather than No score. */
+  var loading=m.races.some(function(r){ return r.pulled && r.up && r.t0Wall!=null && !r.read; });
   var tag, cls='mt';
   if(liveNow(m)){ tag='LIVE'; cls+=' live'; }
+  else if(loading){ tag='Loading'; cls+=' loading'; }
   else if(scored.length){
     tag=scored.map(function(r){
       return String(r.division||'?').charAt(0).toUpperCase()+' '+scoreOf(r);
@@ -3019,31 +3068,26 @@ function renderResults(){
   /* No band above the list. The date and distance are in the header now, the
      segment above says whose finishers these are, and the count was the list
      restating its own length. */
+  var rp=resPrefs();
   if(resFull){
     var seen=0;
     S.fin.forEach(function(f,i){
       var nm=(nameOf(f.r)||f.n||null), run=runnerById(f.r), tags=[];
       if(f.h){
         seen++;
-        if(run && run.grade) tags.push(run.grade+'th');
-        if(scoringRole(seen)==='displacer') tags.push('displacer');
+        if(rp.grade && run && run.grade) tags.push(run.grade+'th');
+        if(rp.disp && scoringRole(seen)==='displacer') tags.push('displacer');
       }
       var who = nm ? esc(nm) : (f.h ? 'needs a name' : 'Field');
       var cls = nm ? '' : (f.h ? ' pending' : ' anon');
-      h+='<div class="rrow'+(f.h?' home':'')+'"><span class="pl num">'+(i+1)+'</span>'+
-         '<span class="who'+cls+'">'+who+
-         (tags.length?' <small style="color:var(--ink-soft)">'+tags.join(', ')+'</small>':'')+'</span>'+
-         '<span class="tm num">'+fmt(f.ms,3)+'</span></div>';
+      h+=resRow(f.h?' home':'', i+1, who, cls, tags, f.ms, rp);
     });
   } else {
     ours.forEach(function(r,i){
       var tags=[];
-      if(r.grade) tags.push(r.grade+'th');
-      if(scoringRole(i+1)==='displacer') tags.push('displacer');
-      h+='<div class="rrow home"><span class="pl num">'+r.place+'</span>'+
-         '<span class="who'+(r.name?'':' pending')+'">'+(r.name?esc(r.name):'needs a name')+
-         (tags.length?' <small style="color:var(--ink-soft)">'+tags.join(', ')+'</small>':'')+'</span>'+
-         '<span class="tm num">'+fmt(r.ms,3)+'</span></div>';
+      if(rp.grade && r.grade) tags.push(r.grade+'th');
+      if(rp.disp && scoringRole(i+1)==='displacer') tags.push('displacer');
+      h+=resRow(' home', r.place, r.name?esc(r.name):'needs a name', r.name?'':' pending', tags, r.ms, rp);
     });
   }
 
@@ -3079,6 +3123,23 @@ function scoringRole(nth){
   if(nth<=5) return 'scorer';
   if(nth<=7) return 'displacer';
   return 'non-scoring';
+}
+/* One Results row. The name and the time each get a second line only when
+   there is something to put on it. who arrives already escaped. */
+function resRow(extra,place,who,cls,tags,ms,rp){
+  var gap = rp.gap ? gapToFirst(ms) : '';
+  return '<div class="rrow'+extra+'"><span class="pl num">'+place+'</span>'+
+    '<span class="who'+cls+'"><span class="wn">'+who+'</span>'+
+      (tags.length?'<small class="wt">'+tags.join(' \u00b7 ')+'</small>':'')+'</span>'+
+    '<span class="tm num">'+fmt(ms,3)+(gap?'<span class="gap">'+gap+'</span>':'')+'</span></div>';
+}
+/* How far behind the race winner, place 1 across the whole field, to the
+   tenth. Blank for the winner and for anyone tied with them. The same number on
+   Team and All, since the winner does not change with the view. */
+function gapToFirst(ms){
+  var w=S && S.fin.length ? S.fin[0].ms : null;
+  if(w==null || ms==null || ms<=w) return '';
+  return '+'+fmt(ms-w,1);
 }
 /* Our finishers in order, with the raw field place each took. */
 function ourFinishers(){
@@ -3243,6 +3304,26 @@ function esc(s){
 var RKEY_G='chute.roster.girls.v1', RKEY_B='chute.roster.boys.v1', RKEY_X='chute.roster.extra.v1';
 var RKEY_A='chute.roster.aid.v1';
 var TKEY='chute.team.v1', HKEY='chute.history.v1';
+/* What Results shows, per phone. Everything on unless turned off, so a phone
+   that has never opened the screen looks the way Results always has. */
+var RPKEY='chute.results.display.v1';
+function resPrefs(){
+  var p={};
+  try{ p=JSON.parse(localStorage.getItem(RPKEY)||'{}')||{}; }catch(e){ p={}; }
+  return { grade: p.grade!==false, disp: p.disp!==false, gap: p.gap!==false };
+}
+function setResPref(k,on){
+  var p=resPrefs(); p[k]=!!on;
+  try{ localStorage.setItem(RPKEY,JSON.stringify(p)); }catch(e){}
+}
+function renderResPrefs(){
+  var p=resPrefs();
+  $('prefGrade').checked=p.grade; $('prefDisp').checked=p.disp; $('prefGap').checked=p.gap;
+}
+function resPrefsLine(){
+  var p=resPrefs(), n=(p.grade?1:0)+(p.disp?1:0)+(p.gap?1:0);
+  return n===3 ? 'All shown' : (n===0 ? 'None shown' : n+' of 3 shown');
+}
 
 function sideHint(list,el){
   if(!list.length){ el.className='hint'; el.textContent='Not loaded.'; return; }
@@ -3315,6 +3396,11 @@ $('setBackup').addEventListener('click',function(){
   backTo='settings'; $('impText').value=''; $('impReport').innerHTML=''; show('backup');
 });
 $('setAbout').addEventListener('click',function(){ backTo='settings'; show('about'); });
+$('setResults').addEventListener('click',function(){ backTo='settings'; show('resPrefs'); });
+$('resPrefsDone').addEventListener('click',function(){ goBack('resPrefs'); });
+[['prefGrade','grade'],['prefDisp','disp'],['prefGap','gap']].forEach(function(p){
+  $(p[0]).addEventListener('change',function(){ setResPref(p[1],this.checked); });
+});
 $('acctDone').addEventListener('click',function(){ show(acctBack); });
 $('aboutDone').addEventListener('click',function(){ goBack('about'); });
 $('backupDone').addEventListener('click',function(){ goBack('backup'); });
