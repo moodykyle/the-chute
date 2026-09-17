@@ -452,6 +452,17 @@ input.code{
 }
 .seg2 button[aria-pressed=true]{background:var(--red);border-color:var(--red);color:#fff}
 .opt{scroll-snap-align:center}
+/* Finding a runner by name. Only on a list long enough to scroll, and never
+   focused on open: a keyboard that appears on every place would cost more than
+   it saves on the common one, where the runner is already near the top. */
+.findrow{padding:10px 16px 8px;border-bottom:1px solid var(--rule)}
+.findrow input{
+  width:100%;box-sizing:border-box;padding:12px 14px;border-radius:10px;
+  border:1px solid var(--rule);background:var(--chalk);color:var(--ink);
+  font-size:16px;font-family:inherit;
+}
+.findrow input::placeholder{color:var(--ink-soft)}
+.nomatch{padding:16px;color:var(--ink-soft);font-size:15px}
 .sheet-in .scroll{scroll-snap-type:y proximity}
 .rrow.home .pl{color:var(--tape)}
 .rrow.home .who{color:var(--ink)}
@@ -560,7 +571,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
     <div class="seg">
       <button type="button" id="goNewMeet">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5.5" x2="12" y2="18.5"/><line x1="5.5" y1="12" x2="18.5" y2="12"/></svg>
-        <span>Add Meet</span>
+        <span>Add Event</span>
       </button>
       <button type="button" id="goSettings">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><circle cx="15" cy="7" r="2.4"/><line x1="4" y1="12.5" x2="20" y2="12.5"/><circle cx="9" cy="12.5" r="2.4"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="16" cy="18" r="2.4"/></svg>
@@ -574,8 +585,15 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 <section class="screen" id="meet">
   <div class="bar"><button class="linkbtn" id="meetBack">Home</button><button class="linkbtn" id="meetDelete">Delete</button></div>
   <div class="scroll pad">
+    <div class="field" id="mtypeField">
+      <label>Type</label>
+      <div class="seg2">
+        <button type="button" id="mtypeMeet" aria-pressed="true">Meet</button>
+        <button type="button" id="mtypeTT" aria-pressed="false">Time trial</button>
+      </div>
+    </div>
     <div class="field">
-      <label for="mname">Meet</label>
+      <label for="mname" id="mnameLabel">Meet</label>
       <input type="text" id="mname" placeholder="Chamblee Invitational" autocomplete="off">
     </div>
     <div class="field">
@@ -586,15 +604,24 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
       <label for="mdist">Distance</label>
       <select id="mdist">
         <option value="">Not set</option>
-        <option>1 mile</option>
-        <option>1.5 miles</option>
-        <option>2 miles</option>
-        <option>2.5 miles</option>
-        <option>3 miles</option>
-        <option>2K</option>
-        <option>3K</option>
-        <option>4K</option>
-        <option>5K</option>
+        <optgroup label="Cross country">
+          <option>1 mile</option>
+          <option>1.5 miles</option>
+          <option>2 miles</option>
+          <option>2.5 miles</option>
+          <option>3 miles</option>
+          <option>2K</option>
+          <option>3K</option>
+          <option>4K</option>
+          <option>5K</option>
+        </optgroup>
+        <optgroup label="Track">
+          <option>400m</option>
+          <option>800m</option>
+          <option>1200m</option>
+          <option>1600m</option>
+          <option>3200m</option>
+        </optgroup>
       </select>
     </div>
     <div class="field">
@@ -602,12 +629,12 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
       <input type="text" id="mvenue" placeholder="Murphey Candler Park" autocomplete="off">
     </div>
     <div class="field">
-      <label class="check" id="mtestRow"><input type="checkbox" id="mtest"> Test meet</label>
+      <label class="check" id="mtestRow"><input type="checkbox" id="mtest"> Test event</label>
       <div class="hint" id="mtestHint"></div>
     </div>
-    <div class="hint">Every meet holds a girls race and a boys race. Each keeps its own clock and its own results.</div>
+    <div class="hint" id="mshapeHint"></div>
   </div>
-  <div class="foot"><button class="primary" id="meetSave">Save meet</button></div>
+  <div class="foot"><button class="primary" id="meetSave">Save event</button></div>
 </section>
 
 <!-- ROSTER -->
@@ -755,7 +782,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 <section class="screen" id="timing">
   <div class="bar">
     <h1 id="timeName"></h1>
-    <span class="count" id="finCount"><b id="cIn">0</b> in · <b id="cOurs">0</b> team</span>
+    <span class="count" id="finCount"><b id="cIn">0</b> in<span id="ttTeam"> · <b id="cOurs">0</b> team</span></span>
   </div>
   <div class="clockwrap"><div class="clock num" id="clock">0:00<span class="ms">.0</span></div></div>
   <div class="chute" id="chute"></div>
@@ -783,7 +810,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
     <span class="count" id="reconFinal"></span>
     <button class="linkbtn" id="toResults">Results</button>
   </div>
-  <div class="seg2"><button type="button" id="segOurs" aria-pressed="true">Team</button><button type="button" id="segAll" aria-pressed="false">All</button></div>
+  <div class="seg2" id="reconSeg"><button type="button" id="segOurs" aria-pressed="true">Team</button><button type="button" id="segAll" aria-pressed="false">All</button></div>
   <div class="scroll" id="reconList"></div>
   <div class="copyrow" id="reconActions">
     <button type="button" id="addMissed">Add a missed finish</button>
@@ -830,6 +857,8 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 <div class="sheet" id="sheet">
   <div class="sheet-in">
     <div class="bar"><h1 id="sheetTitle">Place</h1><button class="linkbtn" id="sheetClose">Close</button></div>
+    <div class="findrow" id="findRow"><input type="search" id="findIn" placeholder="Type a name"
+      autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done"></div>
     <div class="scroll" id="sheetList"></div>
   </div>
 </div>
@@ -838,7 +867,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.14';
+var BUILD='v4.17';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -864,13 +893,27 @@ function loadSeason(){
   return SEASON;
 }
 function saveSeason(){ try{ localStorage.setItem(SKEY,JSON.stringify(SEASON)); }catch(e){} }
-function addMeet(name,date,venue,dist,test){
-  var m={id:uid(), name:name, date:date, venue:venue||'', dist:dist||'', test:!!test, races:[
-    {id:uid(), division:'Girls', t0Wall:null, endedMs:null, fin:[]},
-    {id:uid(), division:'Boys',  t0Wall:null, endedMs:null, fin:[]}
-  ]};
+/* An event is a meet or a time trial. A meet holds a girls race and a boys
+   race; a time trial holds one race with everyone in it, because at practice
+   they all go off together. The type is fixed at creation: the races under it
+   are shaped by it, and 0009 refuses to change it in the database too.
+
+   The stored field is `type`, absent on every event created before 4.15,
+   which is why eventType() reads a missing value as a meet. */
+function addEvent(name,date,venue,dist,test,type){
+  var tt=(type==='time_trial');
+  var m={id:uid(), name:name, date:date, venue:venue||'', dist:dist||'', test:!!test,
+    type: tt?'time_trial':'meet',
+    races: tt ? [{id:uid(), division:'Mixed', t0Wall:null, endedMs:null, fin:[]}]
+              : [{id:uid(), division:'Girls', t0Wall:null, endedMs:null, fin:[]},
+                 {id:uid(), division:'Boys',  t0Wall:null, endedMs:null, fin:[]}]};
   SEASON.meets.push(m); saveSeason(); return m;
 }
+function eventType(m){ return (m && m.type==='time_trial') ? 'time_trial' : 'meet'; }
+function isTT(m){ return eventType(m)==='time_trial'; }
+/* True for the race on screen. S carries the division it was opened with. */
+function ttRace(){ return !!(S && S.division==='Mixed'); }
+function eventWord(m){ return isTT(m) ? 'Time trial' : 'Meet'; }
 /* The distance of the most recently created meet, used only as the default
    for the next one. Reads the season rather than a new storage key. */
 function lastDist(){
@@ -1026,7 +1069,7 @@ function show(id){
   if(id==='account') renderAccount();
   if(id==='about') renderAbout();
   if(id==='resPrefs') renderResPrefs();
-  if(id==='timing') startClock(); else stopClock();
+  if(id==='timing'){ startClock(); renderDeck(); } else stopClock();
   if(wantAwake() && (id==='timing' || id==='recon')) keepAwake(); else releaseAwake();
   if(id==='recon'){
     renderRecon();
@@ -1037,7 +1080,7 @@ function show(id){
   if(id==='armed'){
     $('armedName').textContent=S.name;
     $('armedCount').textContent=fmtDate(S.date)+' \u00b7 '+
-      S.roster.filter(inDivision).length+' runners';
+      S.roster.filter(inDivision).length+(ttRace()?' runners, girls and boys':' runners');
   }
 }
 
@@ -1274,7 +1317,8 @@ function fmtDate(iso,withYear){
 }
 
 function divCode(){ return S && S.division==='Boys' ? 'M' : 'F'; }
-function inDivision(r){ return r.g===divCode(); }
+/* Everyone is eligible in a mixed race, so the picker stops filtering. */
+function inDivision(r){ return ttRace() ? true : r.g===divCode(); }
 
 /* prior finishes, keyed by division and normalised name so edits do not orphan them */
 var HIST={};
@@ -1386,10 +1430,25 @@ function byExpected(list){
   });
 }
 
-var editingMeet=null;
+var editingMeet=null, newType='meet';
+var SHAPE_MEET='A meet holds a girls race and a boys race, each with its own clock and its own results.';
+var SHAPE_TT='A time trial holds one race with everyone in it, girls and boys together. Nothing is scored.';
+/* The type is chosen once. An event that exists has races shaped by it, and
+   0009 refuses to change it in the database, so editing shows it and stops. */
+function renderMeetType(m){
+  var tt = m ? isTT(m) : (newType==='time_trial');
+  $('mtypeMeet').setAttribute('aria-pressed', tt?'false':'true');
+  $('mtypeTT').setAttribute('aria-pressed', tt?'true':'false');
+  $('mtypeMeet').disabled=!!m; $('mtypeTT').disabled=!!m;
+  $('mnameLabel').textContent = tt ? 'Time trial' : 'Meet';
+  $('mname').placeholder = tt ? 'Tuesday time trial' : 'Chamblee Invitational';
+  $('mshapeHint').textContent = tt ? SHAPE_TT : SHAPE_MEET;
+}
 function editMeet(id){
   editingMeet=id;
   var m=id?findMeet(id):null;
+  if(!m) newType='meet';
+  renderMeetType(m);
   $('mname').value=m?m.name:'';
   $('mdate').value=m?m.date:todayStr();
   $('mvenue').value=m?m.venue:'';
@@ -1407,7 +1466,8 @@ function editMeet(id){
   show('meet');
 }
 function commitMeet(){
-  var nm=$('mname').value.trim()||'Meet';
+  var tt=(!editingMeet && newType==='time_trial');
+  var nm=$('mname').value.trim()||(tt?'Time trial':'Meet');
   var dt=$('mdate').value||todayStr();
   var vn=$('mvenue').value.trim();
   var ds=$('mdist').value;
@@ -1422,7 +1482,7 @@ function commitMeet(){
       saveSeason();
     }
   } else {
-    openMeet=addMeet(nm,dt,vn,ds,tst).id; openByHand=true; revealOpen=true;
+    openMeet=addEvent(nm,dt,vn,ds,tst,tt?'time_trial':'meet').id; openByHand=true; revealOpen=true;
   }
   editingMeet=null;
   show('home');
@@ -1432,7 +1492,7 @@ function openRace(mid,rid){
   var r=f.race;
   S={
     meetId:mid, raceId:rid,
-    name:f.meet.name+', '+r.division,
+    name: r.division==='Mixed' ? f.meet.name : f.meet.name+', '+r.division,
     date:f.meet.date, division:r.division,
     team:txt(TKEY)||'Peachtree MS',
     roster:buildRoster(),
@@ -1651,15 +1711,20 @@ function reissue(f){
   f.cid=uid();
   delete f.up; delete f.d; delete f.bad;
 }
-function divOf(r){ return r.division==='Boys'?'M':'F'; }
+function divOf(r){ return r.division==='Boys'?'M':(r.division==='Mixed'?'X':'F'); }
+function divName(c){ return c==='M'?'Boys':(c==='X'?'Mixed':'Girls'); }
+/* Metres are exact, so a track distance is never the same number as the road
+   distance it sits near: 1600m and 1 mile are 1600 and 1609, and they stay
+   apart in the history and in the CSV. */
 function distMeters(s){
   var t=String(s||'').trim().toLowerCase(), m;
   if((m=t.match(/^(\d+(?:\.\d+)?)\s*k$/))) return Math.round(parseFloat(m[1])*1000);
   if((m=t.match(/^(\d+(?:\.\d+)?)\s*miles?$/))) return Math.round(parseFloat(m[1])*1609.344);
+  if((m=t.match(/^(\d+)\s*m$/))) return parseInt(m[1],10);
   return null;
 }
 function isoAt(ms){ return ms==null ? null : new Date(ms).toISOString(); }
-function meetBody(m){ return {id:m.id, name:m.name, meet_date:m.date, venue:m.venue||null, is_test:!!m.test}; }
+function meetBody(m){ return {id:m.id, name:m.name, meet_date:m.date, venue:m.venue||null, is_test:!!m.test, event_type:eventType(m)}; }
 function meetPatch(m){ return {name:m.name, meet_date:m.date, venue:m.venue||null, is_test:!!m.test}; }
 function racePatch(m,r){
   return {
@@ -1675,11 +1740,17 @@ function raceBody(m,r){
 }
 /* Local times already carry the shift. The database keeps the raw tap and the
    shift once on the race, so it comes back off here. */
-function finIdentity(f,home){
-  return {athlete_id:f.a||null, team_id:f.h?home:null, runner_name:f.a?null:(f.n||null)};
+/* runner_division carries the gender of a runner who is not on the roster.
+   In a girls or boys race the race says it; in a mixed race nothing else can,
+   so it rides with the name. Null for rostered runners, whose division is on
+   their athletes row, and for the field. */
+function finIdentity(f,home,r){
+  var mixed = r ? divOf(r)==='X' : false;
+  return {athlete_id:f.a||null, team_id:f.h?home:null, runner_name:f.a?null:(f.n||null),
+          runner_division: (mixed && !f.a && f.h && (f.g==='F'||f.g==='M')) ? f.g : null};
 }
 function finBody(r,f,i,home){
-  var b=finIdentity(f,home);
+  var b=finIdentity(f,home,r);
   b.race_id=r.id; b.client_id=f.cid;
   b.elapsed_ms=Math.max(0,Math.round(f.ms-(r.shift||0)));
   b.seq=i; b.entered=!!f.m;
@@ -1892,7 +1963,7 @@ function drainRace(m,r,list,home){
     },
     function(){
       return seq(changed, function(x){
-        return patchOne(base+'&client_id=eq.'+x.f.cid, x.f, finIdentity(x.f,home));
+        return patchOne(base+'&client_id=eq.'+x.f.cid, x.f, finIdentity(x.f,home,r));
       });
     }
   ], function(step){ return step(); });
@@ -1928,7 +1999,10 @@ function agoText(ms){
 }
 function distLabel(m){
   if(!m) return '';
-  var opts=['1 mile','1.5 miles','2 miles','2.5 miles','3 miles','2K','3K','4K','5K'];
+  /* Every label the picker offers, so a distance pulled from the database
+     comes back as the same words this phone would have written. */
+  var opts=['1 mile','1.5 miles','2 miles','2.5 miles','3 miles','2K','3K','4K','5K',
+            '400m','800m','1200m','1600m','3200m'];
   for(var i=0;i<opts.length;i++) if(distMeters(opts[i])===m) return opts[i];
   return m%1000===0 ? (m/1000)+'K' : '';
 }
@@ -1999,8 +2073,8 @@ function mergePulled(meets,races,upBefore){
     var lm=findMeet(sm.id);
     if(!lm){
       lm={id:sm.id, name:sm.name, date:sm.meet_date, venue:sm.venue||'', dist:distLabel(srs[0] && srs[0].distance_m),
-          test:!!sm.is_test, up:true, races:srs.map(function(sr){
-            var r={id:sr.id, division:sr.division==='M'?'Boys':'Girls', t0Wall:null, endedMs:null, fin:[], up:true, pulled:true};
+          test:!!sm.is_test, type:(sm.event_type==='time_trial'?'time_trial':'meet'), up:true, races:srs.map(function(sr){
+            var r={id:sr.id, division:divName(sr.division), t0Wall:null, endedMs:null, fin:[], up:true, pulled:true};
             applyRaceRow(r,sr); return r;
           })};
       SEASON.meets.push(lm); changed=true;
@@ -2010,6 +2084,9 @@ function mergePulled(meets,races,upBefore){
     if(!lm.d && (lm.name!==sm.name || lm.date!==sm.meet_date || (lm.venue||'')!==(sm.venue||'') || !!lm.test!==!!sm.is_test)){
       lm.name=sm.name; lm.date=sm.meet_date; lm.venue=sm.venue||''; lm.test=!!sm.is_test; changed=true;
     }
+    /* The type never changes in the database, so this only fills it in on an
+       event pulled before 4.15 knew about types. */
+    if(eventType(lm)!==(sm.event_type||'meet')){ lm.type=(sm.event_type==='time_trial'?'time_trial':'meet'); changed=true; }
     srs.forEach(function(sr){
       var lr=null; (lm.races||[]).forEach(function(r){ if(r.id===sr.id) lr=r; });
       if(!lr) return;
@@ -2024,7 +2101,10 @@ function mergePulled(meets,races,upBefore){
    and their times, so it only takes names. A naming phone takes everything.
    A name this phone has not sent yet always beats the database. */
 function mergeFinishes(r,rows){
-  var mine=ownsRace(r), fin=r.fin||(r.fin=[]), byCid={}, added=[], changed=false, g=divOf(r);
+  var mine=ownsRace(r), fin=r.fin||(r.fin=[]), byCid={}, added=[], changed=false, rd=divOf(r);
+  /* In a girls or boys race the race supplies the division. In a mixed one it
+     comes up with the name, and an older row without one leaves it unknown. */
+  function gOf(x){ return rd==='X' ? (x.runner_division||null) : rd; }
   fin.forEach(function(f){ byCid[f.cid]=f; });
   rows.forEach(function(x){
     var at=Date.parse(x.updated_at);
@@ -2038,7 +2118,7 @@ function mergeFinishes(r,rows){
       if(mine) return;
       f={cid:x.client_id, raw:x.elapsed_ms, ms:x.elapsed_ms+(r.shift||0), seq:x.seq, m:!!x.entered, h:x.team_id!=null, r:null, up:true};
       if(x.athlete_id) f.a=x.athlete_id;
-      else if(x.runner_name){ f.n=x.runner_name; f.g=g; }
+      else if(x.runner_name){ f.n=x.runner_name; f.g=gOf(x); }
       fin.push(f); byCid[f.cid]=f; added.push(f.cid); changed=true;
       return;
     }
@@ -2048,7 +2128,7 @@ function mergeFinishes(r,rows){
     if(f.h!==h || (f.a||null)!==a || (!a && (f.n||null)!==n)){
       f.h=h;
       if(a){ if(f.a!==a){ f.a=a; delete f.n; delete f.g; } }
-      else { delete f.a; if(n){ f.n=n; f.g=g; } else { delete f.n; delete f.g; } }
+      else { delete f.a; if(n){ f.n=n; f.g=gOf(x); } else { delete f.n; delete f.g; } }
       f.r=null; changed=true;
     }
   });
@@ -2061,7 +2141,7 @@ var RACE_COLS='id,meet_id,division,distance_m,started_at,ended_at,shift_ms,timed
 function pullMeets(){
   var year=todayStr().slice(0,4), upBefore={};
   SEASON.meets.forEach(function(m){ if(m.up) upBefore[m.id]=true; });
-  return sbFetch('/rest/v1/meets?select=id,name,meet_date,venue,is_test&meet_date=gte.'+year+'-01-01',{auth:true})
+  return sbFetch('/rest/v1/meets?select=id,name,meet_date,venue,is_test,event_type&meet_date=gte.'+year+'-01-01',{auth:true})
     .then(function(res){
       if(!res.ok) return false;
       var meets=res.data||[];
@@ -2078,7 +2158,7 @@ function pollRace(r){
   var since = r.cursor ? new Date(r.cursor-5000).toISOString() : null;
   return Promise.all([
     sbFetch('/rest/v1/races?select='+RACE_COLS+'&id=eq.'+r.id,{auth:true}),
-    sbFetch('/rest/v1/finishes?select=client_id,elapsed_ms,seq,entered,team_id,athlete_id,runner_name,deleted_at,updated_at'+
+    sbFetch('/rest/v1/finishes?select=client_id,elapsed_ms,seq,entered,team_id,athlete_id,runner_name,runner_division,deleted_at,updated_at'+
             '&race_id=eq.'+r.id+'&order=updated_at.asc'+(since?'&updated_at=gte.'+encodeURIComponent(since):''),{auth:true})
   ]).then(function(rs){
     if(!rs[0].ok || !rs[1].ok) return {changed:false, added:[]};
@@ -2548,8 +2628,8 @@ function renderHome(){
       b.appendChild(c);
     });
   }
-  group('UPCOMING MEETS',coming);
-  group('SCORED MEETS',done);
+  group('UPCOMING EVENTS',coming);
+  group('SCORED EVENTS',done);
   group('NOT TIMED',missed);
 
   b.scrollTop=top;
@@ -2574,13 +2654,13 @@ function emptyState(){
   if(!runners){
     d.innerHTML=bigMark(58)+
       '<h2>Start with your roster</h2>'+
-      '<p>Names and grades, once for the season. Meets come next.</p>'+
+      '<p>Names and grades, once for the season. Events come next.</p>'+
       '<button id="esGo">Open roster</button>';
   } else {
     d.innerHTML=bigMark(58)+
-      '<h2>Add your first meet</h2>'+
-      '<p>Every meet gets a girls race and a boys race, each with its own clock.</p>'+
-      '<button id="esGo">Add a meet</button>';
+      '<h2>Add your first event</h2>'+
+      '<p>A meet gets a girls race and a boys race. A time trial gets one race with everyone in it.</p>'+
+      '<button id="esGo">Add an event</button>';
   }
   var go=d.querySelector('#esGo');
   go.addEventListener('click', runners ? function(){ editMeet(null); }
@@ -2627,7 +2707,7 @@ function raceRow(m,r){
     label='Results'; ghost=true;
   }
   if(r.lost) sub='Started on another phone first \u00b7 these taps stay here';
-  row.innerHTML='<div><div class="lbl">'+esc(r.division)+'</div><div class="st">'+esc(sub)+'</div></div>';
+  row.innerHTML='<div><div class="lbl">'+esc(r.division==='Mixed'?'Everyone':r.division)+'</div><div class="st">'+esc(sub)+'</div></div>';
   var btn=document.createElement('button');
   btn.className='rbtn'+(ghost?' ghost':'');
   btn.textContent=label;
@@ -2650,9 +2730,12 @@ function meetRow(m,open,today){
      they fill in one race a poll. Until they have, any score would be wrong,
      so say they are on the way rather than No score. */
   var loading=m.races.some(function(r){ return r.pulled && r.up && r.t0Wall!=null && !r.read; });
+  /* A time trial is not scored, so its pill counts who ran instead. */
+  var ran=isTT(m) ? (m.races[0].fin||[]).length : 0;
   var tag, cls='mt';
   if(liveNow(m)){ tag='LIVE'; cls+=' live'; }
   else if(loading){ tag='Loading'; cls+=' loading'; }
+  else if(isTT(m)){ if(fin && ran){ tag=ran+' ran'; cls+=' scored'; } else tag = fin ? 'No times' : (anyRun ? 'In progress' : ''); }
   else if(scored.length){
     tag=scored.map(function(r){
       return String(r.division||'?').charAt(0).toUpperCase()+' '+scoreOf(r);
@@ -2687,6 +2770,15 @@ function meetRow(m,open,today){
 function renderCount(){
   $('cIn').textContent=S.fin.length;
   $('cOurs').textContent=ourCount();
+}
+/* A time trial is our runners only. The Field button would be a way to lose a
+   runner's time, and the team count would restate the count beside it. */
+function renderDeck(){
+  var tt=ttRace();
+  $('tap').style.display = tt ? 'none' : '';
+  $('tapHome').style.marginBottom = tt ? '0' : '';
+  $('tapHome').textContent = tt ? 'Finisher' : (S.team+' Finisher');
+  $('ttTeam').style.display = tt ? 'none' : '';
 }
 /* Restarting a CSS animation needs the class off, a reflow read, then the class
    on. Without the reflow the browser coalesces both changes and nothing plays,
@@ -2738,6 +2830,8 @@ function setReconAll(v){
   renderRecon();
 }
 function renderRecon(){
+  /* Team and All say nothing in a time trial: everyone in it is ours. */
+  $('reconSeg').style.display = ttRace() ? 'none' : '';
   var c=$('reconList');
   /* A list that grows while you read it should not jump. Stay pinned to the
      bottom only if you were already there. */
@@ -2819,39 +2913,51 @@ function openSheet(i){
   if(tim) $('sheet').style.setProperty('--deckh', $('deck').offsetHeight+'px');
   $('sheetTitle').textContent='Place '+(i+1)+' \u00b7 '+fmt(S.fin[i].ms,1);
   var l=$('sheetList'); l.innerHTML='';
-  var keep=document.createElement('button');
-  keep.className='opt meta home'; keep.textContent=S.team+', name later';
-  keep.addEventListener('click',function(){ assign(null,true); });
-  l.appendChild(keep);
-  var none=document.createElement('button');
-  none.className='opt meta'; none.textContent='Not one of ours';
-  none.addEventListener('click',function(){ assign(null,false); });
-  l.appendChild(none);
+  /* A time trial is our runners only, so there is no field to move a place
+     into and nothing to name it ours. A tap that should not have happened is
+     deleted from this sheet instead. */
+  if(!ttRace()){
+    var keep=document.createElement('button');
+    keep.className='opt meta home'; keep.textContent=S.team+', name later';
+    keep.addEventListener('click',function(){ assign(null,true); });
+    l.appendChild(keep);
+    var none=document.createElement('button');
+    none.className='opt meta'; none.textContent='Not one of ours';
+    none.addEventListener('click',function(){ assign(null,false); });
+    l.appendChild(none);
+  }
   /* Somebody shows up who was never on the list. Goes to the extras list, which
-     is concatenated last, so no existing id moves. */
-  var add=document.createElement('button');
-  add.className='opt meta'; add.textContent='Add a runner not on the roster';
-  add.addEventListener('click',function(){
-    var place=i;
-    askOpen({
-      title:'Add a runner',
-      msg:'Not on the '+S.division.toLowerCase()+' roster. Goes on the end of the list, so nobody else is renumbered. You can remove them later under Settings, Roster.',
-      ok:'Add and name place '+(place+1),
-      fields:[{label:'Name, and a grade if you know it', value:'', placeholder:'Sarah Miller, 7'}],
-      onOk:function(v){
-        var gr=null, t=String(v[0]).trim();
-        var g=t.match(/[,\s]+([5-8])(?:st|nd|rd|th)?\s*$/i);
-        if(g){ gr=parseInt(g[1],10); t=t.slice(0,g.index).trim(); }
-        if(!t) return 'Type a name.';
-        var id=addExtra(t,divCode(),gr);
-        if(id==null) return 'Could not save that name.';
-        sheetPlace=place;
-        assign(id,true);
-        return null;
-      }
+     is concatenated last, so no existing id moves.
+
+     A mixed race has no division of its own, so it asks for one by offering a
+     button each. Taking it from the race filed every walk-on as a girl. */
+  function addRunner(label,g){
+    var add=document.createElement('button');
+    add.className='opt meta'; add.textContent=label;
+    add.addEventListener('click',function(){
+      var place=i;
+      askOpen({
+        title:'Add a runner',
+        msg:'Not on the '+(ttRace()?(g==='M'?'boys':'girls'):S.division.toLowerCase())+' roster. Goes on the end of the list, so nobody else is renumbered. You can remove them later under Settings, Roster.',
+        ok:'Add and name place '+(place+1),
+        fields:[{label:'Name, and a grade if you know it', value:'', placeholder:'Sarah Miller, 7'}],
+        onOk:function(v){
+          var gr=null, t=String(v[0]).trim();
+          var gm=t.match(/[,\s]+([5-8])(?:st|nd|rd|th)?\s*$/i);
+          if(gm){ gr=parseInt(gm[1],10); t=t.slice(0,gm.index).trim(); }
+          if(!t) return 'Type a name.';
+          var id=addExtra(t,g,gr);
+          if(id==null) return 'Could not save that name.';
+          sheetPlace=place;
+          assign(id,true);
+          return null;
+        }
+      });
     });
-  });
-  l.appendChild(add);
+    l.appendChild(add);
+  }
+  if(ttRace()){ addRunner('Add a girl not on the roster','F'); addRunner('Add a boy not on the roster','M'); }
+  else addRunner('Add a runner not on the roster',divCode());
   /* Only on a row that was entered rather than tapped. A tapped time is the
      record of what happened and is not editable from here. */
   if(S.fin[i].m && !remoteRace(currentRace())){
@@ -2908,11 +3014,12 @@ function openSheet(i){
   function addOpt(r){
     var b=document.createElement('button');
     b.className='opt home';
+    b.setAttribute('data-name', r.name.toLowerCase());
     var p=priorOf(r), sub='';
     if(S.fin[i].r===r.id) sub='currently assigned here';
     else if(p) sub=(p.date?fmtDate(p.date)+': ':'last race ')+fmt(p.ms,1)+', place '+p.place;
     b.innerHTML='<span class="on">'+esc(r.name)+'</span>'+
-      '<span class="og">'+esc(gradeTag(r))+'</span>'+
+      '<span class="og">'+esc([ttRace()?(r.g==='M'?'Boys':'Girls'):'', gradeTag(r)].filter(Boolean).join(' \u00b7 '))+'</span>'+
       (sub?'<small>'+esc(sub)+'</small>':'');
     b.addEventListener('click',function(){ assign(r.id,true); });
     l.appendChild(b);
@@ -2926,7 +3033,7 @@ function openSheet(i){
   if(here.length){
     var rd=document.createElement('div');
     rd.className='divider';
-    rd.textContent=S.division+' roster';
+    rd.textContent=ttRace() ? 'Everyone on the roster' : S.division+' roster';
     l.appendChild(rd);
   }
   here.forEach(addOpt);
@@ -2945,10 +3052,53 @@ function openSheet(i){
       d.textContent='Other division. Check this is really who you mean.';
       l.appendChild(d);
       other.forEach(addOpt);
+      applyFind();
     });
     l.appendChild(h);
   }
+  /* Worth a search box only once the list is long enough to scroll past the
+     runner you want. A nine-runner girls race is faster to read than to type. */
+  $('findRow').style.display = l.querySelectorAll('.opt.home[data-name]').length>=FIND_MIN ? '' : 'none';
+  $('findIn').value='';
+  applyFind();
+  /* Back to the top for every place. The list is in prior-result order and
+     loses each runner as they are named, so where the last place left off
+     points at nothing on this one. */
+  l.scrollTop=0;
   $('sheet').classList.add('on');
+}
+var FIND_MIN=12;
+/* Match from the start of either name, so "dee" finds Dees and "mc" finds
+   McGoldrick. Matching anywhere inside a name would make "an" match half a
+   roster. Matches keep the order they were in, which is prior-result order,
+   so the best guess still sits on top.
+
+   While the box has text the list is only matches: the section headers, the
+   other-division fold and the Add buttons all go, because none of them are
+   what you are looking at. They come back when nothing matches, which is
+   exactly when a walk-on is the answer. */
+function applyFind(){
+  var q=($('findIn').value||'').trim().toLowerCase(), l=$('sheetList'), hits=0;
+  var opts=l.querySelectorAll('.opt.home[data-name]');
+  for(var i=0;i<opts.length;i++){
+    var parts=(opts[i].getAttribute('data-name')||'').split(/\s+/), hit=!q;
+    for(var j=0;!hit && j<parts.length;j++) hit = parts[j].indexOf(q)===0;
+    opts[i].style.display = hit ? '' : 'none';
+    if(hit) hits++;
+  }
+  var rest=l.querySelectorAll('.divider,.opt.meta,.opt:not(.home):not(.meta)');
+  for(var k=0;k<rest.length;k++) rest[k].style.display = q ? 'none' : '';
+  var old=l.querySelector('.nomatch');
+  if(old) l.removeChild(old);
+  if(q && !hits){
+    var d=document.createElement('div');
+    d.className='nomatch';
+    d.innerHTML='Nobody on the roster matches <b>'+esc($('findIn').value.trim())+
+                '</b>. Add them above, or clear the box.';
+    l.appendChild(d);
+    var metas=l.querySelectorAll('.opt.meta');
+    for(var n=0;n<metas.length;n++) metas[n].style.display='';
+  }
 }
 /* Everything that used to be a browser prompt. One or two fields, a live note
    under them, and a submit that can refuse by handing back a message. Callback
@@ -3024,6 +3174,7 @@ var resFull=false, resNote=[];
 function renderResults(){
   commitHistory();
   renderResSync();
+  if(ttRace()) return renderTTResults();
   var ours=[];
   S.fin.forEach(function(f,i){
     if(!f.h) return;
@@ -3124,6 +3275,83 @@ function scoringRole(nth){
   if(nth<=7) return 'displacer';
   return 'non-scoring';
 }
+/* ---------- time trial results ----------
+   No score, because nobody is scored: everyone in the race is ours and the
+   girls and boys ran together. What matters is who ran, how fast, and where
+   they came both overall and within their own division. */
+var ttView='all';
+function ttDiv(f){
+  var run=runnerById(f.r);
+  return (run && run.g) || f.g || null;
+}
+/* Every finisher, with the overall place and the place within their own
+   division. Both are computed from the whole field, so filtering the list
+   never changes a number on it. */
+function ttRows(){
+  var seen={F:0,M:0}, out=[];
+  S.fin.forEach(function(f,i){
+    var g=ttDiv(f), dp=null;
+    if(g){ seen[g]=(seen[g]||0)+1; dp=seen[g]; }
+    out.push({f:f, place:i+1, div:g, dplace:dp,
+              name:(nameOf(f.r)||f.n||null), grade:(runnerById(f.r)||{}).grade||null, ms:f.ms});
+  });
+  return out;
+}
+function renderTTResults(){
+  var rows=ttRows(), rp=resPrefs();
+  var girls=rows.filter(function(r){ return r.div==='F'; }).length;
+  var boys=rows.filter(function(r){ return r.div==='M'; }).length;
+  var unnamed=rows.filter(function(r){ return !r.name; }).length;
+  var first=rows.length?rows[0].ms:null;
+
+  var h='';
+  h+='<div class="rhead">'+
+     '<div class="rid"><span class="ridtext">'+esc(S.name)+'</span>'+
+     '<button type="button" class="info" id="ttInfo" aria-label="About this time trial">i</button></div>'+
+     '<div class="rwhen num">'+esc(['Time trial', S.date?fmtDate(S.date,true):'', meetDist()].filter(Boolean).join(' \u00b7 '))+'</div>'+
+     '<div class="rgrid">'+
+       '<div class="rscore num">'+rows.length+'</div>'+
+       '<div class="rside">'+
+         '<div class="req num">'+(rows.length?'ran':'nobody yet')+
+           (girls||boys ? '<span class="disp">('+[girls?girls+' girls':'', boys?boys+' boys':''].filter(Boolean).join(', ')+')</span>' : '')+'</div>'+
+         (first!=null?'<div class="rstat num">Fastest '+fmt(first,1)+'</div>':'')+
+       '</div>'+
+     '</div></div>';
+
+  h+='<div class="seg2">'+
+     '<button type="button" id="ttAll" aria-pressed="'+(ttView==='all')+'">All</button>'+
+     '<button type="button" id="ttGirls" aria-pressed="'+(ttView==='F')+'">Girls</button>'+
+     '<button type="button" id="ttBoys" aria-pressed="'+(ttView==='M')+'">Boys</button></div>';
+
+  var show=rows.filter(function(r){ return ttView==='all' || r.div===ttView; });
+  show.forEach(function(r){
+    var tags=[];
+    /* On All the big number is the overall place, so the second line carries
+       the division place. Filtered, they swap: the big number is the place
+       within that division and overall goes underneath. */
+    if(ttView==='all'){ if(r.div && r.dplace) tags.push((r.div==='M'?'B':'G')+' '+r.dplace); }
+    else tags.push(r.place+' overall');
+    if(rp.grade && r.grade) tags.push(r.grade+'th');
+    h+=resRow(' home', (ttView==='all'?r.place:(r.dplace||r.place)),
+              r.name?esc(r.name):'needs a name', r.name?'':' pending', tags, r.ms, rp);
+  });
+
+  $('resultBody').innerHTML=h;
+  resNote=['A time trial is not scored. Everyone ran together, and places are the raw order they crossed.',
+           'Every row carries both places: overall across the field, and within girls or boys.'];
+  if(unnamed) resNote.push('<b>'+unnamed+(unnamed===1?' place still needs':' places still need')+' a name.</b> Times are already recorded; naming only decides whose they are.');
+  $('ttInfo').addEventListener('click',function(){ infoOpen('About this time trial',resNote); });
+  var scope = ttView==='all' ? 'All' : (ttView==='F' ? 'Girls' : 'Boys');
+  [['copyChat','Copy Text - '],['copyCsv','Copy CSV - ']].forEach(function(p){
+    var b=$(p[0]), t=p[1]+scope;
+    b.setAttribute('data-label',t);
+    if(b.textContent!=='Copied' && b.textContent!=='Select the text below') b.textContent=t;
+  });
+  [['ttAll','all'],['ttGirls','F'],['ttBoys','M']].forEach(function(p){
+    $(p[0]).addEventListener('click',function(){ ttView=p[1]; renderTTResults(); });
+  });
+}
+
 /* One Results row. The name and the time each get a second line only when
    there is something to put on it. who arrives already escaped. */
 function resRow(extra,place,who,cls,tags,ms,rp){
@@ -3180,6 +3408,7 @@ function ourPlaces(){
    one paste does not break on the next. Places stay raw field order in both,
    because a place is a fact about the race, not about the filter. */
 function buildCsv(full){
+  if(ttRace()) return buildTTCsv();
   if(full===undefined) full=resFull;
   var meet=S.name.replace(/, (Girls|Boys)$/,'');
   var p=ourPlaces(), top5=p.slice(0,5), scored=p.length>=5;
@@ -3201,6 +3430,45 @@ function buildCsv(full){
   });
   return out;
 }
+/* A time trial copies the same way a meet does, following the filter above
+   the list, with no score block anywhere: there is nothing to score. Both
+   places ride on every row, so a copy read on its own still says where a
+   runner came overall and within girls or boys. */
+function ttScope(){ return ttView==='all' ? 'All' : (ttView==='F' ? 'Girls' : 'Boys'); }
+function ttShown(){
+  return ttRows().filter(function(r){ return ttView==='all' || r.div===ttView; });
+}
+function buildTTCsv(){
+  var rows=ttRows(), shown=ttShown();
+  var out='date,event,event_type,distance,scope,runners\n'+
+    csvCell(S.date||'')+','+csvCell(S.name)+',time trial,'+csvCell(meetDist())+','+
+    csvCell(ttScope())+','+rows.length+'\n\n'+
+    'place,division_place,time,runner,division,grade\n';
+  shown.forEach(function(r){
+    out+=r.place+','+(r.dplace||'')+','+fmt(r.ms,3)+(r.f.m?'*':'')+','+
+         csvCell(r.name||'')+','+(r.div==='M'?'Boys':(r.div==='F'?'Girls':''))+','+
+         (r.grade?r.grade:'')+'\n';
+  });
+  return out;
+}
+function buildTTChat(){
+  var rows=ttRows(), shown=ttShown();
+  var girls=rows.filter(function(r){ return r.div==='F'; }).length;
+  var boys=rows.filter(function(r){ return r.div==='M'; }).length;
+  var out=S.name+'\n';
+  out+=['Time trial', meetDist(), rows.length+' ran'].filter(Boolean).join(', ')+'\n';
+  var st=startTime();
+  out+=fmtDate(S.date,true)+(st?', '+st:'')+'\n\n';
+  out+=S.team+(ttView==='all' ? (girls||boys ? ', '+[girls?girls+' girls':'', boys?boys+' boys':''].filter(Boolean).join(', ') : '')
+                              : ', '+ttScope())+'\n';
+  shown.forEach(function(r){
+    var place = ttView==='all' ? r.place : (r.dplace||r.place);
+    var tail = ttView==='all' ? (r.div&&r.dplace ? ' ('+(r.div==='M'?'B':'G')+' '+r.dplace+')' : '')
+                              : ' ('+r.place+' overall)';
+    out+=place+'  '+fmt(r.ms,1)+'  '+(r.name||'unnamed')+tail+'\n';
+  });
+  return out;
+}
 function csvCell(v){
   v=String(v);
   return /[",\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v;
@@ -3219,6 +3487,7 @@ function csvCell(v){
    and the word means nothing to the parents this copy is written for. The
    screen and the CSV still carry it. */
 function buildChat(full){
+  if(ttRace()) return buildTTChat();
   if(full===undefined) full=resFull;
   var p=ourPlaces(), top5=p.slice(0,5);
 
@@ -3472,6 +3741,9 @@ $('impGo').addEventListener('click',function(){
 $('goNewMeet').addEventListener('click',function(){ editMeet(null); });
 $('meetBack').addEventListener('click',function(){ editingMeet=null; show('home'); });
 $('meetSave').addEventListener('click',commitMeet);
+$('findIn').addEventListener('input',applyFind);
+$('mtypeMeet').addEventListener('click',function(){ if(editingMeet) return; newType='meet'; renderMeetType(null); });
+$('mtypeTT').addEventListener('click',function(){ if(editingMeet) return; newType='time_trial'; renderMeetType(null); });
 $('gun').addEventListener('click',startRace);
 
 $('tap').addEventListener('click',function(){ record(null,false); });
