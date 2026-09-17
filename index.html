@@ -126,19 +126,10 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
   pointer-events:none;
 }
 .season{font-size:14px;color:var(--ink-soft);letter-spacing:.12em;white-space:nowrap;flex:0 0 auto}
-.hero{border:2px solid var(--red);border-radius:12px;padding:13px;margin-bottom:18px}
-.hero.quiet{border:1px solid var(--rule)}
-.hero-tag{font-size:11px;letter-spacing:.1em;color:var(--red);margin-bottom:5px}
-.hero.quiet .hero-tag{color:var(--ink-soft)}
-/* A test meet. Amber is used for nothing else, and red already means "the meet
-   you are timing today", so a test meet dated today cannot pass for the real
-   one. The stripe sits flush with the card edge above everything else. */
-.hero.test{border:2px solid var(--test)}
-.hero.test .hero-tag{color:var(--test);font-weight:600}
-.hazard{height:12px;margin:-13px -13px 10px;border-radius:10px 10px 0 0;
+/* A test meet. Amber is used for nothing else. The stripe sits flush with the
+   top of an open card, above everything else in it. */
+.hazard{height:12px;margin:0 -10px;border-radius:12px 12px 0 0;
   background:repeating-linear-gradient(135deg,var(--test) 0 10px,var(--field) 10px 20px)}
-.hero-name{font-size:17px;font-weight:600;letter-spacing:-.01em;overflow-wrap:anywhere}
-.hero-sub{font-size:13px;color:var(--ink-soft);margin:2px 0 10px;overflow-wrap:anywhere}
 .rrace{display:flex;align-items:center;justify-content:space-between;gap:10px;
   padding:10px 0;border-top:1px solid var(--rule)}
 .rrace>div{min-width:0;flex:1}
@@ -149,16 +140,35 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
 .rbtn{background:var(--red);color:#fff;border:none;border-radius:7px;
   padding:10px 16px;font-size:14px;font-weight:600;min-height:42px}
 .rbtn.ghost{background:transparent;color:var(--ink);border:1px solid var(--rule);font-weight:500}
-.sect{padding:14px 0 6px;font-size:11px;letter-spacing:.09em;color:var(--ink-soft)}
-.mrow{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
-  padding:12px 0;border-bottom:1px solid var(--rule);min-height:48px}
-.mrow .md{font-size:12px;color:var(--ink-soft);flex:0 0 48px}
-.mrow .mt{flex:0 0 auto}
+.hsect{padding:20px 0 4px;font-size:12px;font-weight:600;letter-spacing:.1em;color:var(--ink-soft)}
+.hsect:first-child{padding-top:0}
+/* Every meet is a row that opens in place. Open, it is a panel on chalk. */
+.mcard{border-bottom:1px solid var(--rule)}
+.mcard.open{background:var(--chalk);border-bottom:none;border-radius:12px;margin:8px -10px;padding:0 10px}
+.mcard.open.test{box-shadow:inset 0 0 0 2px var(--test)}
+.mrow{display:flex;align-items:center;gap:12px;width:100%;text-align:left;
+  padding:10px 0;min-height:76px;color:var(--ink)}
+/* The date as a tile: month over day, red with TODAY on race day. */
+.mday{flex:0 0 52px;height:56px;border-radius:10px;background:var(--chalk);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
+.mcard.open .mday{background:var(--field)}
+.mday.today,.mcard.open .mday.today{background:var(--red)}
+.mday .mdm{font-size:10px;font-weight:600;letter-spacing:.1em;color:var(--ink-soft)}
+.mday .mdd{font-family:'Saira Condensed','Saira',system-ui,sans-serif;font-size:24px;font-weight:700;line-height:1;color:var(--ink)}
+.mday.today .mdm,.mday.today .mdd{color:#fff}
 .mrow .mn{font-size:15px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mrow .mt{font-size:11px;padding:3px 9px;border-radius:20px;background:var(--chalk);
+.mcard.open .mn{white-space:normal;overflow-wrap:anywhere;font-weight:600}
+.mrow .mt{flex:0 0 auto;font-size:11px;padding:3px 9px;border-radius:20px;background:var(--chalk);
   color:var(--ink-soft);white-space:nowrap}
+.mcard.open .mt{background:var(--field)}
 .mrow .mt.scored{background:var(--home-wash);color:var(--tape);font-weight:600}
+.mrow .mt.live{background:var(--red);color:#fff;font-weight:600;letter-spacing:.05em}
 .mrow .mt.test{background:var(--test);color:var(--test-ink);font-weight:600;letter-spacing:.05em}
+.mrow .chev{flex:0 0 12px;width:12px;height:12px;color:var(--ink-soft);transition:transform .15s}
+.mcard.open .chev{transform:rotate(180deg)}
+.mpanel{padding:0 0 2px}
+.msub{font-size:13px;color:var(--ink-soft);margin:-6px 0 10px;overflow-wrap:anywhere}
+.mpanel .morelink{border-bottom:none}
 .morelink{display:block;width:100%;text-align:left;padding:13px 0;font-size:14px;
   color:var(--tape);border-bottom:1px solid var(--rule);min-height:46px}
 
@@ -432,7 +442,6 @@ input.code{
 .score .big{font-size:66px;font-weight:700;line-height:1;letter-spacing:-.03em}
 .score .cap{font-size:15px;color:var(--ink-soft);margin-top:4px}
 .note{padding:14px 16px;font-size:14px;line-height:1.5;color:var(--ink-soft);border-bottom:1px solid var(--rule)}
-.sect{padding:16px 16px 6px;font-size:14px;color:var(--ink-soft)}
 pre.out{
   margin:0 16px 16px;max-width:calc(100% - 32px);padding:12px;background:var(--chalk);border:1px solid var(--rule);
   border-radius:8px;font-size:12px;line-height:1.6;overflow-x:auto;white-space:pre;
@@ -789,7 +798,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.5';
+var BUILD='v4.10';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1364,7 +1373,9 @@ function commitMeet(){
       if(!(tst && meetUploaded(m))) m.test=tst;
       saveSeason();
     }
-  } else addMeet(nm,dt,vn,ds,tst);
+  } else {
+    openMeet=addMeet(nm,dt,vn,ds,tst).id; openByHand=true; revealOpen=true;
+  }
   editingMeet=null;
   show('home');
 }
@@ -2433,74 +2444,64 @@ function reportHtml(rep){
 }
 
 /* ---------- home ---------- */
-var showDone=false;
+/* Which meet is open on home. Nothing is open by default: every meet is a
+   collapsed row, and tapping one opens it in place. The exception is a meet
+   with a race running right now, which opens on its own so Resume or Name
+   runners is right there after a relaunch. Once a meet is opened or closed by
+   hand that choice stands for the session, and a background pull rebuilding
+   home does not undo it. */
+var openMeet=null, openByHand=false, revealOpen=false;
 /* A meet is finished when every race in it has been ended. Nothing is marked
    closed by hand; the races already know. */
 function meetFinished(m){
   var rs=m.races||[];
   return rs.length>0 && rs.every(function(r){ return raceState(r)==='done'; });
 }
-/* Race rows live on the promoted card only, so whichever meet holds that slot
-   is the only one you can start. Tapping any meet moves it into the slot.
-   Without this a meet that is not today, not the next one up and not the most
-   recent has no way to be started at all. */
-var pinned=null;
+/* A clock that has gone quiet for an hour was forgotten, not run, so it does
+   not hold a meet open. The live strip is what flags it. */
+function liveNow(m){
+  return (m.races||[]).some(function(r){ return raceState(r)==='live' && !isStale(r); });
+}
 function renderHome(){
-  var b=$('homeBody'); b.innerHTML='';
+  var b=$('homeBody');
+  /* A pull rebuilds this list. Keep the reader where they were. */
+  var top=b.scrollTop;
+  b.innerHTML='';
   var today=todayStr(), ms=meetsSorted();
   $('seasonLabel').textContent=today.slice(0,4);
 
   if(!ms.length){ b.appendChild(emptyState()); return; }
-  // One meet gets promoted out of the list: today's if there is one,
-  // otherwise the next upcoming, otherwise the most recent.
-  var hero=null, isToday=false, byHand=false;
-  if(pinned){
-    hero=findMeet(pinned);
-    if(hero){ byHand=true; isToday=(hero.date===today); }
-    else pinned=null;
+  if(openByHand && openMeet && !findMeet(openMeet)){ openMeet=null; openByHand=false; }
+  if(!openByHand){
+    openMeet=null;
+    for(var i=ms.length-1;i>=0;i--) if(liveNow(ms[i])){ openMeet=ms[i].id; break; }
   }
-  if(!hero){
-    for(var i=0;i<ms.length;i++) if(ms[i].date===today){ hero=ms[i]; isToday=true; break; }
-    /* skip over meets that are already scored: the next thing to time is the
-       next thing not yet timed, whatever the calendar says */
-    if(!hero) for(var j=0;j<ms.length;j++)
-      if(ms[j].date>today && !meetFinished(ms[j])){ hero=ms[j]; break; }
-    if(!hero) hero=ms[ms.length-1];
-  }
-
-  b.appendChild(heroCard(hero,isToday,today,byHand));
 
   /* Sectioned by what has happened to a meet, not by where its date falls.
      A meet scored this morning is finished even though the date has not
-     passed, and putting it under COMING UP is what made this screen read as
-     a shuffle. */
-  var rest=ms.filter(function(m){ return m!==hero; });
-  var coming=rest.filter(function(m){ return !meetFinished(m) && m.date>=today; });
-  var done  =rest.filter(function(m){ return meetFinished(m); }).reverse();
-  var missed=rest.filter(function(m){ return !meetFinished(m) && m.date<today; }).reverse();
+     passed. Today's meet leads UPCOMING because the list is in date order. */
+  var coming=ms.filter(function(m){ return !meetFinished(m) && m.date>=today; });
+  var done  =ms.filter(meetFinished).reverse();
+  var missed=ms.filter(function(m){ return !meetFinished(m) && m.date<today; }).reverse();
+  var shown=null;
+  function group(title,list){
+    if(!list.length) return;
+    b.appendChild(sect(title));
+    list.forEach(function(m){
+      var c=meetCard(m,today);
+      if(m.id===openMeet) shown=c;
+      b.appendChild(c);
+    });
+  }
+  group('UPCOMING',coming);
+  group('SCORED',done);
+  group('NOT TIMED',missed);
 
-  if(coming.length){
-    b.appendChild(sect('COMING UP'));
-    coming.forEach(function(m){ b.appendChild(meetRow(m)); });
-  }
-  if(done.length){
-    if(showDone || done.length<=3){
-      b.appendChild(sect('SCORED'));
-      done.forEach(function(m){ b.appendChild(meetRow(m)); });
-    } else {
-      var a=document.createElement('button');
-      a.className='morelink';
-      a.textContent='Scored meets, '+done.length;
-      a.addEventListener('click',function(){ showDone=true; renderHome(); });
-      b.appendChild(a);
-    }
-  }
-  if(missed.length){
-    b.appendChild(sect('NOT TIMED'));
-    missed.forEach(function(m){ b.appendChild(meetRow(m)); });
-  }
+  b.scrollTop=top;
+  if(revealOpen && shown && shown.scrollIntoView) shown.scrollIntoView({block:'nearest'});
+  revealOpen=false;
 }
-function sect(t){ var d=document.createElement('p'); d.className='sect'; d.textContent=t; return d; }
+function sect(t){ var d=document.createElement('p'); d.className='hsect'; d.textContent=t; return d; }
 
 /* The mark has no room in a 26px bar, so the empty screen is where it lives. */
 function bigMark(h){
@@ -2532,43 +2533,36 @@ function emptyState(){
   return d;
 }
 
-function heroCard(m,isToday,today,byHand){
-  var fin=meetFinished(m);
-  var d=document.createElement('div');
-  /* The red border means "this is the one you are timing". A scored meet is
-     not that, even when it is dated today. */
-  d.className='hero'+((isToday&&!fin)?'':' quiet')+(m.test?' test':'');
-  /* SCORED beats every date-based label. MOST RECENT is only true when the
-     app chose it; picked by hand it may be any past meet. */
-  var tag = fin ? 'SCORED'
-          : isToday ? 'TODAY'
-          : (m.date>today ? (byHand?'UPCOMING':'NEXT UP')
-                          : (byHand?'EARLIER':'MOST RECENT'));
-  var sub = [fmtDate(m.date,true), m.dist, m.venue].filter(Boolean).join(' \u00b7 ');
-  if(m.test) tag='TEST MEET \u00b7 '+tag;
-  d.innerHTML=(m.test?'<div class="hazard" aria-hidden="true"></div>':'')+
-    '<div class="hero-tag">'+tag+'</div>'+
-    '<div class="hero-name">'+esc(m.name)+'</div>'+
-    '<div class="hero-sub">'+esc(sub)+'</div>';
-  m.races.forEach(function(r){
-    d.appendChild(raceRow(m,r));
-  });
+function meetCard(m,today){
+  var open=(m.id===openMeet), fin=meetFinished(m);
+  var card=document.createElement('div');
+  card.className='mcard'+(open?' open':'')+(m.test?' test':'')+
+    ((m.date===today && !fin)?' today':'');
+  if(open && m.test){
+    var hz=document.createElement('div');
+    hz.className='hazard'; hz.setAttribute('aria-hidden','true');
+    card.appendChild(hz);
+  }
+  card.appendChild(meetRow(m,open,today));
+  if(!open) return card;
+  var p=document.createElement('div');
+  p.className='mpanel';
+  /* The row already carries the date, so the panel adds only what it lacks. */
+  var extra=[m.dist, m.venue].filter(Boolean).join(' \u00b7 ');
+  if(extra){
+    var sub=document.createElement('div');
+    sub.className='msub';
+    sub.textContent=extra;
+    p.appendChild(sub);
+  }
+  m.races.forEach(function(r){ p.appendChild(raceRow(m,r)); });
   var edit=document.createElement('button');
-  edit.className='morelink'; edit.style.borderBottom='none'; edit.style.paddingBottom='0';
+  edit.className='morelink';
   edit.textContent='Edit meet';
   edit.addEventListener('click',function(){ editMeet(m.id); });
-  d.appendChild(edit);
-  /* Pinning is sticky, so there has to be a way out of it that is not
-     hunting for whichever meet the app would have picked. */
-  if(byHand){
-    var un=document.createElement('button');
-    un.className='morelink'; un.style.borderBottom='none'; un.style.paddingBottom='0';
-    un.style.color='var(--ink-soft)';
-    un.textContent='Show the next meet instead';
-    un.addEventListener('click',function(){ pinned=null; renderHome(); });
-    d.appendChild(un);
-  }
-  return d;
+  p.appendChild(edit);
+  card.appendChild(p);
+  return card;
 }
 
 function raceRow(m,r){
@@ -2595,19 +2589,41 @@ function raceRow(m,r){
   return row;
 }
 
-function meetRow(m){
+function meetRow(m,open,today){
   var row=document.createElement('button');
   row.className='mrow';
-  var scores=m.races.map(scoreOf).filter(function(x){return x!=null;});
+  row.setAttribute('aria-expanded',open?'true':'false');
+  var fin=meetFinished(m);
+  var scored=m.races.filter(function(r){ return scoreOf(r)!=null; });
   var anyRun=m.races.some(function(r){ return raceState(r)!=='new'; });
-  var tag = scores.length ? scores.join(' / ')+' pts' : (anyRun?'In progress':'Set up');
-  row.innerHTML='<span class="md">'+esc(fmtDate(m.date))+'</span>'+
+  /* Scores carry their division, since two bare numbers do not say which is
+     which. A finished meet with too few finishers to score says so rather
+     than In progress. */
+  var tag, cls='mt';
+  if(liveNow(m)){ tag='LIVE'; cls+=' live'; }
+  else if(scored.length){
+    tag=scored.map(function(r){
+      return String(r.division||'?').charAt(0).toUpperCase()+' '+scoreOf(r);
+    }).join(' \u00b7 ');
+    cls+=' scored';
+  }
+  /* A meet nobody has started gets no pill. "Set up" said nothing a tap
+     would change, and the name needs the room. */
+  else tag = fin ? 'No score' : (anyRun ? 'In progress' : '');
+  var raceDay=(m.date===today && !fin), p=(m.date||'').split('-'), ok=(p.length===3);
+  var mon = raceDay ? 'TODAY' : (ok ? MON[parseInt(p[1],10)-1].toUpperCase() : '');
+  var day = ok ? String(parseInt(p[2],10)) : '';
+  row.innerHTML='<span class="mday'+(raceDay?' today':'')+'"><span class="mdm">'+mon+'</span><span class="mdd">'+day+'</span></span>'+
     '<span class="mn">'+esc(m.name)+'</span>'+
     (m.test?'<span class="mt test">TEST</span>':'')+
-    '<span class="mt'+(scores.length?' scored':'')+'">'+esc(tag)+'</span>';
-  /* Promote rather than edit. Edit meet is on the promoted card already, and
-     starting a race is the far more common reason to tap a meet. */
-  row.addEventListener('click',function(){ pinned=m.id; renderHome(); });
+    (tag ? '<span class="'+cls+'">'+esc(tag)+'</span>' : '')+
+    '<svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8 9.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  row.addEventListener('click',function(){
+    openByHand=true;
+    openMeet = open ? null : m.id;
+    revealOpen = !open;
+    renderHome();
+  });
   return row;
 }
 
