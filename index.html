@@ -180,6 +180,8 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
 /* --red is the brand red and too dark to read at this size on navy. --tape
    is the coral the scored pills and place numbers already use. */
 .mday .mkind.tt{color:var(--tape)}
+/* A PR or SR on a results row, in the coral the place numbers use. */
+.rec{color:var(--tape);font-weight:600}
 /* No nowrap: if a fallback font runs wider than the tile, TIME TRIAL wraps
    to two lines rather than spilling out of it. */
 /* red on a red tile would vanish */
@@ -920,7 +922,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.22';
+var BUILD='v4.23';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1451,6 +1453,75 @@ function commitHistory(){
   HIST=h;
   try{ localStorage.setItem(HKEY,JSON.stringify(h)); }catch(e){}
 }
+/* ---------- records ----------
+   A PR is a runner's fastest at one exact distance across every season in
+   the app, an SR the fastest this season. Both are judged as of the race:
+   only earlier races count, so an old result keeps the flag it earned that
+   day and a later one never takes it away. The first time at a distance sets
+   the mark and earns nothing, since there was nothing to beat. Only the
+   bigger tag shows: a PR is always a season best too. A tie beats nothing.
+   Test events never count; time trials and entered times do.
+
+   Built from the season on the phone, so a race another phone timed counts
+   once it has been read, which home does in the background. */
+function recKey(f,map){
+  var a=f.a;
+  if(!a && f.n!=null && f.g) a=(map||aidMap())[histKey({g:f.g, name:f.n})];
+  if(a) return 'a:'+a;
+  return (f.n!=null && f.g) ? 'n:'+histKey({g:f.g, name:f.n}) : null;
+}
+function rosterKey(r,map){
+  var a=(map||aidMap())[histKey(r)];
+  return a ? 'a:'+a : 'n:'+histKey(r);
+}
+/* Races on the same day fall back to their start, so a morning time trial
+   counts before an afternoon one. */
+function raceOrd(m,r){ return (m.date||'')+'|'+('000000000000000'+(r.t0Wall||0)).slice(-15); }
+function recordsIndex(){
+  var map=aidMap(), idx={};
+  SEASON.meets.forEach(function(m){
+    if(m.test) return;
+    (m.races||[]).forEach(function(r){
+      var ord=raceOrd(m,r), yr=(m.date||'').slice(0,4);
+      (r.fin||[]).forEach(function(f){
+        if(!f.h) return;
+        var k=recKey(f,map), d=finDist(f,m);
+        if(!k || !d) return;
+        (idx[k+'|'+d]=idx[k+'|'+d]||[]).push({ms:f.ms, ord:ord, yr:yr, date:m.date, rid:r.id});
+      });
+    });
+  });
+  return idx;
+}
+/* Everything a screen needs to tag the open race, worked out once. */
+function recCtx(){
+  var m=curMeet(), r=currentRace();
+  return (m && r) ? {m:m, r:r, idx:recordsIndex(), map:aidMap()} : null;
+}
+function recOf(f,ctx){
+  if(!ctx || ctx.m.test || !f.h) return null;
+  var k=recKey(f,ctx.map), d=finDist(f,ctx.m);
+  if(!k || !d) return null;
+  var ord=raceOrd(ctx.m,ctx.r), yr=(ctx.m.date||'').slice(0,4), best=null, sbest=null;
+  (ctx.idx[k+'|'+d]||[]).forEach(function(e){
+    if(e.ord>=ord) return;
+    if(best==null || e.ms<best) best=e.ms;
+    if(e.yr===yr && (sbest==null || e.ms<sbest)) sbest=e.ms;
+  });
+  if(best!=null && f.ms<best) return {tag:'PR', by:best-f.ms};
+  if(sbest!=null && f.ms<sbest) return {tag:'SR', by:sbest-f.ms};
+  return null;
+}
+function recHtml(rec){
+  return rec ? '<span class="rec">'+rec.tag+' \u2212'+fmt(rec.by,1)+'</span>' : '';
+}
+/* A runner's best at a distance from every race but this one, for the naming
+   sheet: the best guess at where they finish, and what they are chasing. */
+function bestAt(key,d,ctx){
+  var b=null;
+  (ctx.idx[key+'|'+d]||[]).forEach(function(e){ if(e.rid!==ctx.r.id && (!b || e.ms<b.ms)) b=e; });
+  return b;
+}
 function runnerById(id){
   for(var i=0;i<S.roster.length;i++) if(S.roster[i].id===id) return S.roster[i];
   return null;
@@ -1535,7 +1606,15 @@ function stampLegacy(){
 }
 /* expected finish order: last race time first, then the order they were typed */
 function byExpected(list){
+  /* Best at today's distance first, the best guess at finish order. Anyone
+     without one falls back to their last race, as before. */
+  var ctx=recCtx(), d=ctx ? distMeters(ctx.m.dist) : null, bm={};
+  if(ctx && d) list.forEach(function(r){ var b=bestAt(rosterKey(r,ctx.map),d,ctx); if(b) bm[r.id]=b.ms; });
   return list.slice().sort(function(a,b){
+    var ba=bm[a.id], bb=bm[b.id];
+    if(ba!=null && bb!=null) return ba-bb;
+    if(ba!=null) return -1;
+    if(bb!=null) return 1;
     var pa=priorOf(a), pb=priorOf(b);
     /* Across distances a raw time says nothing, so compare pace. */
     if(pa&&pb&&pa.m&&pb.m&&pa.m!==pb.m) return pa.ms/pa.m-pb.ms/pb.m;
@@ -2750,28 +2829,6 @@ function renderSettings(){
   $('subResults').textContent = resPrefsLine();
   $('subAbout').textContent = BUILD;
 }
-/* Temporary, for the bottom gap on an installed iPhone (4.21). Every height
-   the phone reports, so one screenshot says whether the fix took. Comes out
-   once it is confirmed. */
-function screenCheck(){
-  var p=document.createElement('div'), out={};
-  p.style.cssText='position:fixed;left:0;top:0;width:1px;visibility:hidden;pointer-events:none;'+
-    'padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)';
-  document.body.appendChild(p);
-  var cs=getComputedStyle(p);
-  out.top=Math.round(parseFloat(cs.paddingTop)||0); out.bottom=Math.round(parseFloat(cs.paddingBottom)||0);
-  p.style.padding='0';
-  p.style.height='100dvh'; out.dvh=p.offsetHeight;
-  p.style.height='100lvh'; out.lvh=p.offsetHeight;
-  document.body.removeChild(p);
-  var app=document.querySelector('.app');
-  out.app=app ? app.offsetHeight : 0;
-  out.screen=screen.height; out.inner=window.innerHeight;
-  var se=document.scrollingElement||document.documentElement;
-  out.over=Math.max(0,se.scrollHeight-se.clientHeight); out.scrolled=Math.round(window.scrollY||se.scrollTop||0);
-  out.installed=!!((window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone===true);
-  return out;
-}
 function renderAbout(){
   var st=seasonStats(), bytes=0;
   try{ for(var k in localStorage){ if(localStorage.hasOwnProperty(k)) bytes+=(localStorage[k]||'').length; } }catch(e){}
@@ -2784,17 +2841,6 @@ function renderAbout(){
     row('Races timed', String(st.timed))+
     row('Finishers recorded', String(st.fin))+
     row('Stored locally', Math.round(bytes/1024)+' KB')+
-    (function(){
-      var c=screenCheck();
-      return '<p class="hint" style="margin-top:16px">Screen check, temporary. Installed, App height should equal Screen, and Page overflow should be 0, 0.</p>'+
-        row('Installed', c.installed?'Yes':'No')+
-        row('Screen', String(c.screen))+
-        row('App height', String(c.app))+
-        row('Window', String(c.inner))+
-        row('100dvh, 100lvh', c.dvh+', '+c.lvh)+
-        row('Insets, top and bottom', c.top+', '+c.bottom)+
-        row('Page overflow, scrolled', c.over+', '+c.scrolled);
-    })()+
     '<p class="hint" style="margin-top:16px">To force a fresh copy on an iPhone, delete the home screen icon and add it again. A reload alone will not do it.</p>';
 }
 function renderBackup(){
@@ -3296,12 +3342,15 @@ function openSheet(i){
     (inDivision(r)?here:other).push(r);
   });
   here=byExpected(here); other=byExpected(other);
+  var rctx=recCtx(), rdist=rctx ? distMeters(rctx.m.dist) : null;
   function addOpt(r){
     var b=document.createElement('button');
     b.className='opt home';
     b.setAttribute('data-name', r.name.toLowerCase());
     var p=priorOf(r), sub='';
+    var pb=(rctx && rdist) ? bestAt(rosterKey(r,rctx.map),rdist,rctx) : null;
     if(S.fin[i].r===r.id) sub='currently assigned here';
+    else if(pb) sub='PR '+fmt(pb.ms,1)+(pb.date?', '+fmtDate(pb.date):'');
     else if(p) sub=(p.date?fmtDate(p.date)+': ':'last race ')+fmt(p.ms,1)+(p.dl?' at '+p.dl:'')+', place '+p.place;
     b.innerHTML='<span class="on">'+esc(r.name)+'</span>'+
       '<span class="og">'+esc([ttRace()?(r.g==='M'?'Boys':'Girls'):'', gradeTag(r)].filter(Boolean).join(' \u00b7 '))+'</span>'+
@@ -3491,7 +3540,7 @@ function renderResults(){
   S.fin.forEach(function(f,i){
     if(!f.h) return;
     var run=runnerById(f.r);
-    ours.push({place:i+1, ms:f.ms, name:(nameOf(f.r)||f.n||null), grade:run?run.grade:null});
+    ours.push({f:f, place:i+1, ms:f.ms, name:(nameOf(f.r)||f.n||null), grade:run?run.grade:null});
   });
   var top5=ours.slice(0,5);
   var score=top5.reduce(function(a,b){return a+b.place;},0);
@@ -3531,7 +3580,7 @@ function renderResults(){
   /* No band above the list. The date and distance are in the header now, the
      segment above says whose finishers these are, and the count was the list
      restating its own length. */
-  var rp=resPrefs();
+  var rp=resPrefs(), rctx=recCtx();
   if(resFull){
     var seen=0;
     S.fin.forEach(function(f,i){
@@ -3540,6 +3589,7 @@ function renderResults(){
         seen++;
         if(rp.grade && run && run.grade) tags.push(run.grade+'th');
         if(rp.disp && scoringRole(seen)==='displacer') tags.push('displacer');
+        var rec=recOf(f,rctx); if(rec) tags.push(recHtml(rec));
       }
       var who = nm ? esc(nm) : (f.h ? 'needs a name' : 'Field');
       var cls = nm ? '' : (f.h ? ' pending' : ' anon');
@@ -3550,6 +3600,7 @@ function renderResults(){
       var tags=[];
       if(rp.grade && r.grade) tags.push(r.grade+'th');
       if(rp.disp && scoringRole(i+1)==='displacer') tags.push('displacer');
+      var rec=recOf(r.f,rctx); if(rec) tags.push(recHtml(rec));
       h+=resRow(' home', r.place, r.name?esc(r.name):'needs a name', r.name?'':' pending', tags, r.ms, rp);
     });
   }
@@ -3626,7 +3677,7 @@ function ttGroups(rows){
   }).filter(function(g){ return g.rows.length || g.dist!=null; });
 }
 function renderTTResults(){
-  var rows=ttRows(), rp=resPrefs();
+  var rows=ttRows(), rp=resPrefs(), rctx=recCtx();
   var girls=rows.filter(function(r){ return r.div==='F'; }).length;
   var boys=rows.filter(function(r){ return r.div==='M'; }).length;
   var unnamed=rows.filter(function(r){ return !r.name; }).length;
@@ -3667,6 +3718,7 @@ function renderTTResults(){
     if(ttView==='all'){ if(r.div && r.dplace) tags.push((r.div==='M'?'B':'G')+' '+r.dplace); }
     else tags.push(r.place+' overall');
     if(rp.grade && r.grade) tags.push(r.grade+'th');
+    var rec=recOf(r.f,rctx); if(rec) tags.push(recHtml(rec));
     h+=resRow(' home', (ttView==='all'?r.place:(r.dplace||r.place)),
               r.name?esc(r.name):'needs a name', r.name?'':' pending', tags, r.ms, rp, r.lead);
   });
@@ -3808,13 +3860,14 @@ function buildTTChat(){
   out+=fmtDate(S.date,true)+(st?', '+st:'')+'\n\n';
   out+=S.team+(ttView==='all' ? (girls||boys ? ', '+[girls?girls+' girls':'', boys?boys+' boys':''].filter(Boolean).join(', ') : '')
                               : ', '+ttScope())+'\n';
-  var two=twoDists(), last;
+  var two=twoDists(), last, rx=recCtx();
   shown.forEach(function(r){
     if(two && r.dist!==last){ out+='\n'+(r.dist ? distLabel(r.dist) : 'Distance not set')+'\n'; last=r.dist; }
     var place = ttView==='all' ? r.place : (r.dplace||r.place);
     var tail = ttView==='all' ? (r.div&&r.dplace ? ' ('+(r.div==='M'?'B':'G')+' '+r.dplace+')' : '')
                               : ' ('+r.place+' overall)';
-    out+=place+'  '+fmt(r.ms,1)+'  '+(r.name||'unnamed')+tail+'\n';
+    var rec=recOf(r.f,rx);
+    out+=place+'  '+fmt(r.ms,1)+'  '+(r.name||'unnamed')+(rec?' ('+rec.tag+')':'')+tail+'\n';
   });
   return out;
 }
@@ -3878,12 +3931,13 @@ function buildChat(full){
   if(st2) out+='Average '+fmt(st2.avg,0)+', Spread '+fmt(st2.spread,0)+'\n';
   out+='\n';
 
-  var w=String(S.fin.length).length;
+  var w=String(S.fin.length).length, rx=recCtx();
   S.fin.forEach(function(f,i){
     if(!full && !f.h) return;
     var nm=(nameOf(f.r)||f.n||null), run=runnerById(f.r);
     var who = nm ? nm : (f.h ? 'needs a name' : 'Field');
     if(f.h && run && run.grade) who += ', '+run.grade+'th';
+    var rec=recOf(f,rx); if(rec) who += ' ('+rec.tag+')';
     out += String(i+1).padStart(w,' ')+'  '+fmt(f.ms,1)+'  '+who+'\n';
   });
   return out;
