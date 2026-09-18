@@ -110,6 +110,15 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
   padding:10px 14px;border-bottom:1px solid var(--rule);flex:0 0 auto;
   min-height:58px;
 }
+/* An icon standing in for a word keeps the pill's height and loses width. */
+.linkbtn.icon{padding:8px 13px}
+.linkbtn svg{width:20px;height:20px;flex:0 0 auto;pointer-events:none}
+.linkbtn.back{padding-left:9px;gap:2px}
+.linkbtn.back svg{width:18px;height:18px}
+/* Naming: back on the left, the clock centred whatever the button widths. */
+#recon .bar{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)}
+#recon .bar #toResults{justify-self:start}
+#recon .bar .count{justify-self:center;text-align:center}
 .bar h1{font-size:17px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bar .count{font-size:15px;color:var(--ink-soft);white-space:nowrap;flex:0 1 auto;
   overflow:hidden;text-overflow:ellipsis}
@@ -229,10 +238,29 @@ select{min-height:47px}
   padding:14px 22px;font-size:15px;font-weight:600;min-height:48px;
 }
 .hint.good{color:var(--tape)}
+.es button.eslink{background:none;color:var(--ink-soft);font-weight:500;font-size:14px;
+  min-height:0;padding:12px 8px;display:block;margin:10px auto 0;text-decoration:underline}
+/* How it works: native details, so it opens and closes with no code. */
+.how details{border-bottom:1px solid var(--rule)}
+.how summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;
+  gap:12px;padding:15px 2px;font-size:16px;font-weight:600;color:var(--ink)}
+.how summary::-webkit-details-marker{display:none}
+.how summary::after{content:'';flex:0 0 auto;width:7px;height:7px;margin-right:4px;
+  border-right:2px solid var(--ink-soft);border-bottom:2px solid var(--ink-soft);transform:rotate(45deg)}
+.how details[open] summary::after{transform:rotate(-135deg)}
+.how .hb{padding:0 2px 14px}
+.how .hb p{font-size:14px;line-height:1.6;color:var(--ink-soft);margin:0 0 10px}
+.how .hb p b{color:var(--ink);font-weight:600}
 .check{display:flex;align-items:center;gap:11px;font-size:16px;color:var(--ink)}
 .check input[type=checkbox]{flex:0 0 auto;width:22px;height:22px;margin:0;accent-color:var(--test)}
 .syncnote{font-size:12px;color:var(--ink-soft);text-align:center;padding:0 16px 8px}
 .syncnote:empty{display:none}
+/* On results the save line sits over the copy buttons, the place you look
+   before sending anything, instead of pushing the score down. */
+#resultActions{display:flex;flex-direction:column}
+#resultActions .copyrow{padding:0}
+#resultActions .syncnote{padding:0 0 10px}
+#resultActions .syncnote.test{padding:6px 12px;border-radius:7px}
 .syncnote.test{background:var(--test);color:var(--test-ink);font-weight:600;letter-spacing:.04em;padding:6px 16px;margin-bottom:8px}
 .rhead{padding:13px 16px 13px;border-bottom:1px solid var(--rule)}
 .rid{display:flex;align-items:center;gap:8px}
@@ -629,7 +657,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 
 <!-- MEET -->
 <section class="screen" id="meet">
-  <div class="bar"><button class="linkbtn" id="meetBack">Home</button><button class="linkbtn" id="meetDelete">Delete</button></div>
+  <div class="bar"><button class="linkbtn icon" id="meetBack" aria-label="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7"/><path d="M6.5 9.5V20h4v-5.5h3V20h4V9.5"/></svg></button><button class="linkbtn" id="meetDelete">Delete</button></div>
   <div class="scroll pad">
     <div class="field" id="mtypeField">
       <label>Type</label>
@@ -728,7 +756,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 
 <!-- SEASON DATA -->
 <section class="screen" id="backup">
-  <div class="bar"><h1>Season data</h1><button class="linkbtn" id="backupDone">Done</button></div>
+  <div class="bar"><h1>Backup and restore</h1><button class="linkbtn" id="backupDone">Done</button></div>
   <div class="scroll pad">
     <p class="lede">Everything lives on this device. This is how you get a copy off it, and how you move a season onto another phone or a laptop.</p>
 
@@ -767,8 +795,9 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
   <div class="scroll pad">
     <button class="srow" id="setAccount"><span class="sn">Account</span><span class="ss" id="subAccount"></span><span class="chev">&#8250;</span></button>
     <button class="srow" id="setRoster"><span class="sn">Roster</span><span class="ss" id="subRoster"></span><span class="chev">&#8250;</span></button>
-    <button class="srow" id="setResults"><span class="sn">Results</span><span class="ss" id="subResults"></span><span class="chev">&#8250;</span></button>
-    <button class="srow" id="setBackup"><span class="sn">Season data</span><span class="ss" id="subBackup"></span><span class="chev">&#8250;</span></button>
+    <button class="srow" id="setResults"><span class="sn">Results display</span><span class="ss" id="subResults"></span><span class="chev">&#8250;</span></button>
+    <button class="srow" id="setBackup"><span class="sn">Backup and restore</span><span class="ss" id="subBackup"></span><span class="chev">&#8250;</span></button>
+    <button class="srow" id="setHow"><span class="sn">How it works</span><span class="ss"></span><span class="chev">&#8250;</span></button>
     <button class="srow" id="setAbout"><span class="sn">About</span><span class="ss" id="subAbout"></span><span class="chev">&#8250;</span></button>
   </div>
 </section>
@@ -785,7 +814,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 
 <!-- RESULTS DISPLAY -->
 <section class="screen" id="resPrefs">
-  <div class="bar"><h1>Results</h1><button class="linkbtn" id="resPrefsDone">Back</button></div>
+  <div class="bar"><h1>Results display</h1><button class="linkbtn" id="resPrefsDone">Back</button></div>
   <div class="scroll pad">
     <p class="lede">What the Results screen shows on this phone. Scores, Copy Text and CSV do not change.</p>
     <label class="trow"><span class="tt"><span class="tn">Grade</span><span class="th">Under each runner's name</span></span><input type="checkbox" class="sw" id="prefGrade"></label>
@@ -793,6 +822,12 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
     <label class="trow"><span class="tt"><span class="tn">Gap to first</span><span class="th">Time behind the race winner, under each time</span></span><input type="checkbox" class="sw" id="prefGap"></label>
     <label class="trow"><span class="tt"><span class="tn">PR and SR</span><span class="th">Records on results and in Copy Text</span></span><input type="checkbox" class="sw" id="prefRec"></label>
   </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="screen" id="howto">
+  <div class="bar"><h1>How it works</h1><button class="linkbtn" id="howDone">Back</button></div>
+  <div class="scroll pad"><div id="howBody"></div></div>
 </section>
 
 <!-- ABOUT -->
@@ -861,30 +896,33 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 <!-- RECONCILE -->
 <section class="screen" id="recon">
   <div class="bar">
-    <button class="linkbtn" id="backTiming">Reopen clock</button>
+    <button class="linkbtn back" id="toResults"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5 8 12l7 7"/></svg>Results</button>
     <span class="count" id="reconFinal"></span>
-    <button class="linkbtn" id="toResults">Results</button>
+    <span aria-hidden="true"></span>
   </div>
   <div class="seg2" id="reconSeg"><button type="button" id="segOurs" aria-pressed="true">Team</button><button type="button" id="segAll" aria-pressed="false">All</button></div>
   <button class="nextband" id="nextBand"><span class="nb-next" id="nbNext"></span><span class="nb-count" id="nbCount"></span></button>
   <div class="scroll" id="reconList"></div>
-  <div class="copyrow" id="reconActions">
-    <button type="button" id="addMissed">Add a missed finish</button>
-    <button type="button" id="shiftAll">Shift all times</button>
+  <div class="seg" id="reconActions">
+    <button type="button" id="addMissed"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5.5" x2="12" y2="18.5"/><line x1="5.5" y1="12" x2="18.5" y2="12"/></svg><span>Missed finish</span></button>
+    <button type="button" id="shiftAll"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="12" x2="20" y2="12"/><path d="M8 8l-4 4 4 4"/><path d="M16 8l4 4-4 4"/></svg><span>Shift all times</span></button>
+    <button type="button" id="backTiming"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13.5" r="7"/><line x1="12" y1="13.5" x2="12" y2="10"/><line x1="10" y1="3" x2="14" y2="3"/><line x1="12" y1="3" x2="12" y2="6.5"/></svg><span>Reopen clock</span></button>
   </div>
 </section>
 
 <!-- RESULTS -->
 <section class="screen" id="results">
   <div class="bar">
-    <button class="linkbtn" id="resHome">Back to home</button>
+    <button class="linkbtn icon" id="resHome" aria-label="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7"/><path d="M6.5 9.5V20h4v-5.5h3V20h4V9.5"/></svg></button>
     <button class="linkbtn" id="backRecon">Edit race</button>
   </div>
-  <div class="syncnote" id="resSync"></div>
   <div class="scroll" id="resultBody"></div>
-  <div class="copyrow" id="resultActions">
-    <button type="button" id="copyChat">Copy Text - Team</button>
-    <button type="button" id="copyCsv">Copy CSV - Team</button>
+  <div id="resultActions">
+    <div class="syncnote" id="resSync"></div>
+    <div class="copyrow">
+      <button type="button" id="copyChat">Copy Text - Team</button>
+      <button type="button" id="copyCsv">Copy CSV - Team</button>
+    </div>
   </div>
 </section>
 
@@ -923,7 +961,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.24';
+var BUILD='v4.26';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1097,6 +1135,86 @@ function meetsSorted(){
 }
 var S=null, raf=null, wake=null, freshIdx=-1, sheetPlace=-1;
 
+/* ---------- how it works ----------
+   Written for a coach opening the app for the first time, in the same
+   register as the rest of the screens: what a thing does, and why it works
+   that way. Each section is a native details element, so it opens and
+   closes with no code and a screen reader announces it properly. */
+var HOW=[
+ {t:'About The Chute', open:true, p:[
+  'The Chute grew out of my first season as an assistant coach on my daughter\u2019s middle school cross country team. It didn\u2019t take long to realize that one of the biggest challenges was simply keeping track of everything: times, names, and places at races, time trials, and even everyday practices.',
+  'Middle school cross country runs on a shoestring budget, which means races are often timed by hand. Most of that work still happens on paper, across multiple lists, and gets reconciled afterward. The Chute is built to fill that gap. It doesn\u2019t take the work out of timing an event. It takes out the pen and paper.',
+  'For a small team or race, one coach can handle everything from a single phone. For a larger event, coaches can split the job: one runs the clock while others match runners to places as they finish.',
+  'The goal is simple: create one clean record of the season that any coach can look back on, instead of spending hours piecing together handwritten lists.',
+  'When a race is over, you have your team score, every runner\u2019s name, place, and time, and a clear view of where everyone finished against the full field. It gives coaches a much better picture of how the team performed and gives the season a record worth keeping.']},
+ {t:'Events', p:[
+  'Everything starts with an event, added from <b>Add Event</b> on the home screen. There are two kinds, chosen once when the event is created.',
+  '<b>A meet</b> holds a girls race and a boys race, each with its own clock and its own results, and is scored.',
+  '<b>A time trial</b> holds one race with everyone in it, girls and boys together, and is not scored. It can also run two distances from the same start; see Time trials.',
+  'The date tile on home says which is which: <b>MEET</b> in grey, <b>TIME TRIAL</b> in coral. Tap an event to open it and see its races.']},
+ {t:'Timing a race', p:[
+  'Open the race and tap <b>Start</b> when the gun goes. From then on the clock runs on the phone, and nothing needs a signal.',
+  'As each runner crosses the line, tap once. <b>Finisher</b> is one of ours; <b>Field Finisher</b> is anyone else. Tapping the field matters: every place counts toward your runners\u2019 places, so a runner from another team you did not tap makes everyone behind them look one place better than they were.',
+  'Tap and name later. Keeping up with the line is the only job while runners are coming in; names can wait. The count at the top says how many are in, so it can be checked against the runners in the chute.',
+  '<b>Undo last</b> takes back a tap made by mistake. <b>End race</b> asks twice, so a stray thumb cannot stop the clock.']},
+ {t:'Naming finishers', p:[
+  'Every place is named from the same sheet, whether you do it during the race or after. Tap a place and pick the runner.',
+  'The roster is listed in the order runners are most likely to finish: best time at today\u2019s distance first, then their last race. With twelve or more, a search box matches the start of either name.',
+  'At a meet, a place can also be <b>name later</b>, one of ours whose name you do not have yet, or <b>not one of ours</b>. A runner who is not on the roster can be added right from the sheet, and goes on the end of the list so nobody else moves.',
+  'The band above the list says the next place still waiting for a name, and how many are in and named. If those numbers disagree with the chute, a tap was missed.',
+  'Put the wrong runner on a place? Open it and pick the right one. The runner you replaced is free again for the place they really finished.']},
+ {t:'More than one phone', p:[
+  'One phone runs the clock and any number of phones can name. Whoever taps Start owns that race: its taps and its clock come only from that phone. Everyone else opens the same race and sees places appear as they are tapped.',
+  'This is how a bigger event is split. The timer never looks away from the line, and one or more coaches work down the list putting names to places. Names can be entered from any phone, including the timer\u2019s.',
+  'While a race is running, a naming phone shows how fresh its copy is, such as <b>Updated 4s ago</b>. A phone that has not loaded the roster has nothing to pick from, so load it before race day.',
+  'A meet\u2019s girls and boys races each have their own owner, so two coaches can time them if the races overlap.']},
+ {t:'Meets and scoring', p:[
+  'A team score is the sum of the places of its first five finishers. Low score wins. The sixth and seventh are <b>displacers</b>: they do not score, but they push other teams\u2019 runners back a place.',
+  'Results show the score, the five places that make it, and the pack: the average of the five, and the spread from first to fifth.',
+  'The score here is built from the whole field as it finished, not only our runners, which is why tapping Field Finisher matters. It will not always match the official score: an official result removes runners from teams with fewer than five finishers and counts every team\u2019s displacers, which a phone at the line cannot know.',
+  '<b>Team</b> and <b>All</b> above the list switch between our runners and every place in the race.']},
+ {t:'Time trials', p:[
+  'A time trial is one race with everyone in it and one Finisher button. Everyone is ours, so there is no Field button and nothing to score.',
+  'Every row carries two places: overall, and within girls or boys. <b>All</b>, <b>Girls</b> and <b>Boys</b> filter the list, and each copy follows the filter.',
+  '<b>More than one distance.</b> If some runners go a mile and others 800 from the same start, tick <b>More than one distance</b> on the event. Naming then asks which distance each runner ran, and results are grouped by distance with places counted inside each one, since a miler and an 800 runner are not racing each other.',
+  'Discover mid-session that a few ran the other distance? Add the second distance to the event. Runners already named keep the first.']},
+ {t:'PRs and SRs', p:[
+  'A <b>PR</b> is a runner\u2019s fastest ever at one exact distance. An <b>SR</b> is their fastest this season. Only the bigger one shows: a PR is always a season best too.',
+  'A result is judged against earlier races only, so an old result keeps the flag it earned that day. The first time at a distance sets the mark and earns nothing, since there was nothing to beat. Matching a best is not a record.',
+  'Distances never mix: an 800 only races other 800s, and a mile on the track is not a 1600. Time trials count; test events never do.',
+  'Records show on results as <b>PR \u22120:07.0</b>, the time taken off, and as (PR) in Copy Text. They can be turned off under Settings, Results display. The CSV always carries them.']},
+ {t:'Fixing mistakes', p:[
+  'Nothing here changes a time that was tapped. Places and times are the record of what happened; naming only decides whose they are.',
+  '<b>Missed finish</b> puts in a place nobody tapped. Everything behind it moves down one, and its time starts halfway between its neighbours, which you can change.',
+  '<b>Shift all times</b> moves every time in the race by the same amount, for a clock started late or early. Places do not change.',
+  'A row that was entered rather than tapped can have its time adjusted or be deleted, from its sheet.',
+  '<b>Reopen clock</b> is for an End race tapped by mistake. Hours later it asks first, since a missed finish or a name is fixed without the clock running.']},
+ {t:'Results and copying', p:[
+  '<b>Copy Text</b> is written to be pasted into a group chat or a parents\u2019 email: the score, the places, and every runner with their time. <b>Copy CSV</b> is for a spreadsheet. Both copy what is on screen, so switch Team, All, Girls or Boys first.',
+  'Grade, displacers, gap to first and records can each be turned off under Settings, Results display. That is per phone.']},
+ {t:'Saving and sync', p:[
+  'Everything is saved on the phone the moment it happens, so a race can be timed with no signal at all. When the phone is signed in and online, it is sent to the database, where every other phone can see it.',
+  'The line at the bottom of results says where things stand. <b>Saved to the database</b> is the one you want. <b>Not signed in</b> or <b>Offline</b> with a number waiting means results are safe on this phone but nobody else has them yet.',
+  'A <b>test event</b> is for practicing. It syncs like any other, so two phones can rehearse together, never counts toward records, and deleting it removes it everywhere in one tap. A real event cannot be turned into a test.']},
+ {t:'Roster', p:[
+  'The roster is loaded once for the season from Settings, Roster. <b>Load roster from database</b> fills it in on any signed-in phone.',
+  'Runners added at the line go on the end of the list, so nobody else is renumbered, and can be removed later from the same screen.']},
+ {t:'Backup and restore', p:[
+  'Settings, Backup and restore copies the whole season as text or saves it as a file, and can read one back in. The database is the main copy now, so this is a safety net rather than something to do every week.']},
+ {t:'Troubleshooting', p:[
+  '<b>The build on About does not match what was deployed.</b> The phone is running a cached copy. Delete the home screen icon and add it again; a reload alone will not do it.',
+  '<b>A naming phone says No update for 30s.</b> It has lost touch with the database. The timer is unaffected; names catch up when the signal comes back.',
+  '<b>Places look one off.</b> A runner was missed at the line. Use Missed finish to put them in at the right place.',
+  '<b>Every time is off by the same amount.</b> The clock started late or early. Shift all times.',
+  '<b>A result I expected is not showing a PR.</b> Records are worked out from races this phone has loaded. Give home a few seconds after opening the app.']}
+];
+function renderHow(){
+  $('howBody').innerHTML='<div class="how">'+HOW.map(function(s){
+    return '<details'+(s.open?' open':'')+'><summary>'+esc(s.t)+'</summary><div class="hb">'+
+      s.p.map(function(x){ return '<p>'+x+'</p>'; }).join('')+'</div></details>';
+  }).join('')+'</div>';
+}
+
 /* ---------- storage ---------- */
 function save(){
   try{ localStorage.setItem(KEY,JSON.stringify(S)); }catch(e){}
@@ -1161,7 +1279,7 @@ function show(id){
     var sc=document.querySelectorAll('#'+id+' .scroll');
     for(var j=0;j<sc.length;j++) sc[j].scrollTop=0;
   }
-  if(S && ['rosterEdit','home','meet','backup','signin','settings','account','about','resPrefs'].indexOf(id)<0) { S.screen=id; save(); }
+  if(S && ['rosterEdit','home','meet','backup','signin','settings','account','about','resPrefs','howto'].indexOf(id)<0) { S.screen=id; save(); }
   if(id==='home'){
     renderHome(); hintRoster();
     /* Pull as home opens, so a meet created on the other phone is there when
@@ -1176,6 +1294,7 @@ function show(id){
   if(id==='settings') renderSettings();
   if(id==='account') renderAccount();
   if(id==='about') renderAbout();
+  if(id==='howto') renderHow();
   if(id==='resPrefs') renderResPrefs();
   if(id==='timing'){ startClock(); renderDeck(); } else stopClock();
   if(wantAwake() && (id==='timing' || id==='recon')) keepAwake(); else releaseAwake();
@@ -2960,6 +3079,11 @@ function emptyState(){
       '<p>A meet gets a girls race and a boys race. A time trial gets one race with everyone in it.</p>'+
       '<button id="esGo">Add an event</button>';
   }
+  /* A coach installing it fresh lands here first. */
+  var how=document.createElement('button');
+  how.className='eslink'; how.id='esHow'; how.textContent='New here? See how it works';
+  how.addEventListener('click',function(){ backTo='home'; show('howto'); });
+  d.appendChild(how);
   var go=d.querySelector('#esGo');
   go.addEventListener('click', runners ? function(){ editMeet(null); }
                                        : function(){ backTo='home'; show('rosterEdit'); });
@@ -3221,9 +3345,15 @@ function renderRecon(){
 function renderReconBar(){
   var el=$('reconFinal');
   if(!S) return;
-  var remote=remoteRace(currentRace());
-  $('backTiming').textContent = remote ? 'Home' : 'Reopen clock';
-  if(!remote){
+  var rc=currentRace(), remote=remoteRace(rc);
+  /* Every finish typed in, none tapped: an import or a race entered by hand.
+     Its clock was never real, so it is not shown. */
+  var fins=(rc && rc.fin) || [];
+  if(fins.length && fins.every(function(f){ return f.m; })){ el.textContent='Entered results'; return; }
+  /* The update line is for a race still being timed on another phone. A race
+     nobody is timing any more is never polled, so it would read Connecting
+     forever: that was every imported time trial. */
+  if(!remote || !watchable(rc)){
     el.textContent=(S.endedMs!=null?'Final ':'Running ')+fmt(elapsed(),1);
     return;
   }
@@ -4073,6 +4203,8 @@ $('setBackup').addEventListener('click',function(){
   backTo='settings'; $('impText').value=''; $('impReport').innerHTML=''; show('backup');
 });
 $('setAbout').addEventListener('click',function(){ backTo='settings'; show('about'); });
+$('setHow').addEventListener('click',function(){ backTo='settings'; show('howto'); });
+$('howDone').addEventListener('click',function(){ goBack('howto'); });
 $('setResults').addEventListener('click',function(){ backTo='settings'; show('resPrefs'); });
 $('resPrefsDone').addEventListener('click',function(){ goBack('resPrefs'); });
 [['prefGrade','grade'],['prefDisp','disp'],['prefGap','gap'],['prefRec','rec']].forEach(function(p){
