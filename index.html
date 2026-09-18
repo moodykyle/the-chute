@@ -791,6 +791,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
     <label class="trow"><span class="tt"><span class="tn">Grade</span><span class="th">Under each runner's name</span></span><input type="checkbox" class="sw" id="prefGrade"></label>
     <label class="trow"><span class="tt"><span class="tn">Displacer</span><span class="th">Marks your 6th and 7th finishers</span></span><input type="checkbox" class="sw" id="prefDisp"></label>
     <label class="trow"><span class="tt"><span class="tn">Gap to first</span><span class="th">Time behind the race winner, under each time</span></span><input type="checkbox" class="sw" id="prefGap"></label>
+    <label class="trow"><span class="tt"><span class="tn">PR and SR</span><span class="th">Records on results and in Copy Text</span></span><input type="checkbox" class="sw" id="prefRec"></label>
   </div>
 </section>
 
@@ -922,7 +923,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.23';
+var BUILD='v4.24';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1494,7 +1495,8 @@ function recordsIndex(){
   return idx;
 }
 /* Everything a screen needs to tag the open race, worked out once. */
-function recCtx(){
+function recCtx(all){
+  if(!all && !resPrefs().rec) return null;
   var m=curMeet(), r=currentRace();
   return (m && r) ? {m:m, r:r, idx:recordsIndex(), map:aidMap()} : null;
 }
@@ -1608,7 +1610,7 @@ function stampLegacy(){
 function byExpected(list){
   /* Best at today's distance first, the best guess at finish order. Anyone
      without one falls back to their last race, as before. */
-  var ctx=recCtx(), d=ctx ? distMeters(ctx.m.dist) : null, bm={};
+  var ctx=recCtx(true), d=ctx ? distMeters(ctx.m.dist) : null, bm={};
   if(ctx && d) list.forEach(function(r){ var b=bestAt(rosterKey(r,ctx.map),d,ctx); if(b) bm[r.id]=b.ms; });
   return list.slice().sort(function(a,b){
     var ba=bm[a.id], bb=bm[b.id];
@@ -3342,7 +3344,7 @@ function openSheet(i){
     (inDivision(r)?here:other).push(r);
   });
   here=byExpected(here); other=byExpected(other);
-  var rctx=recCtx(), rdist=rctx ? distMeters(rctx.m.dist) : null;
+  var rctx=recCtx(true), rdist=rctx ? distMeters(rctx.m.dist) : null;
   function addOpt(r){
     var b=document.createElement('button');
     b.className='opt home';
@@ -3810,15 +3812,17 @@ function buildCsv(full){
     (scored?top5.reduce(function(a,b){return a+b;},0):'')+','+
     (scored?top5.join('+'):'')+','+
     p.length+','+S.fin.length+'\n\n'+
-    'place,time,runner,team,grade,scoring\n';
-  var seen=0;
+    'place,time,runner,team,grade,scoring,record\n';
+  /* The record column is data, so it is there whatever the display switch
+     says. PR or SR, blank otherwise. */
+  var seen=0, rx=recCtx(true);
   S.fin.forEach(function(f,i){
     var sc='';
     if(f.h){ seen++; sc = scoringRole(seen); }
     if(!full && !f.h) return;
     var r=runnerById(f.r);
     out+=(i+1)+','+fmt(f.ms,3)+(f.m?'*':'')+','+csvCell((nameOf(f.r)||f.n||null)||'')+','+
-         csvCell(f.h?S.team:'')+','+(r&&r.grade?r.grade:'')+','+sc+'\n';
+         csvCell(f.h?S.team:'')+','+(r&&r.grade?r.grade:'')+','+sc+','+((recOf(f,rx)||{}).tag||'')+'\n';
   });
   return out;
 }
@@ -3841,12 +3845,13 @@ function buildTTCsv(){
   var out='date,event,event_type,distance,scope,runners\n'+
     csvCell(S.date||'')+','+csvCell(S.name)+',time trial,'+csvCell(meetDist())+','+
     csvCell(ttScope())+','+rows.length+'\n\n'+
-    (two?'distance,':'')+'place,division_place,time,runner,division,grade\n';
+    (two?'distance,':'')+'place,division_place,time,runner,division,grade,record\n';
+  var rx=recCtx(true);
   shown.forEach(function(r){
     out+=(two?csvCell(r.dist?distLabel(r.dist):'')+',':'')+
          r.place+','+(r.dplace||'')+','+fmt(r.ms,3)+(r.f.m?'*':'')+','+
          csvCell(r.name||'')+','+(r.div==='M'?'Boys':(r.div==='F'?'Girls':''))+','+
-         (r.grade?r.grade:'')+'\n';
+         (r.grade?r.grade:'')+','+((recOf(r.f,rx)||{}).tag||'')+'\n';
   });
   return out;
 }
@@ -3982,7 +3987,7 @@ var RPKEY='chute.results.display.v1';
 function resPrefs(){
   var p={};
   try{ p=JSON.parse(localStorage.getItem(RPKEY)||'{}')||{}; }catch(e){ p={}; }
-  return { grade: p.grade!==false, disp: p.disp!==false, gap: p.gap!==false };
+  return { grade: p.grade!==false, disp: p.disp!==false, gap: p.gap!==false, rec: p.rec!==false };
 }
 function setResPref(k,on){
   var p=resPrefs(); p[k]=!!on;
@@ -3990,11 +3995,11 @@ function setResPref(k,on){
 }
 function renderResPrefs(){
   var p=resPrefs();
-  $('prefGrade').checked=p.grade; $('prefDisp').checked=p.disp; $('prefGap').checked=p.gap;
+  $('prefGrade').checked=p.grade; $('prefDisp').checked=p.disp; $('prefGap').checked=p.gap; $('prefRec').checked=p.rec;
 }
 function resPrefsLine(){
-  var p=resPrefs(), n=(p.grade?1:0)+(p.disp?1:0)+(p.gap?1:0);
-  return n===3 ? 'All shown' : (n===0 ? 'None shown' : n+' of 3 shown');
+  var p=resPrefs(), n=(p.grade?1:0)+(p.disp?1:0)+(p.gap?1:0)+(p.rec?1:0);
+  return n===4 ? 'All shown' : (n===0 ? 'None shown' : n+' of 4 shown');
 }
 
 function sideHint(list,el){
@@ -4070,7 +4075,7 @@ $('setBackup').addEventListener('click',function(){
 $('setAbout').addEventListener('click',function(){ backTo='settings'; show('about'); });
 $('setResults').addEventListener('click',function(){ backTo='settings'; show('resPrefs'); });
 $('resPrefsDone').addEventListener('click',function(){ goBack('resPrefs'); });
-[['prefGrade','grade'],['prefDisp','disp'],['prefGap','gap']].forEach(function(p){
+[['prefGrade','grade'],['prefDisp','disp'],['prefGap','gap'],['prefRec','rec']].forEach(function(p){
   $(p[0]).addEventListener('change',function(){ setResPref(p[1],this.checked); });
 });
 $('acctDone').addEventListener('click',function(){ show(acctBack); });
