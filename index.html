@@ -831,7 +831,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 <section class="screen" id="account">
   <div class="bar nav"><button class="linkbtn back" id="acctDone"><span class="bc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5 8 12l7 7"/></svg></span><span class="bl">Settings</span><span class="bh" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7"/><path d="M6.5 9.5V20h4v-5.5h3V20h4V9.5"/></svg></span></button><h1 class="navmid nt">Account</h1><span aria-hidden="true"></span></div>
   <div class="scroll pad">
-    <p class="lede">Signing in is what lets the app read the roster from the database. Timing, scoring and export all work without it.</p>
+    <p class="lede">Sign in with the email your team added. That loads the roster and season, and shares what you time with the other phones. If you lose signal at a meet, timing keeps working and results send once you&rsquo;re back.</p>
     <div class="acct" id="acctState"></div>
     <div class="btnrow" style="margin-top:14px"><button type="button" id="acctBtn">Sign in</button></div>
   </div>
@@ -989,7 +989,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.28';
+var BUILD='v4.29';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1313,7 +1313,7 @@ var NAV_NAMES={settings:'Settings', account:'Account', rosterEdit:'Roster', home
 function navBack(id){
   var b=document.querySelector('#'+id+' .bar.nav .linkbtn.back');
   if(!b || id==='recon') return;
-  var to = id==='account' ? acctBack : (id==='signin' ? 'account' : backTo);
+  var to = id==='account' ? acctBack : (id==='signin' ? siFrom : backTo);
   b.classList.toggle('tohome', to==='home');
   b.querySelector('.bl').textContent=NAV_NAMES[to]||'Back';
   b.setAttribute('aria-label', to==='home' ? 'Home' : 'Back to '+(NAV_NAMES[to]||''));
@@ -2040,7 +2040,7 @@ function sbFetch(path,opts){
 /* GoTrue error bodies are inconsistent by its own documentation, so match on
    several shapes and fall back to the status rather than showing nothing. */
 function authMessage(res){
-  if(res.offline) return 'No connection. You can still time a race without signing in.';
+  if(res.offline) return 'No connection. Try again when you have signal.';
   var d=res.data||{};
   var m=String(d.msg||d.error_description||d.message||d.error||'');
   var code=String(d.error_code||'');
@@ -2865,7 +2865,7 @@ function renderSignin(){
   $('siGo').textContent = code?'Sign in':'Send code';
   $('siLede').textContent = code
     ? 'Enter the six digit code sent to '+siEmail+'. It expires in an hour.'
-    : 'Signing in loads the roster from the database. You do not need it to time a race.';
+    : 'Enter the email your team added. A six digit code will be sent to it.';
   if(code) siRenderResend();
 }
 function siSend(){
@@ -2892,8 +2892,32 @@ function siVerify(){
     siBusy=false;
     if(!res.ok||!res.data||!res.data.access_token){ siMsg(authMessage(res),true); return; }
     saveAuth(sessionFrom(res.data,siEmail));
-    siStopTimer(); siPhase='email'; siMsg('',false);
-    show('account');
+    siStopTimer();
+    afterSignin();
+  });
+}
+/* A coach signing in for the first time should land on a working app, not an
+   Account screen and a trip to Roster. So the roster comes down on its own
+   when this phone has none, and the season with it, before leaving. Never
+   over a roster already here: that path stays the Load button, with its
+   guards. A slow network gets eight seconds; the reads finish behind it. */
+var SI_LOAD_MS=8000;
+function autoRoster(){
+  if(rosterNames().length) return Promise.resolve();
+  return sbFetch(rosterPath(),{auth:true}).then(function(res){
+    if(res.ok && Array.isArray(res.data)) applyPulledRoster(res.data);
+  });
+}
+function afterSignin(){
+  siBusy=true; siMsg('Loading the team...',false);
+  var jobs=Promise.all([
+    autoRoster(),
+    pullMeets().then(function(ch){ if(ch) saveSeason(); })
+  ]).catch(function(){});
+  var cap=new Promise(function(r){ setTimeout(r,SI_LOAD_MS); });
+  return Promise.race([jobs,cap]).then(function(){
+    siBusy=false; siPhase='email'; siMsg('',false);
+    show(siFrom);
   });
 }
 
@@ -2992,7 +3016,7 @@ function renderAccount(){
     $('acctState').innerHTML='Signed in as <b>'+esc(authEmail())+'</b>.';
     $('acctBtn').textContent='Sign out';
   } else {
-    $('acctState').textContent='Not signed in. Timing and scoring work without it. Signing in is what lets the app read the roster from the database.';
+    $('acctState').textContent='Not signed in.';
     $('acctBtn').textContent='Sign in';
   }
 }
@@ -3123,7 +3147,12 @@ function emptyState(){
   var runners=parseList(txt(RKEY_G),'F').length+parseList(txt(RKEY_B),'M').length;
   var d=document.createElement('div');
   d.className='es';
-  if(!runners){
+  if(!runners && !signedIn()){
+    d.innerHTML=bigMark(58)+
+      '<h2>Sign in to get started</h2>'+
+      '<p>Use the email your team added. The roster and season load on their own.</p>'+
+      '<button id="esGo">Sign in</button>';
+  } else if(!runners){
     d.innerHTML=bigMark(58)+
       '<h2>Start with your roster</h2>'+
       '<p>Names and grades, once for the season. Events come next.</p>'+
@@ -3141,7 +3170,8 @@ function emptyState(){
   d.appendChild(how);
   var go=d.querySelector('#esGo');
   go.addEventListener('click', runners ? function(){ editMeet(null); }
-                                       : function(){ backTo='home'; show('rosterEdit'); });
+                    : !signedIn() ? function(){ siFrom='home'; siPhase='email'; siMsg('',false); show('signin'); }
+                                  : function(){ backTo='home'; show('rosterEdit'); });
   return d;
 }
 
@@ -4250,6 +4280,9 @@ $('team').addEventListener('input',function(){
    Roster. Two owners, one variable, exactly the shape of the b9 delete bug. */
 var backTo='settings';
 var acctBack='settings';
+/* Sign in is reached from Account, or straight from an empty home on a phone
+   that has never signed in. It returns to whichever opened it. */
+var siFrom='account';
 /* A return target that points at the screen you are leaving is a dead button.
    Never possible by construction now, but the fallback costs one line. */
 function goBack(from){ show(backTo===from?'home':backTo); }
@@ -4272,12 +4305,12 @@ $('acctDone').addEventListener('click',function(){ show(acctBack); });
 $('aboutDone').addEventListener('click',function(){ goBack('about'); });
 $('backupDone').addEventListener('click',function(){ goBack('backup'); });
 $('acctBtn').addEventListener('click',function(){
-  if(!signedIn()){ siPhase='email'; siMsg('',false); show('signin'); return; }
+  if(!signedIn()){ siFrom='account'; siPhase='email'; siMsg('',false); show('signin'); return; }
   armTwoTap(this,'Tap again to sign out',function(){
     signOut(); renderAccount();
   });
 });
-$('siBack').addEventListener('click',function(){ siStopTimer(); siPhase='email'; show('account'); });
+$('siBack').addEventListener('click',function(){ siStopTimer(); siPhase='email'; show(siFrom); });
 $('siGo').addEventListener('click',function(){ (siPhase==='code'?siVerify:siSend)(); });
 $('siResendBtn').addEventListener('click',function(){
   if(this.disabled||siBusy) return;
