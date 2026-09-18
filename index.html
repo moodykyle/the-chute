@@ -67,6 +67,12 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
   margin:0 auto;position:relative;overflow-x:hidden;
   padding-top:env(safe-area-inset-top);
 }
+/* Installed on an iPhone with the translucent status bar, iOS 26 reports
+   100dvh short by the top inset, so the whole app stopped a status bar's
+   height above the bottom of the screen and every footer floated. 100lvh is
+   the full screen there. Scoped to the installed app, so a Safari tab keeps
+   the dynamic height its toolbars need. */
+@media (display-mode: standalone){ .app{height:100lvh} }
 
 #splash{
   position:fixed;inset:0;z-index:9999;background:#0C2340;
@@ -154,14 +160,22 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
 .mcard.open.test{box-shadow:inset 0 0 0 2px var(--test)}
 .mrow{display:flex;align-items:center;gap:12px;width:100%;text-align:left;
   padding:10px 0;min-height:76px;color:var(--ink)}
-/* The date as a tile: month over day, red with TODAY on race day. */
-.mday{flex:0 0 52px;height:56px;border-radius:10px;background:var(--chalk);
+/* The date as a tile: month over day over type, red with TODAY on race day.
+   A time trial's type is red so it catches the eye; MEET, the default,
+   stays in the month's grey. */
+.mday{flex:0 0 52px;height:60px;border-radius:10px;background:var(--chalk);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
 .mcard.open .mday{background:var(--field)}
 .mday.today,.mcard.open .mday.today{background:var(--red)}
 .mday .mdm{font-size:10px;font-weight:600;letter-spacing:.1em;color:var(--ink-soft)}
 .mday .mdd{font-family:'Saira Condensed','Saira',system-ui,sans-serif;font-size:24px;font-weight:700;line-height:1;color:var(--ink)}
 .mday.today .mdm,.mday.today .mdd{color:#fff}
+.mday .mkind{font-size:7.5px;font-weight:700;letter-spacing:.04em;color:var(--ink-soft);margin-top:3px;line-height:1;text-align:center}
+.mday .mkind.tt{color:var(--red)}
+/* No nowrap: if a fallback font runs wider than the tile, TIME TRIAL wraps
+   to two lines rather than spilling out of it. */
+/* red on a red tile would vanish */
+.mday.today .mkind{color:#fff}
 .mrow .mbody{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
 .mrow .mn{font-size:15px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mcard.open .mn{white-space:normal;overflow-wrap:anywhere;font-weight:600}
@@ -898,7 +912,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.20';
+var BUILD='v4.21';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1620,8 +1634,18 @@ function commitMeet(){
   editingMeet=null;
   show('home');
 }
+/* Every way into a race comes through here: a card on home, the live strip,
+   and the resume on boot. Each is a fresh start, so the filters go back to
+   their defaults instead of opening on whatever the last race was left on.
+   Moving between naming and results inside a race keeps them. */
+function resetViews(){
+  ttView='all'; resFull=false; reconAll=false;
+  $('segOurs').setAttribute('aria-pressed','true');
+  $('segAll').setAttribute('aria-pressed','false');
+}
 function openRace(mid,rid){
   var f=findRace(mid,rid); if(!f) return;
+  resetViews();
   var r=f.race;
   S={
     meetId:mid, raceId:rid,
@@ -2718,6 +2742,26 @@ function renderSettings(){
   $('subResults').textContent = resPrefsLine();
   $('subAbout').textContent = BUILD;
 }
+/* Temporary, for the bottom gap on an installed iPhone (4.21). Every height
+   the phone reports, so one screenshot says whether the fix took. Comes out
+   once it is confirmed. */
+function screenCheck(){
+  var p=document.createElement('div'), out={};
+  p.style.cssText='position:fixed;left:0;top:0;width:1px;visibility:hidden;pointer-events:none;'+
+    'padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)';
+  document.body.appendChild(p);
+  var cs=getComputedStyle(p);
+  out.top=Math.round(parseFloat(cs.paddingTop)||0); out.bottom=Math.round(parseFloat(cs.paddingBottom)||0);
+  p.style.padding='0';
+  p.style.height='100dvh'; out.dvh=p.offsetHeight;
+  p.style.height='100lvh'; out.lvh=p.offsetHeight;
+  document.body.removeChild(p);
+  var app=document.querySelector('.app');
+  out.app=app ? app.offsetHeight : 0;
+  out.screen=screen.height; out.inner=window.innerHeight;
+  out.installed=!!((window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone===true);
+  return out;
+}
 function renderAbout(){
   var st=seasonStats(), bytes=0;
   try{ for(var k in localStorage){ if(localStorage.hasOwnProperty(k)) bytes+=(localStorage[k]||'').length; } }catch(e){}
@@ -2730,6 +2774,16 @@ function renderAbout(){
     row('Races timed', String(st.timed))+
     row('Finishers recorded', String(st.fin))+
     row('Stored locally', Math.round(bytes/1024)+' KB')+
+    (function(){
+      var c=screenCheck();
+      return '<p class="hint" style="margin-top:16px">Screen check, temporary. Installed, App height should equal Screen.</p>'+
+        row('Installed', c.installed?'Yes':'No')+
+        row('Screen', String(c.screen))+
+        row('App height', String(c.app))+
+        row('Window', String(c.inner))+
+        row('100dvh, 100lvh', c.dvh+', '+c.lvh)+
+        row('Insets, top and bottom', c.top+', '+c.bottom);
+    })()+
     '<p class="hint" style="margin-top:16px">To force a fresh copy on an iPhone, delete the home screen icon and add it again. A reload alone will not do it.</p>';
 }
 function renderBackup(){
@@ -2938,7 +2992,8 @@ function meetRow(m,open,today){
   var meta=[distsText(m), m.venue].filter(Boolean).join(' \u00b7 ');
   var mon = raceDay ? 'TODAY' : (ok ? MON[parseInt(p[1],10)-1].toUpperCase() : '');
   var day = ok ? String(parseInt(p[2],10)) : '';
-  row.innerHTML='<span class="mday'+(raceDay?' today':'')+'"><span class="mdm">'+mon+'</span><span class="mdd">'+day+'</span></span>'+
+  row.innerHTML='<span class="mday'+(raceDay?' today':'')+'"><span class="mdm">'+mon+'</span><span class="mdd">'+day+'</span>'+
+    '<span class="mkind'+(isTT(m)?' tt':'')+'">'+(isTT(m)?'TIME TRIAL':'MEET')+'</span></span>'+
     /* Open, distance and venue sit under the name, so the date tile spans
        both lines instead of the detail running under the tile. */
     '<span class="mbody"><span class="mn">'+esc(m.name)+'</span>'+
