@@ -961,7 +961,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.26';
+var BUILD='v4.27';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1139,14 +1139,12 @@ var S=null, raf=null, wake=null, freshIdx=-1, sheetPlace=-1;
    Written for a coach opening the app for the first time, in the same
    register as the rest of the screens: what a thing does, and why it works
    that way. Each section is a native details element, so it opens and
-   closes with no code and a screen reader announces it properly. */
+   closes with no code and a screen reader announces it properly. All of them
+   start closed, so the screen opens as a list of topics. */
 var HOW=[
- {t:'About The Chute', open:true, p:[
-  'The Chute grew out of my first season as an assistant coach on my daughter\u2019s middle school cross country team. It didn\u2019t take long to realize that one of the biggest challenges was simply keeping track of everything: times, names, and places at races, time trials, and even everyday practices.',
-  'Middle school cross country runs on a shoestring budget, which means races are often timed by hand. Most of that work still happens on paper, across multiple lists, and gets reconciled afterward. The Chute is built to fill that gap. It doesn\u2019t take the work out of timing an event. It takes out the pen and paper.',
-  'For a small team or race, one coach can handle everything from a single phone. For a larger event, coaches can split the job: one runs the clock while others match runners to places as they finish.',
-  'The goal is simple: create one clean record of the season that any coach can look back on, instead of spending hours piecing together handwritten lists.',
-  'When a race is over, you have your team score, every runner\u2019s name, place, and time, and a clear view of where everyone finished against the full field. It gives coaches a much better picture of how the team performed and gives the season a record worth keeping.']},
+ {t:'About The Chute', p:[
+  'The Chute grew out of my first season as an assistant coach on my daughter\u2019s middle school cross country team. One challenge was obvious right away: tracking individual performance in a meaningful way, without pen, paper, and hours of reconciling handwritten lists.',
+  'The Chute puts timing and naming on your phone. One coach can run an event alone, or several can split the job. Every event ends with a clean performance report, and the season ends with a record worth keeping.']},
  {t:'Events', p:[
   'Everything starts with an event, added from <b>Add Event</b> on the home screen. There are two kinds, chosen once when the event is created.',
   '<b>A meet</b> holds a girls race and a boys race, each with its own clock and its own results, and is scored.',
