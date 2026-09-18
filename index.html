@@ -455,6 +455,17 @@ input.code{
 /* Finding a runner by name. Only on a list long enough to scroll, and never
    focused on open: a keyboard that appears on every place would cost more than
    it saves on the common one, where the runner is already near the top. */
+/* Which place the namer is on, and how far through they are. The count is the
+   check against a missed tap: the line is longer than the list if a tap was
+   dropped, and this is where that shows while the runners are still standing
+   there. Tapping it opens that place. */
+.nextband{
+  display:flex;align-items:baseline;justify-content:space-between;gap:12px;width:100%;
+  padding:12px 16px;border:0;border-bottom:1px solid var(--rule);background:var(--home-wash);text-align:left;
+}
+.nextband .nb-next{min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:20px;font-weight:600;color:var(--ink)}
+.nextband .nb-count{flex:0 0 auto;font-size:14px;color:var(--ink-soft);white-space:nowrap}
+.nextband:active{filter:brightness(1.25)}
 .findrow{padding:10px 16px 8px;border-bottom:1px solid var(--rule)}
 .findrow input{
   width:100%;box-sizing:border-box;padding:12px 14px;border-radius:10px;
@@ -811,6 +822,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
     <button class="linkbtn" id="toResults">Results</button>
   </div>
   <div class="seg2" id="reconSeg"><button type="button" id="segOurs" aria-pressed="true">Team</button><button type="button" id="segAll" aria-pressed="false">All</button></div>
+  <button class="nextband" id="nextBand"><span class="nb-next" id="nbNext"></span><span class="nb-count" id="nbCount"></span></button>
   <div class="scroll" id="reconList"></div>
   <div class="copyrow" id="reconActions">
     <button type="button" id="addMissed">Add a missed finish</button>
@@ -867,7 +879,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.17';
+var BUILD='v4.18';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1053,6 +1065,15 @@ function show(id){
   closeSheet();
   var all=document.querySelectorAll('.screen');
   for(var i=0;i<all.length;i++) all[i].classList.toggle('on', all[i].id===id);
+  /* A screen opens at its top. The event form kept the scroll from the last
+     time it was saved, so Add Event opened at the Save button. Done after the
+     screen is on, since a hidden element cannot be scrolled. Skipped for the
+     naming list, which keeps its own position while taps arrive, and the ones
+     that place themselves. */
+  if(['recon','timing','results'].indexOf(id)<0){
+    var sc=document.querySelectorAll('#'+id+' .scroll');
+    for(var j=0;j<sc.length;j++) sc[j].scrollTop=0;
+  }
   if(S && ['rosterEdit','home','meet','backup','signin','settings','account','about','resPrefs'].indexOf(id)<0) { S.screen=id; save(); }
   if(id==='home'){
     renderHome(); hintRoster();
@@ -2685,7 +2706,7 @@ function meetCard(m,today){
   m.races.forEach(function(r){ p.appendChild(raceRow(m,r)); });
   var edit=document.createElement('button');
   edit.className='morelink';
-  edit.textContent='Edit meet';
+  edit.textContent='Edit event';
   edit.addEventListener('click',function(){ editMeet(m.id); });
   p.appendChild(edit);
   card.appendChild(p);
@@ -2703,7 +2724,11 @@ function raceRow(m,r){
   else if(r.pulled && !r.read){ sub='Loading from the database'; label='Results'; ghost=true; }
   else {
     var sc=scoreOf(r);
-    sub = (sc!=null? 'Team score '+sc : ours+' finishers, no score') + ' \u00b7 '+n+' in field';
+    /* A time trial has no field and no score: everyone in it is ours, so the
+       only number worth showing is how many ran. */
+    sub = r.division==='Mixed'
+      ? n+(n===1?' finisher':' finishers')
+      : (sc!=null? 'Team score '+sc : ours+' finishers, no score') + ' \u00b7 '+n+' in field';
     label='Results'; ghost=true;
   }
   if(r.lost) sub='Started on another phone first \u00b7 these taps stay here';
@@ -2829,9 +2854,32 @@ function setReconAll(v){
   $('segAll').setAttribute('aria-pressed',String(v));
   renderRecon();
 }
+/* The first place still waiting for a name, or null when they all have one.
+   Field runners are not waiting for anything, so they are skipped. */
+function nextUnnamed(){
+  for(var i=0;i<S.fin.length;i++){
+    var f=S.fin[i];
+    if(f.h && !(nameOf(f.r)||f.n)) return i;
+  }
+  return null;
+}
+function renderNextBand(){
+  var i=nextUnnamed(), ours=S.fin.filter(function(f){ return f.h; }).length;
+  var named=S.fin.filter(function(f){ return f.h && (nameOf(f.r)||f.n); }).length;
+  $('nextBand').style.display = i==null ? 'none' : '';
+  if(i==null) return;
+  $('nbNext').textContent='Next: place '+(i+1);
+  /* The same word the clock uses while you tap. It counts what the phone
+     recorded, not who crossed the line: if the chute holds more runners than
+     this says, a tap went missing, and that is the point of showing it. */
+  $('nbCount').textContent = ttRace()
+    ? S.fin.length+' in \u00b7 '+named+' named'
+    : named+' of '+ours+' named';
+}
 function renderRecon(){
   /* Team and All say nothing in a time trial: everyone in it is ours. */
   $('reconSeg').style.display = ttRace() ? 'none' : '';
+  renderNextBand();
   var c=$('reconList');
   /* A list that grows while you read it should not jump. Stay pinned to the
      bottom only if you were already there. */
@@ -3061,11 +3109,12 @@ function openSheet(i){
   $('findRow').style.display = l.querySelectorAll('.opt.home[data-name]').length>=FIND_MIN ? '' : 'none';
   $('findIn').value='';
   applyFind();
+  $('sheet').classList.add('on');
   /* Back to the top for every place. The list is in prior-result order and
      loses each runner as they are named, so where the last place left off
-     points at nothing on this one. */
+     points at nothing on this one. Set after the sheet is on screen: a hidden
+     element has nothing to scroll, so assigning to it does nothing at all. */
   l.scrollTop=0;
-  $('sheet').classList.add('on');
 }
 var FIND_MIN=12;
 /* Match from the start of either name, so "dee" finds Dees and "mc" finds
@@ -3742,6 +3791,7 @@ $('goNewMeet').addEventListener('click',function(){ editMeet(null); });
 $('meetBack').addEventListener('click',function(){ editingMeet=null; show('home'); });
 $('meetSave').addEventListener('click',commitMeet);
 $('findIn').addEventListener('input',applyFind);
+$('nextBand').addEventListener('click',function(){ var i=nextUnnamed(); if(i!=null) openSheet(i); });
 $('mtypeMeet').addEventListener('click',function(){ if(editingMeet) return; newType='meet'; renderMeetType(null); });
 $('mtypeTT').addEventListener('click',function(){ if(editingMeet) return; newType='time_trial'; renderMeetType(null); });
 $('gun').addEventListener('click',startRace);
