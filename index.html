@@ -552,6 +552,17 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 .opt .on{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .opt .og{font-size:13px;color:var(--ink-soft);font-weight:400;white-space:nowrap}
 .opt small{grid-column:1 / -1;font-size:13px;color:var(--ink-soft);font-weight:400}
+/* Which distance a runner ran, in a time trial that ran two. Big targets:
+   this is picked with a stick in the other hand. The one already on the
+   place carries the red tick. */
+.opt.dist{font-size:20px;font-weight:700;padding:18px 16px;min-height:62px}
+.opt.dist.cur{box-shadow:inset 4px 0 0 var(--red)}
+.dtag{font-size:12px;font-weight:600;font-style:normal;color:var(--ink-soft);margin-left:6px}
+.dtag.miss{color:var(--tape)}
+/* A distance's own section on time trial results, in the home headers' face. */
+.hsect.rsect{padding:22px 16px 8px;font-size:22px;border-bottom:1px solid var(--rule)}
+.hsect.rsect:first-child{padding-top:22px}
+#mdist2Wrap{margin-top:14px}
 </style>
 </head>
 <body>
@@ -634,6 +645,14 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
           <option>3200m</option>
         </optgroup>
       </select>
+    </div>
+    <div class="field" id="mdist2Row">
+      <label class="check"><input type="checkbox" id="mtwo"> More than one distance</label>
+      <div id="mdist2Wrap">
+        <label for="mdist2">Second distance</label>
+        <select id="mdist2"></select>
+      </div>
+      <div class="hint" id="mdist2Hint"></div>
     </div>
     <div class="field">
       <label for="mvenue">Venue</label>
@@ -879,7 +898,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.18';
+var BUILD='v4.20';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -937,8 +956,51 @@ function lastDist(){
    stale the moment you edited the meet. Everything that prints a distance goes
    through here, so the screen and both copies cannot disagree. */
 function meetDist(){
-  var m = (S && S.meetId) ? findMeet(S.meetId) : null;
-  return (m && m.dist) || '';
+  return distsText(curMeet());
+}
+/* A time trial can run two distances from one start: on 8/6 some ran 800 and
+   some a mile, into one chute. The first is the event's distance as always.
+   The second is m.dist2, and only a time trial has one. Both are labels, the
+   same words the picker offers, turned into metres where it matters. */
+function hasTwoDists(m){ return !!(m && isTT(m) && m.dist2 && distMeters(m.dist) && distMeters(m.dist2)); }
+function curMeet(){ return (S && S.meetId) ? findMeet(S.meetId) : null; }
+function twoDists(){ return hasTwoDists(curMeet()); }
+function distsText(m){ return m ? [m.dist||'', hasTwoDists(m) ? m.dist2 : ''].filter(Boolean).join(' and ') : ''; }
+/* What a finish counts at. In a two-distance race that is only what the
+   namer said, so a runner not yet asked has none, never "the first one". */
+function finDist(f,m){
+  if(m===undefined) m=curMeet();
+  return hasTwoDists(m) ? (f.dm||null) : (distMeters(m && m.dist)||null);
+}
+function meetOfRace(r){
+  for(var i=0;i<SEASON.meets.length;i++) if((SEASON.meets[i].races||[]).indexOf(r)>=0) return SEASON.meets[i];
+  return null;
+}
+/* Adding or dropping the second distance. Adding mirrors what the database
+   does in 0010: every runner already named says the first distance out loud,
+   so none of them read as "not asked yet". Dropping clears them again. Both
+   touch the rows so a pull cannot undo them before they are sent. */
+function setDist2(m,label){
+  label = isTT(m) ? (label||'') : '';
+  if((m.dist2||'')===label) return false;
+  var was=hasTwoDists(m);
+  if(label) m.dist2=label; else delete m.dist2;
+  var r=(m.races||[])[0];
+  if(!r) return true;
+  r.d2=(r.d2||0)+1;
+  var two=hasTwoDists(m), first=distMeters(m.dist);
+  (r.fin||[]).forEach(function(f){
+    if(!was && two && (f.a || f.n!=null) && !f.dm){ f.dm=first; if(f.up) touch(f); }
+    else if(was && !two && f.dm){ delete f.dm; if(f.up) touch(f); }
+  });
+  return true;
+}
+/* A distance runners are named at cannot move out from under them. 0010
+   refuses it too; this says so before the save rather than after. */
+function distCarried(m,label){
+  var d=distMeters(label), r=(m && m.races||[])[0];
+  if(!d || !r || !hasTwoDists(m)) return false;
+  return (r.fin||[]).some(function(f){ return f.dm===d; });
 }
 /* The wall clock stamp taken when Start was hit, which the race already
    stores, so there is nothing to type and nothing to backfill on meets
@@ -1348,12 +1410,21 @@ function loadHist(){
 }
 function histKey(r){ return r.g+'|'+r.name.trim().toLowerCase().replace(/\s+/g,' '); }
 function priorOf(r){ return HIST[histKey(r)]||null; }
+/* Every entry keeps the distance it was run at, so an 800 is never taken for
+   a fast mile. In a two-distance race the place is the one within the
+   distance, and the label comes along for the picker to show. */
 function commitHistory(){
   var h={}; for(var k in HIST) h[k]=HIST[k];
+  var m=curMeet(), two=hasTwoDists(m), cnt={};
   S.fin.forEach(function(f,i){
+    var dm=finDist(f,m), ck=two?(dm||0):0;
+    cnt[ck]=(cnt[ck]||0)+1;
     if(f.r==null) return;
     var r=runnerById(f.r); if(!r) return;
-    h[histKey(r)]={ms:Math.round(f.ms), place:i+1, race:S.name, date:S.date, at:Date.now()};
+    var e={ms:Math.round(f.ms), place:two?cnt[ck]:i+1, race:S.name, date:S.date, at:Date.now()};
+    if(dm) e.m=dm;
+    if(two && dm) e.dl=distLabel(dm);
+    h[histKey(r)]=e;
   });
   HIST=h;
   try{ localStorage.setItem(HKEY,JSON.stringify(h)); }catch(e){}
@@ -1444,6 +1515,8 @@ function stampLegacy(){
 function byExpected(list){
   return list.slice().sort(function(a,b){
     var pa=priorOf(a), pb=priorOf(b);
+    /* Across distances a raw time says nothing, so compare pace. */
+    if(pa&&pb&&pa.m&&pb.m&&pa.m!==pb.m) return pa.ms/pa.m-pb.ms/pb.m;
     if(pa&&pb) return pa.ms-pb.ms;
     if(pa) return -1;
     if(pb) return 1;
@@ -1464,6 +1537,35 @@ function renderMeetType(m){
   $('mnameLabel').textContent = tt ? 'Time trial' : 'Meet';
   $('mname').placeholder = tt ? 'Tuesday time trial' : 'Chamblee Invitational';
   $('mshapeHint').textContent = tt ? SHAPE_TT : SHAPE_MEET;
+  $('mdist2Row').style.display = tt ? '' : 'none';
+  renderDist2();
+}
+var DIST2_HINT='Naming asks which one each runner ran.';
+/* Most time trials are one distance, so the second picker stays out of the
+   way behind a question and appears only once it is answered yes. It offers
+   everything the first does except the first's value. A distance runners are
+   named at is locked, in either picker, and a locked second cannot be
+   un-ticked either. */
+function renderDist2(){
+  var m=editingMeet?findMeet(editingMeet):null, s2=$('mdist2'), d1=$('mdist').value, two=$('mtwo');
+  if(!s2.options.length){
+    s2.innerHTML=$('mdist').innerHTML;
+    s2.options[0].textContent='Pick one';
+  }
+  for(var i=1;i<s2.options.length;i++) s2.options[i].disabled=(s2.options[i].value===d1);
+  if(!d1 || s2.value===d1) s2.value='';
+  s2.disabled=!d1;
+  var lock1=distCarried(m, m&&m.dist), lock2=distCarried(m, m&&m.dist2);
+  $('mdist').disabled=lock1;
+  if(lock2) s2.disabled=true;
+  if(lock2) two.checked=true;
+  two.disabled=lock2;
+  $('mdist2Wrap').style.display = two.checked ? '' : 'none';
+  var locked=[lock1?m.dist:'', lock2?m.dist2:''].filter(Boolean);
+  $('mdist2Hint').style.display = two.checked ? '' : 'none';
+  $('mdist2Hint').textContent = !d1 ? 'Pick the first distance above.' : locked.length
+    ? 'Runners are named at '+locked.join(' and ')+', so '+(locked.length>1?'both stay. Rename them first to change either.':'that stays. Rename them first to change it.')
+    : DIST2_HINT;
 }
 function editMeet(id){
   editingMeet=id;
@@ -1476,6 +1578,9 @@ function editMeet(id){
   /* A season is mostly the same distance, so a new meet starts on whatever the
      last one ran. Saves a tap and keeps the CSV column groupable. */
   $('mdist').value=m?(m.dist||''):lastDist();
+  if(!$('mdist2').options.length) renderDist2();
+  $('mdist2').value=(m && isTT(m) && m.dist2) || '';
+  $('mtwo').checked=!!(m && isTT(m) && m.dist2);
   /* Never inherited from the last meet, unlike distance. One test race the
      night before must not turn the real meet into a test. */
   $('mtest').checked=!!(m && m.test);
@@ -1484,6 +1589,7 @@ function editMeet(id){
   $('mtestRow').style.display = locked ? 'none' : '';
   $('mtestHint').textContent = locked ? LOCKED_HINT : TEST_HINT;
   $('meetDelete').style.display=m?'':'none';
+  renderDist2();
   show('meet');
 }
 function commitMeet(){
@@ -1492,6 +1598,8 @@ function commitMeet(){
   var dt=$('mdate').value||todayStr();
   var vn=$('mvenue').value.trim();
   var ds=$('mdist').value;
+  var ds2=($('mdist2Row').style.display==='none' || !$('mtwo').checked) ? '' : $('mdist2').value;
+  if(!ds || ds2===ds) ds2='';
   var tst=$('mtest').checked;
   if(editingMeet){
     var m=findMeet(editingMeet);
@@ -1499,11 +1607,15 @@ function commitMeet(){
       if(m.name!==nm || m.date!==dt || m.venue!==vn) touch(m);
       if(m.dist!==ds) m.races.forEach(touch);
       m.name=nm; m.date=dt; m.venue=vn; m.dist=ds;
+      setDist2(m,ds2);
       if(!(tst && meetUploaded(m))) m.test=tst;
       saveSeason();
     }
   } else {
-    openMeet=addEvent(nm,dt,vn,ds,tst,tt?'time_trial':'meet').id; openByHand=true; revealOpen=true;
+    var nm2=addEvent(nm,dt,vn,ds,tst,tt?'time_trial':'meet');
+    /* Straight onto the event: the race insert carries it, so nothing to patch. */
+    if(tt && ds2){ nm2.dist2=ds2; saveSeason(); }
+    openMeet=nm2.id; openByHand=true; revealOpen=true;
   }
   editingMeet=null;
   show('home');
@@ -1756,8 +1868,13 @@ function racePatch(m,r){
     timed_by:r.timedBy||null
   };
 }
+/* second_distance_m goes in with the insert and otherwise only through
+   patchDist2, never with the timer's patch: that one is claim-gated and
+   carries whatever this phone last knew, which could undo the other phone. */
 function raceBody(m,r){
-  var b=racePatch(m,r); b.id=r.id; b.meet_id=m.id; b.division=divOf(r); return b;
+  var b=racePatch(m,r); b.id=r.id; b.meet_id=m.id; b.division=divOf(r);
+  b.second_distance_m=hasTwoDists(m) ? distMeters(m.dist2) : null;
+  return b;
 }
 /* Local times already carry the shift. The database keeps the raw tap and the
    shift once on the race, so it comes back off here. */
@@ -1765,13 +1882,17 @@ function raceBody(m,r){
    In a girls or boys race the race says it; in a mixed race nothing else can,
    so it rides with the name. Null for rostered runners, whose division is on
    their athletes row, and for the field. */
-function finIdentity(f,home,r){
+/* distance_m only in a race with two distances, and only once the namer has
+   said which. Everywhere else null, which the database reads as the race's. */
+function finIdentity(f,home,r,m){
   var mixed = r ? divOf(r)==='X' : false;
+  if(m===undefined) m=r ? meetOfRace(r) : null;
   return {athlete_id:f.a||null, team_id:f.h?home:null, runner_name:f.a?null:(f.n||null),
-          runner_division: (mixed && !f.a && f.h && (f.g==='F'||f.g==='M')) ? f.g : null};
+          runner_division: (mixed && !f.a && f.h && (f.g==='F'||f.g==='M')) ? f.g : null,
+          distance_m: (hasTwoDists(m) && f.dm) ? f.dm : null};
 }
-function finBody(r,f,i,home){
-  var b=finIdentity(f,home,r);
+function finBody(r,f,i,home,m){
+  var b=finIdentity(f,home,r,m);
   b.race_id=r.id; b.client_id=f.cid;
   b.elapsed_ms=Math.max(0,Math.round(f.ms-(r.shift||0)));
   b.seq=i; b.entered=!!f.m;
@@ -1779,7 +1900,7 @@ function finBody(r,f,i,home){
 }
 /* What still has to go, for one meet or the whole season. */
 function syncWork(only){
-  var w={drop:[], meets:[], races:[], gone:[], fins:[], bad:0, total:0};
+  var w={drop:[], meets:[], races:[], d2:[], gone:[], fins:[], bad:0, total:0};
   if(!only) w.drop=(SEASON.goneMeets||[]).slice();
   SEASON.meets.forEach(function(m){
     if(only && m!==only) return;
@@ -1792,7 +1913,11 @@ function syncWork(only){
          race. Names go up from any phone. */
       var own=ownsRace(r) && !r.lost;
       if(resting(r)) w.bad++;
-      else if(own && (!r.up || r.d)) w.races.push({m:m, r:r});
+      else {
+        if(own && (!r.up || r.d)) w.races.push({m:m, r:r});
+        /* The second distance goes up from whichever phone changed it. */
+        if(r.up && r.d2) w.d2.push({m:m, r:r});
+      }
       if(own && r.gone && r.gone.length) w.gone.push({m:m, r:r});
       (r.fin||[]).forEach(function(f,i){
         if(resting(f)){ w.bad++; return; }
@@ -1800,11 +1925,11 @@ function syncWork(only){
       });
     });
   });
-  w.total=w.drop.length+w.meets.length+w.races.length+w.gone.length+w.fins.length;
+  w.total=w.drop.length+w.meets.length+w.races.length+w.d2.length+w.gone.length+w.fins.length;
   return w;
 }
 function pendingCount(w){
-  var n=w.meets.length+w.races.length+w.fins.length;
+  var n=w.meets.length+w.races.length+w.d2.length+w.fins.length;
   w.gone.forEach(function(g){ n+=g.r.gone.length; });
   return n;
 }
@@ -1942,6 +2067,9 @@ function syncDrain(w,home){
                     function(r){ return raceBody(meetOf[r.id],r); }); },
     function(){ return seq(w.races.filter(function(x){ return x.r.up && x.r.d; }), function(x){
                   return patchRace(x.m,x.r); }); },
+    /* Before any finish: 0010 refuses a finish at a distance its race does
+       not run yet. */
+    function(){ return seq(w.d2, function(x){ return patchDist2(x.m,x.r); }); },
     function(){ return seq(Object.keys(byRace).map(function(k){ return byRace[k]; }), function(g){
                   return drainRace(g.m,g.r,g.list,home); }); }
   ], function(step){ return step(); });
@@ -1980,11 +2108,11 @@ function drainRace(m,r,list,home){
     function(){
       return insertBatch('finishes','race_id,client_id',function(f){ return f.cid; },
         fresh.map(function(x){ return x.f; }),
-        function(f){ return finBody(r,f,idx[f.cid],home); });
+        function(f){ return finBody(r,f,idx[f.cid],home,m); });
     },
     function(){
       return seq(changed, function(x){
-        return patchOne(base+'&client_id=eq.'+x.f.cid, x.f, finIdentity(x.f,home,r));
+        return patchOne(base+'&client_id=eq.'+x.f.cid, x.f, finIdentity(x.f,home,r,m));
       });
     }
   ], function(step){ return step(); });
@@ -2048,6 +2176,19 @@ function patchRace(m,r){
       return true;
     });
 }
+/* Not claim-gated. 0010 grants it to any signed-in phone, because the namer
+   is the one who hears "I ran the 800". */
+function patchDist2(m,r){
+  var snap=r.d2||0;
+  return sbFetch('/rest/v1/races?id=eq.'+r.id,{method:'PATCH', auth:true, prefer:'return=minimal',
+                 body:{second_distance_m: hasTwoDists(m) ? distMeters(m.dist2) : null}})
+    .then(function(res){
+      if(res.ok){ if((r.d2||0)===snap) delete r.d2; return true; }
+      if(syncFatal(res)) return false;
+      setAside(r);
+      return true;
+    });
+}
 function dropMeet(id){
   return sbFetch('/rest/v1/meets?id=eq.'+id,{method:'DELETE', auth:true, prefer:'return=minimal'})
     .then(function(res){
@@ -2057,6 +2198,23 @@ function dropMeet(id){
     });
 }
 
+/* Both distances follow the database on every phone, the timer's included,
+   since either phone can change them. A change this phone has not sent yet
+   wins. Before 4.19 a distance was only read when a meet first arrived, so an
+   edit on one phone never reached the other. */
+function pullDists(m,r,sr){
+  if(!m || !sr) return false;
+  var ch=false;
+  if(!r.d && !m.d && 'distance_m' in sr){
+    var l1=sr.distance_m ? distLabel(sr.distance_m) : '';
+    if(l1!==(m.dist||'') && (l1 || !sr.distance_m)){ m.dist=l1; ch=true; }
+  }
+  if(isTT(m) && !r.d2 && 'second_distance_m' in sr){
+    var l2=sr.second_distance_m ? distLabel(sr.second_distance_m) : '';
+    if(l2!==(m.dist2||'')){ if(l2) m.dist2=l2; else delete m.dist2; ch=true; }
+  }
+  return ch;
+}
 /* Server race row onto a local race. Returns whether anything changed. */
 function applyRaceRow(r,sr){
   var t0=sr.started_at ? Date.parse(sr.started_at) : null;
@@ -2094,6 +2252,7 @@ function mergePulled(meets,races,upBefore){
     var lm=findMeet(sm.id);
     if(!lm){
       lm={id:sm.id, name:sm.name, date:sm.meet_date, venue:sm.venue||'', dist:distLabel(srs[0] && srs[0].distance_m),
+          dist2:(sm.event_type==='time_trial' && srs[0] && srs[0].second_distance_m) ? distLabel(srs[0].second_distance_m) : undefined,
           test:!!sm.is_test, type:(sm.event_type==='time_trial'?'time_trial':'meet'), up:true, races:srs.map(function(sr){
             var r={id:sr.id, division:divName(sr.division), t0Wall:null, endedMs:null, fin:[], up:true, pulled:true};
             applyRaceRow(r,sr); return r;
@@ -2112,6 +2271,7 @@ function mergePulled(meets,races,upBefore){
       var lr=null; (lm.races||[]).forEach(function(r){ if(r.id===sr.id) lr=r; });
       if(!lr) return;
       lr.up=true;
+      if(pullDists(lm,lr,sr)) changed=true;
       /* a race this phone times keeps its own state; anything else follows the database */
       if((!ownsRace(lr) || lr.t0Wall==null) && !lr.d && applyRaceRow(lr,sr)) changed=true;
     });
@@ -2140,11 +2300,14 @@ function mergeFinishes(r,rows){
       f={cid:x.client_id, raw:x.elapsed_ms, ms:x.elapsed_ms+(r.shift||0), seq:x.seq, m:!!x.entered, h:x.team_id!=null, r:null, up:true};
       if(x.athlete_id) f.a=x.athlete_id;
       else if(x.runner_name){ f.n=x.runner_name; f.g=gOf(x); }
+      if(x.distance_m) f.dm=x.distance_m;
       fin.push(f); byCid[f.cid]=f; added.push(f.cid); changed=true;
       return;
     }
     if(!mine && f.raw!==x.elapsed_ms){ f.raw=x.elapsed_ms; f.ms=x.elapsed_ms+(r.shift||0); f.seq=x.seq; changed=true; }
     if(f.d) return;
+    var dm=x.distance_m||null;
+    if((f.dm||null)!==dm){ if(dm) f.dm=dm; else delete f.dm; changed=true; }
     var h=x.team_id!=null, a=x.athlete_id||null, n=a ? null : (x.runner_name||null);
     if(f.h!==h || (f.a||null)!==a || (!a && (f.n||null)!==n)){
       f.h=h;
@@ -2158,7 +2321,7 @@ function mergeFinishes(r,rows){
   return {changed:changed, added:added};
 }
 
-var RACE_COLS='id,meet_id,division,distance_m,started_at,ended_at,shift_ms,timed_by';
+var RACE_COLS='id,meet_id,division,distance_m,second_distance_m,started_at,ended_at,shift_ms,timed_by';
 function pullMeets(){
   var year=todayStr().slice(0,4), upBefore={};
   SEASON.meets.forEach(function(m){ if(m.up) upBefore[m.id]=true; });
@@ -2179,12 +2342,13 @@ function pollRace(r){
   var since = r.cursor ? new Date(r.cursor-5000).toISOString() : null;
   return Promise.all([
     sbFetch('/rest/v1/races?select='+RACE_COLS+'&id=eq.'+r.id,{auth:true}),
-    sbFetch('/rest/v1/finishes?select=client_id,elapsed_ms,seq,entered,team_id,athlete_id,runner_name,runner_division,deleted_at,updated_at'+
+    sbFetch('/rest/v1/finishes?select=client_id,elapsed_ms,seq,entered,team_id,athlete_id,runner_name,runner_division,distance_m,deleted_at,updated_at'+
             '&race_id=eq.'+r.id+'&order=updated_at.asc'+(since?'&updated_at=gte.'+encodeURIComponent(since):''),{auth:true})
   ]).then(function(rs){
     if(!rs[0].ok || !rs[1].ok) return {changed:false, added:[]};
     var raceCh=false, sr=rs[0].data && rs[0].data[0];
     if(sr && (!ownsRace(r) || r.t0Wall==null) && !r.d) raceCh=applyRaceRow(r,sr);
+    if(sr && pullDists(meetOfRace(r),r,sr)) raceCh=true;
     var out=mergeFinishes(r, rs[1].data||[]);
     r.read=true;
     lastPollOk=Date.now();
@@ -2771,7 +2935,7 @@ function meetRow(m,open,today){
      would change, and the name needs the room. */
   else tag = fin ? 'No score' : (anyRun ? 'In progress' : '');
   var raceDay=(m.date===today && !fin), p=(m.date||'').split('-'), ok=(p.length===3);
-  var meta=[m.dist, m.venue].filter(Boolean).join(' \u00b7 ');
+  var meta=[distsText(m), m.venue].filter(Boolean).join(' \u00b7 ');
   var mon = raceDay ? 'TODAY' : (ok ? MON[parseInt(p[1],10)-1].toUpperCase() : '');
   var day = ok ? String(parseInt(p[2],10)) : '';
   row.innerHTML='<span class="mday'+(raceDay?' today':'')+'"><span class="mdm">'+mon+'</span><span class="mdd">'+day+'</span></span>'+
@@ -2825,12 +2989,19 @@ function echoTap(place,kind){
   if(kind==='home') replay($('cOurs'),'bump');
 }
 
+/* On a named row in a two-distance race, which one. A named runner with none
+   was named on a phone that did not ask, and is flagged rather than guessed. */
+function distTag(f){
+  if(!twoDists() || !(nameOf(f.r)||f.n)) return '';
+  var d=f.dm ? distLabel(f.dm) : '';
+  return '<span class="dtag'+(d?'':' miss')+'">'+(d ? esc(d) : 'distance?')+'</span>';
+}
 function renderChute(){
   var c=$('chute'); c.innerHTML='';
   var stop=Math.max(0,S.fin.length-40);
   for(var i=S.fin.length-1;i>=stop;i--){
     var f=S.fin[i], nm=(nameOf(f.r)||f.n||null);
-    var who = nm ? esc(nm) : (f.h ? esc(S.team) : '&#183;');
+    var who = nm ? esc(nm)+distTag(f) : (f.h ? esc(S.team) : '&#183;');
     var cls = nm ? '' : (f.h ? ' pending' : ' anon');
     var d=document.createElement('button');
     d.className='row'+(f.h?' home':'')+(i===freshIdx?' fresh':'');
@@ -2908,7 +3079,7 @@ function renderRecon(){
     var nm=(nameOf(f.r)||f.n||null);
     if(f.h && !nm) unnamed++;
     if(f.h && nm) named++;
-    var who = nm ? esc(nm) : (f.h ? 'Tap to name' : 'Field');
+    var who = nm ? esc(nm)+distTag(f) : (f.h ? 'Tap to name' : 'Field');
     var cls = nm ? '' : (f.h ? ' pending' : ' anon');
     var b=document.createElement('button');
     b.className='rrow'+(f.h?' home':'')+(f.h&&!nm?' todo':'')+(justArrived(f)?' arrive':'');
@@ -3065,7 +3236,7 @@ function openSheet(i){
     b.setAttribute('data-name', r.name.toLowerCase());
     var p=priorOf(r), sub='';
     if(S.fin[i].r===r.id) sub='currently assigned here';
-    else if(p) sub=(p.date?fmtDate(p.date)+': ':'last race ')+fmt(p.ms,1)+', place '+p.place;
+    else if(p) sub=(p.date?fmtDate(p.date)+': ':'last race ')+fmt(p.ms,1)+(p.dl?' at '+p.dl:'')+', place '+p.place;
     b.innerHTML='<span class="on">'+esc(r.name)+'</span>'+
       '<span class="og">'+esc([ttRace()?(r.g==='M'?'Boys':'Girls'):'', gradeTag(r)].filter(Boolean).join(' \u00b7 '))+'</span>'+
       (sub?'<small>'+esc(sub)+'</small>':'');
@@ -3202,12 +3373,38 @@ function askSubmit(){
   askClose();
 }
 function closeSheet(){ sheetPlace=-1; $('sheet').classList.remove('on'); }
-function assign(id,home){
+/* Two distances in one chute: the runner first, then which they ran, as two
+   big buttons with the event's first distance on top. Picking the runner
+   already on this place asks again, which is how a wrong distance is fixed. */
+function distStep(id,home){
+  var m=curMeet(), l=$('sheetList'), place=sheetPlace, run=runnerById(id), f=S.fin[place];
+  $('findRow').style.display='none';
+  l.innerHTML='';
+  var d=document.createElement('div');
+  d.className='divider';
+  d.textContent=(run ? run.name : 'This runner')+' ran';
+  l.appendChild(d);
+  [m.dist, m.dist2].forEach(function(lab){
+    var mm=distMeters(lab), b=document.createElement('button');
+    b.className='opt home dist'+((f.r===id && f.dm===mm)?' cur':'');
+    b.textContent=lab;
+    b.addEventListener('click',function(){ sheetPlace=place; assign(id,home,mm); });
+    l.appendChild(b);
+  });
+  var back=document.createElement('button');
+  back.className='opt meta'; back.textContent='Back to the list';
+  back.addEventListener('click',function(){ openSheet(place); });
+  l.appendChild(back);
+  l.scrollTop=0;
+}
+function assign(id,home,dm){
   /* Undo can pop the place the sheet is pointing at. Everything that could
      invalidate sheetPlace closes the sheet, and this is the backstop for the
      case something does not. */
   if(sheetPlace<0 || sheetPlace>=S.fin.length){ closeSheet(); return; }
-  if(id!=null) for(var j=0;j<S.fin.length;j++) if(S.fin[j].r===id){ S.fin[j].r=null; stampRunner(S.fin[j],null); touch(S.fin[j]); }
+  if(id!=null && dm===undefined && twoDists()){ distStep(id,home); return; }
+  if(id!=null) for(var j=0;j<S.fin.length;j++) if(S.fin[j].r===id && j!==sheetPlace){ S.fin[j].r=null; stampRunner(S.fin[j],null); delete S.fin[j].dm; touch(S.fin[j]); }
+  if(id!=null && twoDists() && dm) S.fin[sheetPlace].dm=dm; else delete S.fin[sheetPlace].dm;
   S.fin[sheetPlace].r=id;
   touch(S.fin[sheetPlace]);
   stampRunner(S.fin[sheetPlace], id!=null?runnerById(id):null);
@@ -3337,14 +3534,30 @@ function ttDiv(f){
    division. Both are computed from the whole field, so filtering the list
    never changes a number on it. */
 function ttRows(){
-  var seen={F:0,M:0}, out=[];
+  /* With two distances every count runs inside the distance, since a mile
+     runner and an 800 runner are not racing each other. With one there is a
+     single bucket and this is exactly what it always was. lead is the first
+     time in the bucket, for the gap. */
+  var m=curMeet(), two=hasTwoDists(m), seen={}, out=[];
   S.fin.forEach(function(f,i){
-    var g=ttDiv(f), dp=null;
-    if(g){ seen[g]=(seen[g]||0)+1; dp=seen[g]; }
-    out.push({f:f, place:i+1, div:g, dplace:dp,
+    var g=ttDiv(f), dk=two ? (f.dm||0) : 0, dp=null;
+    var c=seen[dk]||(seen[dk]={n:0, F:0, M:0, lead:f.ms});
+    c.n++;
+    if(g){ c[g]=(c[g]||0)+1; dp=c[g]; }
+    out.push({f:f, place:c.n, oplace:i+1, dist:two?(f.dm||null):null, lead:c.lead, div:g, dplace:dp,
               name:(nameOf(f.r)||f.n||null), grade:(runnerById(f.r)||{}).grade||null, ms:f.ms});
   });
   return out;
+}
+/* Rows by distance: the first, the second, then any named without one. One
+   group, unlabelled, when the event has one distance. */
+function ttGroups(rows){
+  var m=curMeet();
+  if(!hasTwoDists(m)) return [{dist:null, label:'', rows:rows}];
+  var d1=distMeters(m.dist), d2=distMeters(m.dist2);
+  return [[d1,m.dist],[d2,m.dist2],[null,'Distance not set']].map(function(p){
+    return {dist:p[0], label:p[1], rows:rows.filter(function(r){ return r.dist===p[0]; })};
+  }).filter(function(g){ return g.rows.length || g.dist!=null; });
 }
 function renderTTResults(){
   var rows=ttRows(), rp=resPrefs();
@@ -3352,6 +3565,11 @@ function renderTTResults(){
   var boys=rows.filter(function(r){ return r.div==='M'; }).length;
   var unnamed=rows.filter(function(r){ return !r.name; }).length;
   var first=rows.length?rows[0].ms:null;
+  var groups=ttGroups(rows), two=groups.length>1 || groups[0].dist!=null;
+  /* Fastest across two distances would just name the fastest 800. */
+  var stat = two ? groups.filter(function(g){ return g.dist!=null; })
+                         .map(function(g){ return g.rows.length+' at '+g.label; }).join(', ')
+                 : (first!=null ? 'Fastest '+fmt(first,1) : '');
 
   var h='';
   h+='<div class="rhead">'+
@@ -3363,7 +3581,7 @@ function renderTTResults(){
        '<div class="rside">'+
          '<div class="req num">'+(rows.length?'ran':'nobody yet')+
            (girls||boys ? '<span class="disp">('+[girls?girls+' girls':'', boys?boys+' boys':''].filter(Boolean).join(', ')+')</span>' : '')+'</div>'+
-         (first!=null?'<div class="rstat num">Fastest '+fmt(first,1)+'</div>':'')+
+         (stat?'<div class="rstat num">'+esc(stat)+'</div>':'')+
        '</div>'+
      '</div></div>';
 
@@ -3372,7 +3590,9 @@ function renderTTResults(){
      '<button type="button" id="ttGirls" aria-pressed="'+(ttView==='F')+'">Girls</button>'+
      '<button type="button" id="ttBoys" aria-pressed="'+(ttView==='M')+'">Boys</button></div>';
 
-  var show=rows.filter(function(r){ return ttView==='all' || r.div===ttView; });
+  groups.forEach(function(gp){
+  var show=gp.rows.filter(function(r){ return ttView==='all' || r.div===ttView; });
+  if(two && show.length) h+='<p class="hsect rsect">'+esc(gp.label)+'</p>';
   show.forEach(function(r){
     var tags=[];
     /* On All the big number is the overall place, so the second line carries
@@ -3382,12 +3602,17 @@ function renderTTResults(){
     else tags.push(r.place+' overall');
     if(rp.grade && r.grade) tags.push(r.grade+'th');
     h+=resRow(' home', (ttView==='all'?r.place:(r.dplace||r.place)),
-              r.name?esc(r.name):'needs a name', r.name?'':' pending', tags, r.ms, rp);
+              r.name?esc(r.name):'needs a name', r.name?'':' pending', tags, r.ms, rp, r.lead);
+  });
   });
 
   $('resultBody').innerHTML=h;
-  resNote=['A time trial is not scored. Everyone ran together, and places are the raw order they crossed.',
-           'Every row carries both places: overall across the field, and within girls or boys.'];
+  resNote = two
+    ? ['A time trial is not scored. Everyone started together and ran one of two distances.',
+       'Places count within each distance, since a mile runner and an 800 runner are not racing each other. Every row carries both: overall in its distance, and within girls or boys.',
+       'Gap to first is to the winner of that distance.']
+    : ['A time trial is not scored. Everyone ran together, and places are the raw order they crossed.',
+       'Every row carries both places: overall across the field, and within girls or boys.'];
   if(unnamed) resNote.push('<b>'+unnamed+(unnamed===1?' place still needs':' places still need')+' a name.</b> Times are already recorded; naming only decides whose they are.');
   $('ttInfo').addEventListener('click',function(){ infoOpen('About this time trial',resNote); });
   var scope = ttView==='all' ? 'All' : (ttView==='F' ? 'Girls' : 'Boys');
@@ -3403,8 +3628,8 @@ function renderTTResults(){
 
 /* One Results row. The name and the time each get a second line only when
    there is something to put on it. who arrives already escaped. */
-function resRow(extra,place,who,cls,tags,ms,rp){
-  var gap = rp.gap ? gapToFirst(ms) : '';
+function resRow(extra,place,who,cls,tags,ms,rp,lead){
+  var gap = rp.gap ? gapToFirst(ms,lead) : '';
   return '<div class="rrow'+extra+'"><span class="pl num">'+place+'</span>'+
     '<span class="who'+cls+'"><span class="wn">'+who+'</span>'+
       (tags.length?'<small class="wt">'+tags.join(' \u00b7 ')+'</small>':'')+'</span>'+
@@ -3413,8 +3638,8 @@ function resRow(extra,place,who,cls,tags,ms,rp){
 /* How far behind the race winner, place 1 across the whole field, to the
    tenth. Blank for the winner and for anyone tied with them. The same number on
    Team and All, since the winner does not change with the view. */
-function gapToFirst(ms){
-  var w=S && S.fin.length ? S.fin[0].ms : null;
+function gapToFirst(ms,lead){
+  var w = lead!=null ? lead : (S && S.fin.length ? S.fin[0].ms : null);
   if(w==null || ms==null || ms<=w) return '';
   return '+'+fmt(ms-w,1);
 }
@@ -3484,17 +3709,24 @@ function buildCsv(full){
    places ride on every row, so a copy read on its own still says where a
    runner came overall and within girls or boys. */
 function ttScope(){ return ttView==='all' ? 'All' : (ttView==='F' ? 'Girls' : 'Boys'); }
+/* Grouped by distance when there are two, so both copies read in the same
+   order as the screen. */
 function ttShown(){
-  return ttRows().filter(function(r){ return ttView==='all' || r.div===ttView; });
+  var out=[];
+  ttGroups(ttRows()).forEach(function(g){
+    g.rows.forEach(function(r){ if(ttView==='all' || r.div===ttView) out.push(r); });
+  });
+  return out;
 }
 function buildTTCsv(){
-  var rows=ttRows(), shown=ttShown();
+  var rows=ttRows(), shown=ttShown(), two=twoDists();
   var out='date,event,event_type,distance,scope,runners\n'+
     csvCell(S.date||'')+','+csvCell(S.name)+',time trial,'+csvCell(meetDist())+','+
     csvCell(ttScope())+','+rows.length+'\n\n'+
-    'place,division_place,time,runner,division,grade\n';
+    (two?'distance,':'')+'place,division_place,time,runner,division,grade\n';
   shown.forEach(function(r){
-    out+=r.place+','+(r.dplace||'')+','+fmt(r.ms,3)+(r.f.m?'*':'')+','+
+    out+=(two?csvCell(r.dist?distLabel(r.dist):'')+',':'')+
+         r.place+','+(r.dplace||'')+','+fmt(r.ms,3)+(r.f.m?'*':'')+','+
          csvCell(r.name||'')+','+(r.div==='M'?'Boys':(r.div==='F'?'Girls':''))+','+
          (r.grade?r.grade:'')+'\n';
   });
@@ -3510,7 +3742,9 @@ function buildTTChat(){
   out+=fmtDate(S.date,true)+(st?', '+st:'')+'\n\n';
   out+=S.team+(ttView==='all' ? (girls||boys ? ', '+[girls?girls+' girls':'', boys?boys+' boys':''].filter(Boolean).join(', ') : '')
                               : ', '+ttScope())+'\n';
+  var two=twoDists(), last;
   shown.forEach(function(r){
+    if(two && r.dist!==last){ out+='\n'+(r.dist ? distLabel(r.dist) : 'Distance not set')+'\n'; last=r.dist; }
     var place = ttView==='all' ? r.place : (r.dplace||r.place);
     var tail = ttView==='all' ? (r.div&&r.dplace ? ' ('+(r.div==='M'?'B':'G')+' '+r.dplace+')' : '')
                               : ' ('+r.place+' overall)';
@@ -3794,6 +4028,8 @@ $('findIn').addEventListener('input',applyFind);
 $('nextBand').addEventListener('click',function(){ var i=nextUnnamed(); if(i!=null) openSheet(i); });
 $('mtypeMeet').addEventListener('click',function(){ if(editingMeet) return; newType='meet'; renderMeetType(null); });
 $('mtypeTT').addEventListener('click',function(){ if(editingMeet) return; newType='time_trial'; renderMeetType(null); });
+$('mdist').addEventListener('change',renderDist2);
+$('mtwo').addEventListener('change',renderDist2);
 $('gun').addEventListener('click',startRace);
 
 $('tap').addEventListener('click',function(){ record(null,false); });
