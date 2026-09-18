@@ -73,6 +73,12 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
    the full screen there. Scoped to the installed app, so a Safari tab keeps
    the dynamic height its toolbars need. */
 @media (display-mode: standalone){ .app{height:100lvh} }
+/* 4.21 fixed the app but left html and body at 100%, which iOS reads as the
+   short 797. The app then overflowed the page by the top inset, the page
+   itself could scroll, and a scrolled screen slid its bar up under the
+   status bar. The page is the full screen too, and never scrolls itself:
+   every screen scrolls inside its own .scroll. */
+@media (display-mode: standalone){ html,body{height:100lvh;overflow:hidden} }
 
 #splash{
   position:fixed;inset:0;z-index:9999;background:#0C2340;
@@ -171,7 +177,9 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
 .mday .mdd{font-family:'Saira Condensed','Saira',system-ui,sans-serif;font-size:24px;font-weight:700;line-height:1;color:var(--ink)}
 .mday.today .mdm,.mday.today .mdd{color:#fff}
 .mday .mkind{font-size:7.5px;font-weight:700;letter-spacing:.04em;color:var(--ink-soft);margin-top:3px;line-height:1;text-align:center}
-.mday .mkind.tt{color:var(--red)}
+/* --red is the brand red and too dark to read at this size on navy. --tape
+   is the coral the scored pills and place numbers already use. */
+.mday .mkind.tt{color:var(--tape)}
 /* No nowrap: if a fallback font runs wider than the tile, TIME TRIAL wraps
    to two lines rather than spilling out of it. */
 /* red on a red tile would vanish */
@@ -912,7 +920,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.21';
+var BUILD='v4.22';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -2759,6 +2767,8 @@ function screenCheck(){
   var app=document.querySelector('.app');
   out.app=app ? app.offsetHeight : 0;
   out.screen=screen.height; out.inner=window.innerHeight;
+  var se=document.scrollingElement||document.documentElement;
+  out.over=Math.max(0,se.scrollHeight-se.clientHeight); out.scrolled=Math.round(window.scrollY||se.scrollTop||0);
   out.installed=!!((window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone===true);
   return out;
 }
@@ -2776,13 +2786,14 @@ function renderAbout(){
     row('Stored locally', Math.round(bytes/1024)+' KB')+
     (function(){
       var c=screenCheck();
-      return '<p class="hint" style="margin-top:16px">Screen check, temporary. Installed, App height should equal Screen.</p>'+
+      return '<p class="hint" style="margin-top:16px">Screen check, temporary. Installed, App height should equal Screen, and Page overflow should be 0, 0.</p>'+
         row('Installed', c.installed?'Yes':'No')+
         row('Screen', String(c.screen))+
         row('App height', String(c.app))+
         row('Window', String(c.inner))+
         row('100dvh, 100lvh', c.dvh+', '+c.lvh)+
-        row('Insets, top and bottom', c.top+', '+c.bottom);
+        row('Insets, top and bottom', c.top+', '+c.bottom)+
+        row('Page overflow, scrolled', c.over+', '+c.scrolled);
     })()+
     '<p class="hint" style="margin-top:16px">To force a fresh copy on an iPhone, delete the home screen icon and add it again. A reload alone will not do it.</p>';
 }
