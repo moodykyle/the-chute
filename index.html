@@ -3031,6 +3031,24 @@ function dnfRunner(d){
   }
   return null;
 }
+/* The same rows as Results, at the end of Edit race's list on both tabs, since
+   Edit race is the screen a coach is holding when they hear. Tap to remove. */
+function reconDnf(c){
+  var list=dnfList(currentRace());
+  if(!list.length) return;
+  c.insertAdjacentHTML('beforeend','<p class="hsect rsect">Did not finish or start</p>');
+  list.forEach(function(d){
+    var r=dnfRunner(d), tags=[dnfLabel(d.s)];
+    if(r && r.grade) tags.push(r.grade+'th');
+    var b=document.createElement('button');
+    b.className='rrow home dnf';
+    b.innerHTML='<span class="pl num">'+esc(d.s)+'</span>'+
+      '<span class="who"><span class="wn">'+esc(d.n||'Runner')+'</span><small class="wt">'+tags.join(' \u00b7 ')+'</small></span>'+
+      '<span class="tm num"></span>';
+    b.addEventListener('click',function(){ dnfRemoveAsk(d.cid); });
+    c.appendChild(b);
+  });
+}
 function dnfRedraw(){
   if(onScreen('results')) renderResults();
   if(onScreen('recon')) renderRecon();
@@ -3806,6 +3824,7 @@ function renderRecon(){
   }
   if(!S.fin.length){
     c.insertAdjacentHTML('beforeend','<div class="note">'+(remote?'Waiting for the first finisher.':'No finishers recorded.')+'</div>');
+    reconDnf(c);
     return;
   }
   var shown=0, unnamed=0, named=0;
@@ -3827,8 +3846,10 @@ function renderRecon(){
   });
   if(!shown){
     c.insertAdjacentHTML('beforeend','<div class="note">No '+esc(S.team)+' finishers '+(remote?'yet.':'recorded.')+'</div>');
+    reconDnf(c);
     return;
   }
+  reconDnf(c);
   var n=document.createElement('div');
   n.className='note';
   n.textContent = remote
