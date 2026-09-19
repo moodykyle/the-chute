@@ -294,6 +294,10 @@ select{min-height:47px}
   display:inline-flex;align-items:center;justify-content:center;padding:0;
 }
 .rwhen{margin-top:2px;font-size:13px;color:var(--ink-soft)}
+/* 4.34: coaches at the finish */
+.lblrow{display:flex;align-items:center;gap:8px}
+.lblrow label{margin:0}
+#nameWait{display:block;margin:18px auto 0}
 .askbody{font-size:15px;color:var(--ink-soft);line-height:1.5}
 .askbody p+p{margin-top:13px}
 .askbody b{color:var(--ink);font-weight:600}
@@ -736,6 +740,11 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
       <div class="hint" id="mdist2Hint"></div>
     </div>
     <div class="field">
+      <div class="lblrow"><label for="mcoach">Coaches at the finish</label>
+        <button type="button" class="info" id="coachInfo" aria-label="About coaches at the finish">i</button></div>
+      <select id="mcoach"><option value="one">One</option><option value="multi">Two or more</option></select>
+    </div>
+    <div class="field">
       <label for="mvenue">Venue</label>
       <input type="text" id="mvenue" placeholder="Murphey Candler Park" autocomplete="off">
     </div>
@@ -898,8 +907,9 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
   <div class="bar"><button class="linkbtn" id="backSetup">Race setup</button><span class="count" id="armedCount"></span></div>
   <div class="pad">
     <div class="armed-name" id="armedName"></div>
-    <div class="armed-sub">Hold the phone in your dominant hand and put your thumb on the button.</div>
+    <div class="armed-sub" id="armedSub">Hold the phone in your dominant hand and put your thumb on the button.</div>
     <button class="gun" id="gun">Start</button>
+    <button class="linkbtn" id="nameWait">Name runners</button>
   </div>
 </section>
 
@@ -1000,7 +1010,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.33';
+var BUILD='v4.34';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1210,7 +1220,8 @@ var HOW=[
   'Whichever phone taps <b>Start</b> owns that race: the taps and the clock come only from it. Any number of other phones can open the same race and name runners as places come in, and names can be entered from the timer\u2019s phone too.',
   'While a race is running, a naming phone shows how current it is, like <b>Updated 4s ago</b>. If it falls behind, names still save and catch up when the signal returns.',
   'Every phone needs the roster before race day, or it has no names to pick from. If it wasn\u2019t loaded when you first signed in, go to <b>Settings &gt; Roster &gt; Load roster from database</b>. A phone without one also gets a reminder with a <b>Load roster</b> button when it opens a race to name.',
-  'A meet\u2019s girls and boys races each have their own clock, so two coaches can time overlapping races, one phone each.']},
+  'A meet\u2019s girls and boys races each have their own clock, so two coaches can time overlapping races, one phone each.',
+  'Set <b>Coaches at the finish</b> to <b>Two or more</b> on the event and each phone picks its job before the gun: <b>Start the clock</b> or <b>Name runners</b>. The timer gets one big <b>Finisher</b> button for everyone, and the namer\u2019s names mark our runners. Edit race opens on <b>All</b>, since places are unnamed until the namer gets to them.']},
  {t:'Meets and scoring', p:[
   'A team score is the sum of the places of its first five finishers. Low score wins. The sixth and seventh are <b>displacers</b>: they don\u2019t score, but they push other teams\u2019 runners back a place.',
   'Results show the score, the five places that make it, and the pack: the average time of the five, and the spread from first to fifth.',
@@ -1371,7 +1382,9 @@ function show(id){
   }
   if(id==='results'){ renderResults(); pullDnfSoon(); }
   renderLive();
+  if(id!=='armed') stopWait();
   if(id==='armed'){
+    renderArmed();
     $('armedName').textContent=S.name;
     $('armedCount').textContent=fmtDate(S.date)+' \u00b7 '+
       S.roster.filter(inDivision).length+(ttRace()?' runners, girls and boys':' runners');
@@ -1883,6 +1896,8 @@ function editMeet(id){
   /* Never inherited from the last meet, unlike distance. One test race the
      night before must not turn the real meet into a test. */
   $('mtest').checked=!!(m && m.test);
+  /* Never inherited either: one coach is how every event starts. */
+  $('mcoach').value=(m && m.coaches==='multi') ? 'multi' : 'one';
   /* A real meet in the database cannot become a test, so it is not offered. */
   var locked=!!(m && !m.test && meetUploaded(m));
   $('mtestRow').style.display = locked ? 'none' : '';
@@ -1901,10 +1916,12 @@ function commitMeet(){
   var ds2=($('mdist2Row').style.display==='none' || !$('mtwo').checked) ? '' : $('mdist2').value;
   if(!ds || ds2===ds) ds2='';
   var tst=$('mtest').checked;
+  var cm=$('mcoach').value==='multi' ? 'multi' : 'one';
   if(editingMeet){
     var m=findMeet(editingMeet);
     if(m){
-      if(m.name!==nm || m.date!==dt || m.venue!==vn) touch(m);
+      if(m.name!==nm || m.date!==dt || m.venue!==vn || (m.coaches||'one')!==cm) touch(m);
+      m.coaches=cm;
       if(m.dist!==ds) m.races.forEach(touch);
       m.name=nm; m.date=dt; m.venue=vn; m.dist=ds;
       setDist2(m,ds2);
@@ -1913,6 +1930,7 @@ function commitMeet(){
     }
   } else {
     var nm2=addEvent(nm,dt,vn,ds,tst,tt?'time_trial':'meet');
+    nm2.coaches=cm; saveSeason();
     /* Straight onto the event: the race insert carries it, so nothing to patch. */
     if(tt && ds2){ nm2.dist2=ds2; saveSeason(); }
     openMeet=nm2.id; openByHand=true; revealOpen=true;
@@ -1932,6 +1950,13 @@ function resetViews(){
 function openRace(mid,rid){
   var f=findRace(mid,rid); if(!f) return;
   resetViews();
+  /* With a namer, every tap starts as a field finisher, so Team is empty until
+     names go on. Edit race opens where the places are. */
+  if(coachMode(f.meet)==='multi'){
+    reconAll=true;
+    $('segOurs').setAttribute('aria-pressed','false');
+    $('segAll').setAttribute('aria-pressed','true');
+  }
   var r=f.race;
   S={
     meetId:mid, raceId:rid,
@@ -2167,8 +2192,9 @@ function distMeters(s){
   return null;
 }
 function isoAt(ms){ return ms==null ? null : new Date(ms).toISOString(); }
-function meetBody(m){ return {id:m.id, name:m.name, meet_date:m.date, venue:m.venue||null, is_test:!!m.test, event_type:eventType(m)}; }
-function meetPatch(m){ return {name:m.name, meet_date:m.date, venue:m.venue||null, is_test:!!m.test}; }
+function coachMode(m){ return (m && m.coaches==='multi') ? 'multi' : 'one'; }
+function meetBody(m){ return {id:m.id, name:m.name, meet_date:m.date, venue:m.venue||null, is_test:!!m.test, event_type:eventType(m), coach_mode:coachMode(m)}; }
+function meetPatch(m){ return {name:m.name, meet_date:m.date, venue:m.venue||null, is_test:!!m.test, coach_mode:coachMode(m)}; }
 function racePatch(m,r){
   return {
     started_at:isoAt(r.t0Wall),
@@ -2596,7 +2622,7 @@ function mergePulled(meets,races,upBefore){
     if(!lm){
       lm={id:sm.id, name:sm.name, date:sm.meet_date, venue:sm.venue||'', dist:distLabel(srs[0] && srs[0].distance_m),
           dist2:(sm.event_type==='time_trial' && srs[0] && srs[0].second_distance_m) ? distLabel(srs[0].second_distance_m) : undefined,
-          test:!!sm.is_test, type:(sm.event_type==='time_trial'?'time_trial':'meet'), up:true, races:srs.map(function(sr){
+          test:!!sm.is_test, type:(sm.event_type==='time_trial'?'time_trial':'meet'), coaches:(sm.coach_mode==='multi'?'multi':'one'), up:true, races:srs.map(function(sr){
             var r={id:sr.id, division:divName(sr.division), t0Wall:null, endedMs:null, fin:[], up:true, pulled:true};
             applyRaceRow(r,sr); return r;
           })};
@@ -2604,8 +2630,10 @@ function mergePulled(meets,races,upBefore){
       return;
     }
     lm.up=true;
-    if(!lm.d && (lm.name!==sm.name || lm.date!==sm.meet_date || (lm.venue||'')!==(sm.venue||'') || !!lm.test!==!!sm.is_test)){
-      lm.name=sm.name; lm.date=sm.meet_date; lm.venue=sm.venue||''; lm.test=!!sm.is_test; changed=true;
+    if(!lm.d && (lm.name!==sm.name || lm.date!==sm.meet_date || (lm.venue||'')!==(sm.venue||'') || !!lm.test!==!!sm.is_test ||
+                 coachMode(lm)!==(sm.coach_mode==='multi'?'multi':'one'))){
+      lm.name=sm.name; lm.date=sm.meet_date; lm.venue=sm.venue||''; lm.test=!!sm.is_test;
+      lm.coaches=(sm.coach_mode==='multi'?'multi':'one'); changed=true;
     }
     /* The type never changes in the database, so this only fills it in on an
        event pulled before 4.15 knew about types. */
@@ -2668,7 +2696,7 @@ var RACE_COLS='id,meet_id,division,distance_m,second_distance_m,started_at,ended
 function pullMeets(){
   var year=todayStr().slice(0,4), upBefore={};
   SEASON.meets.forEach(function(m){ if(m.up) upBefore[m.id]=true; });
-  return sbFetch('/rest/v1/meets?select=id,name,meet_date,venue,is_test,event_type&meet_date=gte.'+year+'-01-01',{auth:true})
+  return sbFetch('/rest/v1/meets?select=id,name,meet_date,venue,is_test,event_type,coach_mode&meet_date=gte.'+year+'-01-01',{auth:true})
     .then(function(res){
       if(!res.ok) return false;
       var meets=res.data||[];
@@ -3698,11 +3726,50 @@ function renderCount(){
 }
 /* A time trial is our runners only. The Field button would be a way to lose a
    runner's time, and the team count would restate the count beside it. */
+/* Two coaches at the finish: the timer taps one button for everyone and the
+   namer's names mark ours, since naming a place makes it ours (assign). So
+   the one button records a field finisher, not a team one. A time trial's
+   one button stays team: every runner in it is ours. */
+function multiCoach(){ return coachMode(meetOfRace(currentRace()))==='multi'; }
+function oneButton(){ return ttRace() || multiCoach(); }
+/* Before the gun, with two coaches, each phone says which job it has. Start the
+   clock is today's Start. Name runners waits here, reading the race every few
+   seconds, and moves to naming by itself once the timer's start is in the
+   database. One coach: no question, just Start. */
+var armedWait=false, waitTimer=null, WAIT_MS=3000;
+function renderArmed(){
+  var multi=multiCoach(), w=multi && armedWait;
+  $('gun').style.display = w ? 'none' : '';
+  $('gun').textContent = multi ? 'Start the clock' : 'Start';
+  $('nameWait').style.display = multi ? '' : 'none';
+  $('nameWait').textContent = w ? 'Time it on this phone instead' : 'Name runners';
+  $('armedSub').textContent = !w ? 'Hold the phone in your dominant hand and put your thumb on the button.'
+    : signedIn() ? 'Waiting for the timer to start the clock. This switches to naming by itself.'
+                 : 'Sign in to follow the timer\u2019s phone. Settings > Account.';
+}
+function stopWait(){ armedWait=false; if(waitTimer){ clearInterval(waitTimer); waitTimer=null; } }
+function waitTick(){
+  var r=currentRace();
+  if(!armedWait || !r || !onScreen('armed')){ stopWait(); return; }
+  if(!signedIn() || navigator.onLine===false || !r.up) return;
+  ensureFresh().then(function(ok){ return ok ? pollRace(r) : null; }).then(function(out){
+    if(!armedWait || r.t0Wall==null) return;
+    if(out && out.changed) saveSeason();
+    stopWait();
+    openRace(S.meetId,S.raceId);
+  });
+}
+function startWait(){
+  armedWait=true; renderArmed();
+  if(waitTimer) clearInterval(waitTimer);
+  waitTimer=setInterval(waitTick,WAIT_MS);
+  waitTick();
+}
 function renderDeck(){
-  var tt=ttRace();
-  $('tap').style.display = tt ? 'none' : '';
-  $('tapHome').style.marginBottom = tt ? '0' : '';
-  $('tapHome').textContent = tt ? 'Finisher' : (S.team+' Finisher');
+  var tt=ttRace(), one=oneButton();
+  $('tap').style.display = one ? 'none' : '';
+  $('tapHome').style.marginBottom = one ? '0' : '';
+  $('tapHome').textContent = one ? 'Finisher' : (S.team+' Finisher');
   $('ttTeam').style.display = tt ? 'none' : '';
 }
 /* Restarting a CSS animation needs the class off, a reflow read, then the class
@@ -4826,9 +4893,16 @@ $('mtypeTT').addEventListener('click',function(){ if(editingMeet) return; newTyp
 $('mdist').addEventListener('change',renderDist2);
 $('mtwo').addEventListener('change',renderDist2);
 $('gun').addEventListener('click',startRace);
+$('nameWait').addEventListener('click',function(){ if(armedWait){ stopWait(); renderArmed(); } else startWait(); });
+$('coachInfo').addEventListener('click',function(){
+  infoOpen('Coaches at the finish',[
+    '<b>One:</b> the timer marks our runners as they cross, with a team button and a field button, then names them.',
+    '<b>Two or more:</b> the timer taps one button for every finisher, and a second coach names ours on another phone as places come in. Naming a place is what makes it ours, so that job moves off the timer.',
+    'Each phone picks its job before the gun: <b>Start the clock</b> or <b>Name runners</b>.']);
+});
 
 $('tap').addEventListener('click',function(){ record(null,false); });
-$('tapHome').addEventListener('click',function(){ record(null,true); });
+$('tapHome').addEventListener('click',function(){ record(null, ttRace() || !multiCoach()); });
 $('undo').addEventListener('click',undo);
 $('stop').addEventListener('click',function(){
   armTwoTap(this,'Again to end',function(){ endRace(); show('recon'); });
