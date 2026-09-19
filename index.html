@@ -181,6 +181,9 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
 .rbtn{background:var(--red);color:#fff;border:none;border-radius:7px;
   padding:10px 16px;font-size:14px;font-weight:600;min-height:42px}
 .rbtn.ghost{background:transparent;color:var(--ink);border:1px solid var(--rule);font-weight:500}
+/* 4.35: Name runners beside Start clock. An action, like Start clock, not a
+   look-back like Results, so it keeps the red and loses only the fill. */
+.rbtn.outline{background:transparent;color:var(--ink);border:1px solid var(--red)}
 /* Section headers in the wordmark's face, in the soft ink so the meet names
    stay the brightest thing on the list, with a red tick. The gap above sets
    the groups apart; the first header sits right under the bar. */
@@ -3668,7 +3671,7 @@ function raceRow(m,r){
     var two=document.createElement('div'); two.className='rbtns';
     var tb=document.createElement('button'); tb.className='rbtn'; tb.textContent='Start clock';
     tb.addEventListener('click',function(){ openRace(m.id,r.id); });
-    var nb=document.createElement('button'); nb.className='rbtn ghost'; nb.textContent='Name runners';
+    var nb=document.createElement('button'); nb.className='rbtn outline'; nb.textContent='Name runners';
     nb.addEventListener('click',function(){ openRace(m.id,r.id); startWait(); });
     two.appendChild(tb); two.appendChild(nb);
     row.appendChild(two);
