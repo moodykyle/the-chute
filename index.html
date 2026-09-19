@@ -468,6 +468,10 @@ input.code{
   background:var(--red);color:#fff;font-size:21px;font-weight:600;letter-spacing:-.01em;
 }
 .tap-home:active{filter:brightness(1.3)}
+/* 4.36: one button (two coaches, or a time trial) takes the room both used,
+   the two heights and the gap, so there is more to hit and the chute above
+   keeps the same height. */
+.deck.solo .tap-home{height:calc(2 * clamp(88px,14vh,118px) + 10px)}
 .row .who.pending,.rrow .who.pending{font-weight:600;font-style:italic}
 .deck-row{display:flex;align-items:center;justify-content:space-between;
   gap:8px;flex-wrap:wrap;margin-top:9px}
@@ -1014,7 +1018,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.35';
+var BUILD='v4.36';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -3784,6 +3788,7 @@ function renderDeck(){
   var tt=ttRace(), one=oneButton();
   $('tap').style.display = one ? 'none' : '';
   $('tapHome').style.marginBottom = one ? '0' : '';
+  $('deck').classList.toggle('solo', one);
   $('tapHome').textContent = one ? 'Finisher' : (S.team+' Finisher');
   $('ttTeam').style.display = tt ? 'none' : '';
 }
