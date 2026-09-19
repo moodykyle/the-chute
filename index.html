@@ -177,6 +177,7 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
 .rrace .st{font-size:12px;color:var(--ink-soft);margin-top:1px;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rrace .rbtn{flex:0 0 auto}
+.rrace .rbtns{flex:0 0 auto;display:flex;gap:8px;min-width:0}
 .rbtn{background:var(--red);color:#fff;border:none;border-radius:7px;
   padding:10px 16px;font-size:14px;font-weight:600;min-height:42px}
 .rbtn.ghost{background:transparent;color:var(--ink);border:1px solid var(--rule);font-weight:500}
@@ -909,7 +910,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
     <div class="armed-name" id="armedName"></div>
     <div class="armed-sub" id="armedSub">Hold the phone in your dominant hand and put your thumb on the button.</div>
     <button class="gun" id="gun">Start</button>
-    <button class="linkbtn" id="nameWait">Name runners</button>
+    <button class="linkbtn" id="nameWait">Time it on this phone instead</button>
   </div>
 </section>
 
@@ -1010,7 +1011,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.34';
+var BUILD='v4.35';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1221,7 +1222,7 @@ var HOW=[
   'While a race is running, a naming phone shows how current it is, like <b>Updated 4s ago</b>. If it falls behind, names still save and catch up when the signal returns.',
   'Every phone needs the roster before race day, or it has no names to pick from. If it wasn\u2019t loaded when you first signed in, go to <b>Settings &gt; Roster &gt; Load roster from database</b>. A phone without one also gets a reminder with a <b>Load roster</b> button when it opens a race to name.',
   'A meet\u2019s girls and boys races each have their own clock, so two coaches can time overlapping races, one phone each.',
-  'Set <b>Coaches at the finish</b> to <b>Two or more</b> on the event and each phone picks its job before the gun: <b>Start the clock</b> or <b>Name runners</b>. The timer gets one big <b>Finisher</b> button for everyone, and the namer\u2019s names mark our runners. Edit race opens on <b>All</b>, since places are unnamed until the namer gets to them.']},
+  'Set <b>Coaches at the finish</b> to <b>Two or more</b> on the event and each phone picks its job on the event card before the gun: <b>Start clock</b> or <b>Name runners</b>. The timer gets one big <b>Finisher</b> button for everyone, and the namer\u2019s names mark our runners. Edit race opens on <b>All</b>, since places are unnamed until the namer gets to them.']},
  {t:'Meets and scoring', p:[
   'A team score is the sum of the places of its first five finishers. Low score wins. The sixth and seventh are <b>displacers</b>: they don\u2019t score, but they push other teams\u2019 runners back a place.',
   'Results show the score, the five places that make it, and the pack: the average time of the five, and the spread from first to fifth.',
@@ -3660,6 +3661,19 @@ function raceRow(m,r){
   }
   if(r.lost) sub='Started on another phone first \u00b7 these taps stay here';
   row.innerHTML='<div><div class="lbl">'+esc(r.division==='Mixed'?'Everyone':r.division)+'</div><div class="st">'+esc(sub)+'</div></div>';
+  /* Two coaches: each phone picks its job here, before the gun, so a namer
+     never passes a Start button. Once the clock starts, the other phones
+     show Name runners, as above. */
+  if(st==='new' && coachMode(m)==='multi'){
+    var two=document.createElement('div'); two.className='rbtns';
+    var tb=document.createElement('button'); tb.className='rbtn'; tb.textContent='Start clock';
+    tb.addEventListener('click',function(){ openRace(m.id,r.id); });
+    var nb=document.createElement('button'); nb.className='rbtn ghost'; nb.textContent='Name runners';
+    nb.addEventListener('click',function(){ openRace(m.id,r.id); startWait(); });
+    two.appendChild(tb); two.appendChild(nb);
+    row.appendChild(two);
+    return row;
+  }
   var btn=document.createElement('button');
   btn.className='rbtn'+(ghost?' ghost':'');
   btn.textContent=label;
@@ -3732,19 +3746,17 @@ function renderCount(){
    one button stays team: every runner in it is ours. */
 function multiCoach(){ return coachMode(meetOfRace(currentRace()))==='multi'; }
 function oneButton(){ return ttRace() || multiCoach(); }
-/* Before the gun, with two coaches, each phone says which job it has. Start the
-   clock is today's Start. Name runners waits here, reading the race every few
-   seconds, and moves to naming by itself once the timer's start is in the
-   database. One coach: no question, just Start. */
+/* The screen before the gun. Start is the same for one coach or two. With
+   two, a phone that picked Name runners on the event card waits here instead,
+   reading the race every few seconds, and moves to naming by itself once the
+   timer's start is in the database. */
 var armedWait=false, waitTimer=null, WAIT_MS=3000;
 function renderArmed(){
-  var multi=multiCoach(), w=multi && armedWait;
+  var w=armedWait;
   $('gun').style.display = w ? 'none' : '';
-  $('gun').textContent = multi ? 'Start the clock' : 'Start';
-  $('nameWait').style.display = multi ? '' : 'none';
-  $('nameWait').textContent = w ? 'Time it on this phone instead' : 'Name runners';
+  $('nameWait').style.display = w ? '' : 'none';
   $('armedSub').textContent = !w ? 'Hold the phone in your dominant hand and put your thumb on the button.'
-    : signedIn() ? 'Waiting for the timer to start the clock. This switches to naming by itself.'
+    : signedIn() ? 'Waiting for the race to start. This switches to naming by itself.'
                  : 'Sign in to follow the timer\u2019s phone. Settings > Account.';
 }
 function stopWait(){ armedWait=false; if(waitTimer){ clearInterval(waitTimer); waitTimer=null; } }
@@ -4893,12 +4905,12 @@ $('mtypeTT').addEventListener('click',function(){ if(editingMeet) return; newTyp
 $('mdist').addEventListener('change',renderDist2);
 $('mtwo').addEventListener('change',renderDist2);
 $('gun').addEventListener('click',startRace);
-$('nameWait').addEventListener('click',function(){ if(armedWait){ stopWait(); renderArmed(); } else startWait(); });
+$('nameWait').addEventListener('click',function(){ stopWait(); renderArmed(); });
 $('coachInfo').addEventListener('click',function(){
   infoOpen('Coaches at the finish',[
     '<b>One:</b> the timer marks our runners as they cross, with a team button and a field button, then names them.',
     '<b>Two or more:</b> the timer taps one button for every finisher, and a second coach names ours on another phone as places come in. Naming a place is what makes it ours, so that job moves off the timer.',
-    'Each phone picks its job before the gun: <b>Start the clock</b> or <b>Name runners</b>.']);
+    'Each phone picks its job on the event card before the gun: <b>Start clock</b> or <b>Name runners</b>.']);
 });
 
 $('tap').addEventListener('click',function(){ record(null,false); });
