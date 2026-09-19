@@ -486,10 +486,9 @@ input.code{
 .xrow.gone .xn{color:var(--ink-soft);text-decoration:line-through}
 .xrow .xg{color:var(--ink-soft);font-size:13px;margin-left:6px}
 /* 4.32: runners who did not finish or start, under the placed ones */
-.rrow.dnf{cursor:pointer}
+button.rrow.dnf{cursor:pointer}
 .rrow.dnf .pl{font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--ink-soft)}
 .rrow.dnf .tm{color:var(--ink-soft)}
-.dnfadd{display:block;margin:16px auto 20px}
 .dnfpick{display:flex;flex-direction:column;margin-top:6px}
 
 /* ---------- reconcile / results ---------- */
@@ -1218,7 +1217,7 @@ var HOW=[
   'Results show the score, the five places that make it, and the pack: the average time of the five, and the spread from first to fifth.',
   'The score is built from every place in the race, not only ours, which is why every runner has to be tapped. It won\u2019t always match the official score: official results drop runners from teams with fewer than five finishers and count every team\u2019s displacers, which a phone at the finish line can\u2019t know.',
   'The <b>Team</b> tab and <b>All</b> tab above the list of finishers switch between our runners and every place in the race.',
-  'A runner who started and dropped out, or was expected and never started, can be listed with <b>Didn\u2019t finish</b> in Edit race, on any phone, or <b>Add a runner who didn\u2019t finish</b> at the bottom of Results. They show under the placed runners as DNF or DNS and never change the score, places or PRs. Tap one to take it off.']},
+  'A runner who started and dropped out, or was expected and never started, can be listed with <b>Didn\u2019t finish</b> in Edit race, on any phone. They show under the placed runners, on Edit race and Results, as DNF or DNS and never change the score, places or PRs. To take one off, tap it in Edit race.']},
  {t:'Time trials', p:[
   'A time trial is one race with everyone in it and a single <b>Finisher</b> button. Everyone is ours, so there\u2019s no Field button and nothing to score.',
   'Every result carries two places: overall, and within girls or boys. The <b>All</b>, <b>Girls</b> and <b>Boys</b> tabs filter the list, and both copy buttons follow the filter.',
@@ -3061,20 +3060,15 @@ function dnfBlock(){
     list.forEach(function(d){
       var r=dnfRunner(d), tags=[dnfLabel(d.s)];
       if(r && r.grade) tags.push(r.grade+'th');
-      h+='<div class="rrow home dnf" data-dnf="'+esc(d.cid)+'"><span class="pl num">'+esc(d.s)+'</span>'+
+      h+='<div class="rrow home dnf"><span class="pl num">'+esc(d.s)+'</span>'+
          '<span class="who"><span class="wn">'+esc(d.n||'Runner')+'</span><small class="wt">'+tags.join(' \u00b7 ')+'</small></span>'+
          '<span class="tm num"></span></div>';
     });
   }
-  h+='<button type="button" class="linkbtn dnfadd" id="dnfAdd">Add a runner who didn\u2019t finish</button>';
   return h;
 }
-function wireDnf(){
-  var add=$('dnfAdd'); if(add) add.addEventListener('click',dnfPick);
-  Array.prototype.forEach.call($('resultBody').querySelectorAll('[data-dnf]'),function(el){
-    el.addEventListener('click',function(){ dnfRemoveAsk(el.getAttribute('data-dnf')); });
-  });
-}
+/* Results only shows them. Adding and removing live in Edit race, 4.33. */
+function wireDnf(){}
 function dnfChat(){
   var list=dnfShown(); if(!list.length) return '';
   var dnf=list.filter(function(d){ return d.s==='DNF'; }).map(function(d){ return d.n; });
