@@ -824,6 +824,12 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
     <button class="srow" id="setBackup"><span class="sn">Backup and restore</span><span class="ss" id="subBackup"></span><span class="chev">&#8250;</span></button>
     <button class="srow" id="setHow"><span class="sn">How it works</span><span class="ss"></span><span class="chev">&#8250;</span></button>
     <button class="srow" id="setAbout"><span class="sn">About</span><span class="ss" id="subAbout"></span><span class="chev">&#8250;</span></button>
+    <div class="field" id="hiddenField" style="display:none;margin-top:22px">
+      <label>Hidden events</label>
+      <div class="hint">Deleted on this phone only. The results are still in the database.</div>
+      <div id="hiddenList"></div>
+      <div class="hint" id="hiddenMsg"></div>
+    </div>
   </div>
 </section>
 
@@ -989,7 +995,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.30';
+var BUILD='v4.31';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1229,7 +1235,7 @@ var HOW=[
   'Everything is saved on the phone the moment it happens, so a race can be timed with no signal at all. When the phone is signed in and online, it\u2019s sent to the database, where every other phone can see it.',
   'The line above the copy buttons on results says where things stand. <b>Saved to the database</b> is what you want to see. <b>Not signed in</b> or <b>Offline</b> with a number waiting means the results are safe on this phone, but nobody else has them yet.',
   'A <b>test event</b> is for coaches testing the app\u2019s features. A test event syncs like any other, so two phones can rehearse together, and never counts toward records. Deleting a test event removes it from every phone and the database.',
-  'A real event can\u2019t be turned into a test event. Deleting a real event only removes it from that phone; the database keeps the results.',
+  'A real event can\u2019t be turned into a test event. A real event with no results yet deletes like a test one, from every phone. One with results can\u2019t be deleted from the app: <b>Hide</b> removes it from that phone only, and the database keeps the results. It\u2019s listed under <b>Hidden events</b> at the bottom of Settings, where <b>Show again</b> brings it back.',
   'Delete is the trash can at the top of the event form, and it always asks for a second tap.']},
  {t:'Roster', p:[
   'The roster loads when you sign in, and every signed-in phone keeps it current on its own. <b>Settings &gt; Roster &gt; Load roster from database</b> reloads it by hand.',
@@ -2105,7 +2111,7 @@ function ensureFresh(){
    phones can practice on one. */
 var BAD_RETRY_MS=60000, SYNC_MS=2500, SYNC_INIT='chute.sync.init.v1', HOME_KEY='chute.team.home.v1';
 var UUID_RE=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-var TEST_HINT='Saved to the database marked as a test, so two phones can practice on it. Deleting it removes it everywhere, in one tap.';
+var TEST_HINT='Saved to the database marked as a test, so two phones can practice on it. Deleting it removes it everywhere.';
 var LOCKED_HINT='Real meet \u00b7 saved to the database. It can\u2019t be made a test.';
 var syncBusy=false, syncErr='';
 
@@ -2486,12 +2492,33 @@ function patchDist2(m,r){
       return true;
     });
 }
+/* Anything that could be results: a finish, or a started clock. A pulled race
+   that was started has t0Wall from the database even before its finishes are
+   read; one never started is never read, and holds nothing. */
+function hasResults(m){
+  return (m.races||[]).some(function(r){ return (r.fin&&r.fin.length) || r.t0Wall!=null; });
+}
+/* A delete the policy refuses is not an error to PostgREST: it deletes no
+   rows and says 204. So the rows come back, and none means refused, or the
+   event was already gone. Refused, it is hidden here instead, so a pull does
+   not bring back something the coach deleted. */
 function dropMeet(id){
-  return sbFetch('/rest/v1/meets?id=eq.'+id,{method:'DELETE', auth:true, prefer:'return=minimal'})
+  return sbFetch('/rest/v1/meets?id=eq.'+id,{method:'DELETE', auth:true, prefer:'return=representation'})
     .then(function(res){
       if(!res.ok && syncFatal(res)) return false;
-      SEASON.goneMeets=(SEASON.goneMeets||[]).filter(function(x){ return x!==id; });
-      return true;
+      var done=function(){ SEASON.goneMeets=(SEASON.goneMeets||[]).filter(function(x){ return x!==id; }); return true; };
+      if(!res.ok || (Array.isArray(res.data) && res.data.length)){
+        if(SEASON.hiddenInfo) delete SEASON.hiddenInfo[id];
+        return done();
+      }
+      return sbFetch('/rest/v1/meets?select=id&id=eq.'+id,{auth:true}).then(function(q){
+        if(q.ok && Array.isArray(q.data) && q.data.length){
+          var h=SEASON.hiddenMeets=SEASON.hiddenMeets||[];
+          if(h.indexOf(id)<0) h.push(id);
+        }
+        else if(SEASON.hiddenInfo) delete SEASON.hiddenInfo[id];
+        return done();
+      });
     });
 }
 
@@ -2528,20 +2555,32 @@ function applyRaceRow(r,sr){
   }
   return ch;
 }
+function localWork(m){
+  return (m.races||[]).some(function(r){ return ownsRace(r) && (r.t0Wall!=null || (r.fin&&r.fin.length)); });
+}
 function mergePulled(meets,races,upBefore){
   var skip=(SEASON.goneMeets||[]).concat(SEASON.hiddenMeets||[]), changed=false, byMeet={};
   races.forEach(function(sr){ (byMeet[sr.meet_id]=byMeet[sr.meet_id]||[]).push(sr); });
-  /* A test meet this phone got from the database and the database no longer
-     has was deleted on another phone. Real meets cannot be deleted there.
+  /* An event this phone got from the database and the database no longer has
+     was deleted on another phone. From 4.31 that can be a real one, which the
+     database only allowed because it held no results. This phone may hold some
+     it has not sent, a clock started offline, so an event with anything local
+     is sent up again instead of dropped.
      Only a meet that was already up when the pull asked counts: one the sync
      inserted while the pull was in flight is missing from a list that predates
      it, and dropping it made a just-saved test meet vanish until the next pull. */
   var year=todayStr().slice(0,4), live={};
   meets.forEach(function(sm){ live[sm.id]=true; });
   SEASON.meets=SEASON.meets.filter(function(m){
-    var goneElsewhere = m.test && m.up && !!(upBefore && upBefore[m.id]) && !live[m.id] && (m.date||'')>=year+'-01-01';
-    if(goneElsewhere) changed=true;
-    return !goneElsewhere;
+    var goneElsewhere = m.up && !!(upBefore && upBefore[m.id]) && !live[m.id] && (m.date||'')>=year+'-01-01';
+    if(!goneElsewhere) return true;
+    changed=true;
+    if(!m.test && localWork(m)){
+      m.up=false; delete m.pulled;
+      (m.races||[]).forEach(function(r){ if(ownsRace(r)) r.up=false; (r.fin||[]).forEach(function(f){ if(ownsRace(r)) f.up=false; }); });
+      return true;
+    }
+    return false;
   });
   meets.forEach(function(sm){
     if(skip.indexOf(sm.id)>=0) return;
@@ -3140,6 +3179,42 @@ function renderSettings(){
   $('subBackup').textContent = st.meets ? st.meets+(st.meets===1?' meet':' meets') : 'Empty';
   $('subResults').textContent = resPrefsLine();
   $('subAbout').textContent = BUILD;
+  hiddenMsg(''); renderHidden();
+}
+/* A real event deleted here stays in the database, and the pull skips it so it
+   does not come straight back. Before 4.31 that was the end of it: the only
+   way back was clearing the phone. The name and date are kept at delete time
+   so this list can say what each one was; an event hidden before 4.31 has
+   neither, so it shows as one. */
+function renderHidden(){
+  var ids=SEASON.hiddenMeets||[], info=SEASON.hiddenInfo||{}, c=$('hiddenList');
+  $('hiddenField').style.display=ids.length?'':'none';
+  c.innerHTML='';
+  ids.forEach(function(id){
+    var h=info[id]||null;
+    var row=document.createElement('div'); row.className='xrow';
+    var nm=document.createElement('span'); nm.className='xn';
+    nm.innerHTML = h ? esc(h.name||'Event')+(h.date?'<span class="xg">'+esc(fmtDate(h.date))+'</span>':'')
+                     : 'An event hidden before v4.31';
+    var b=document.createElement('button'); b.className='linkbtn'; b.textContent='Show again';
+    b.addEventListener('click',function(){ unhideMeet(id); });
+    row.appendChild(nm); row.appendChild(b); c.appendChild(row);
+  });
+}
+function hiddenMsg(t){ $('hiddenMsg').textContent=t||''; }
+/* Taken off the skip list, then read straight away rather than on home's next
+   refresh, so the coach sees it land. Its finishes follow in the background,
+   one race a poll, the same as any pulled event. */
+function unhideMeet(id){
+  SEASON.hiddenMeets=(SEASON.hiddenMeets||[]).filter(function(x){ return x!==id; });
+  if(SEASON.hiddenInfo) delete SEASON.hiddenInfo[id];
+  saveSeason(); renderHidden();
+  if(!signedIn()){ hiddenMsg('Sign in and it comes back with the next refresh.',true); return; }
+  hiddenMsg('Bringing it back...',false);
+  ensureFresh().then(function(ok){ return ok ? pullMeets() : false; }).then(function(ch){
+    if(ch) saveSeason();
+    hiddenMsg(findMeet(id) ? 'Back on home.' : 'It comes back with the next refresh.', !findMeet(id));
+  }, function(){ hiddenMsg('It comes back with the next refresh.',true); });
 }
 function renderAbout(){
   var st=seasonStats(), bytes=0;
@@ -4546,13 +4621,19 @@ function armTwoTap(b,confirmText,act){
 }
 $('meetDelete').addEventListener('click',function(){
   var dm=editingMeet?findMeet(editingMeet):null;
+  /* From 4.31 a real event with no results can be deleted everywhere, like a
+     test one. One with results is only hidden here: 0012 refuses the delete
+     in the database whatever the app does, and roles will decide later who
+     may do more. What this phone knows can be incomplete, since a pulled race
+     may not be read yet, so a delete the database refuses falls back to hiding
+     (dropMeet). */
+  var hideOnly = !!(dm && !dm.test && meetUploaded(dm) && hasResults(dm));
   function del(){
     if(editingMeet){
-      /* A test meet that reached the database is deleted there too. A real one
-         stays there and is only hidden here, so a pull does not bring it back. */
       if(dm && meetUploaded(dm)){
-        var list = dm.test ? (SEASON.goneMeets=SEASON.goneMeets||[]) : (SEASON.hiddenMeets=SEASON.hiddenMeets||[]);
+        var list = hideOnly ? (SEASON.hiddenMeets=SEASON.hiddenMeets||[]) : (SEASON.goneMeets=SEASON.goneMeets||[]);
         if(list.indexOf(dm.id)<0) list.push(dm.id);
+        if(!dm.test) (SEASON.hiddenInfo=SEASON.hiddenInfo||{})[dm.id]={name:dm.name, date:dm.date};
       }
       SEASON.meets=SEASON.meets.filter(function(m){ return m.id!==editingMeet; });
       saveSeason();
@@ -4562,13 +4643,13 @@ $('meetDelete').addEventListener('click',function(){
   }
   /* Every event takes two taps, test events too. What deleting does to each
      is in How it works, so the button only has to ask. */
-  armTwoTap(this, 'Delete?', del);
+  armTwoTap(this, hideOnly ? 'Hide?' : 'Delete?', del);
 });
 $('mtest').addEventListener('change',function(){
   var m=editingMeet?findMeet(editingMeet):null;
   if(this.checked && m && meetUploaded(m)){
     this.checked=false;
-    $('mtestHint').textContent='Already saved to the database, so it cannot become a test meet. Nothing in the app can take rows back out.';
+    $('mtestHint').textContent='Already saved to the database, so it cannot become a test meet.';
     return;
   }
   $('mtestHint').textContent=TEST_HINT;
