@@ -989,7 +989,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.29';
+var BUILD='v4.30';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1232,8 +1232,8 @@ var HOW=[
   'A real event can\u2019t be turned into a test event. Deleting a real event only removes it from that phone; the database keeps the results.',
   'Delete is the trash can at the top of the event form, and it always asks for a second tap.']},
  {t:'Roster', p:[
-  'The roster is loaded once for the season. Go to <b>Settings &gt; Roster &gt; Load roster from database</b> on any signed-in phone.',
-  'A runner added at the finish line is saved with that race\u2019s results, but only joins the roster on the phone that added them.']},
+  'The roster loads when you sign in, and every signed-in phone keeps it current on its own. <b>Settings &gt; Roster &gt; Load roster from database</b> reloads it by hand.',
+  'A runner added at the finish line joins the team roster on every phone once the phone that added them has signal. One added in a test event stays on that phone only.']},
  {t:'Backup and restore', p:[
   '<b>Settings &gt; Backup and restore</b> copies the whole season as text or saves it as a file, and can read one back in. The database is the main copy of everything now, so this is a safety net rather than something to do every week.']},
  {t:'Troubleshooting', p:[
@@ -1462,8 +1462,13 @@ function parseExtras(text){
     var d0=p[0], dead=false;
     if(d0.charAt(0)==='-'){ dead=true; d0=d0.slice(1); }
     var gr=parseInt(p[2],10);
+    /* Fourth field, from 4.30. U: added in a real event, so it goes up to the
+       team roster. T: added in a test event, so it stays on this phone. Empty:
+       added before 4.30, left local because nobody can say now whether it was
+       real. */
+    var fl=(p[3]||'').trim();
     out.push({name:nm, g:(d0==='M'?'M':'F'), grade:(gr>=5&&gr<=8)?gr:null,
-              ord:out.length, x:true, dead:dead, li:li});
+              ord:out.length, x:true, dead:dead, li:li, up:fl==='U', test:fl==='T'});
   });
   return out;
 }
@@ -1516,14 +1521,19 @@ function setExtraDead(li,dead){
   return true;
 }
 function buildRoster(){
-  var g=parseList(txt(RKEY_G),'F'), b=parseList(txt(RKEY_B),'M'), id=0;
-  return g.concat(b).concat(parseExtras(txt(RKEY_X))).map(function(r){ r.id=id++; return r; });
+  var g=parseList(txt(RKEY_G),'F'), b=parseList(txt(RKEY_B),'M'), id=0, on={};
+  g.concat(b).forEach(function(r){ on[histKey(r)]=1; });
+  /* A walk-on who reached the team roster comes back in the girls or boys list.
+     The extra keeps its slot, so no id moves, but leaves the picker the way a
+     removed one does, and finishes relink to the list entry, which is first. */
+  var x=parseExtras(txt(RKEY_X)).map(function(r){ if(on[histKey(r)]){ r.dup=true; r.dead=true; } return r; });
+  return g.concat(b).concat(x).map(function(r){ r.id=id++; return r; });
 }
-function addExtra(name,g,grade){
+function addExtra(name,g,grade,flag){
   var nm=String(name).replace(/[|\n\r]/g,' ').trim();
   if(!nm) return null;
   var t=txt(RKEY_X).replace(/\n+$/,'');
-  try{ localStorage.setItem(RKEY_X,(t?t+'\n':'')+g+'|'+nm+'|'+(grade||'')); }catch(e){ return null; }
+  try{ localStorage.setItem(RKEY_X,(t?t+'\n':'')+g+'|'+nm+'|'+(grade||'')+(flag?'|'+flag:'')); }catch(e){ return null; }
   S.roster=buildRoster(); relinkFinishes(S.fin,S.roster);
   for(var i=S.roster.length-1;i>=0;i--) if(S.roster[i].x && S.roster[i].name===nm) return S.roster[i].id;
   return null;
@@ -2681,7 +2691,9 @@ function pollTick(){
      every pull after that came back 401. */
   ensureFresh().then(function(ok){
     if(!ok) throw new Error('signed out');
-    return homeDue ? pullMeets() : false;
+    return homeDue ? pullMeets().then(function(ch){
+      return refreshRoster().then(function(rc){ if(rc) hintRoster(); return ch; });
+    }) : false;
   }).then(function(ch){
     pulled=ch;
     return watch ? pollRace(r) : (fill ? pollRace(fill) : {changed:false, added:[]});
@@ -2702,14 +2714,19 @@ function pollTick(){
 
 function syncTick(){
   if(syncBusy) return;
-  var w=syncWork(null);
-  if(!w.total || !signedIn() || navigator.onLine===false){ renderSyncViews(); return; }
+  var w=syncWork(null), pend=pendingAthletes();
+  if((!w.total && !pend.length) || !signedIn() || navigator.onLine===false){ renderSyncViews(); return; }
   syncBusy=true;
   ensureFresh().then(function(ok){
     if(!ok){ syncErr='Sign in again to save'; return false; }
     return homeTeamId().then(function(home){
       if(!home) return false;
-      return syncDrain(w,home);
+      /* Walk-ons first. A new id relinks finishes, which is new work, so the
+         list is taken again after. */
+      return (pend.length ? pushAthletes(pend,home) : Promise.resolve(false)).then(function(){
+        var w2=syncWork(null);
+        return w2.total ? syncDrain(w2,home) : true;
+      });
     });
   }).then(function(done){
     if(done) syncErr='';
@@ -2797,7 +2814,7 @@ function applyPulledRoster(rows){
   /* Ids are keyed by name, so storing them is safe whether or not the list
      below is allowed to land, and a device whose typed roster already matches
      still picks them up. */
-  saveAids(aidsFrom(rows));
+  saveAids(mergeAids(rows));
   var incoming=parseList(g,'F').concat(parseList(b,'M')).map(function(r){ return r.name; });
   var current=rosterNames();
   var same=incoming.length===current.length && incoming.every(function(n,i){ return n===current[i]; });
@@ -2836,6 +2853,101 @@ function pullRoster(){
       applyPulledRoster(res.data);
     });
   });
+}
+
+/* ---------- walk-ons up, roster down (4.30) ----------
+   A runner added at the line used to join the roster only on the phone that
+   added them. Now an extra added in a real event becomes an athletes row and a
+   season roster entry on the next sync. Once this phone holds the new id,
+   relinking gives every finish that names them the id instead of the name, and
+   the existing finish sync sends it. 0011 grants the two inserts and nothing
+   else: no update, no delete.
+
+   The other half: a signed-in phone whose roster came from the database
+   re-reads it as home pulls events, so a walk-on added on one phone reaches
+   the others without anyone tapping Load. */
+function mergeAids(rows){
+  var m=aidMap(), n=aidsFrom(rows);
+  for(var k in n) m[k]=n[k];
+  return m;
+}
+var athleteRest={};
+function pendingAthletes(){
+  var map=aidMap(), on={};
+  parseList(txt(RKEY_G),'F').concat(parseList(txt(RKEY_B),'M')).forEach(function(r){ on[histKey(r)]=1; });
+  return parseExtras(txt(RKEY_X)).filter(function(r){
+    var k=histKey(r);
+    return r.up && !r.dead && !map[k] && !on[k] &&
+           !(athleteRest[k] && Date.now()-athleteRest[k]<BAD_RETRY_MS);
+  });
+}
+function splitName(nm){
+  var p=String(nm).trim().split(/\s+/);
+  return {first:p.shift()||'', last:p.join(' ')};
+}
+function findAthlete(home,r){
+  var n=splitName(r.name);
+  function lit(v){ return encodeURIComponent(String(v).replace(/[%_\\]/g,'\\$&')); }
+  return sbFetch('/rest/v1/athletes?select=id&team_id=eq.'+home+'&division=eq.'+r.g+
+                 '&first_name=ilike.'+lit(n.first)+'&last_name=ilike.'+lit(n.last),{auth:true})
+    .then(function(res){ return (res.ok && res.data && res.data[0] && res.data[0].id) || null; });
+}
+/* A second phone may have added the same walk-on first. The name is unique per
+   team and division, so a 409 means they are already there: use that row. */
+function pushAthlete(r,home){
+  var k=histKey(r), n=splitName(r.name), id=uid();
+  return sbFetch('/rest/v1/athletes',{method:'POST', auth:true, prefer:'return=minimal',
+      body:{id:id, team_id:home, first_name:n.first, last_name:n.last, division:r.g}})
+  .then(function(res){
+    if(res.ok) return id;
+    if(res.status===409) return findAthlete(home,r);
+    return null;
+  }).then(function(aid){
+    if(!aid) return null;
+    return sbFetch('/rest/v1/roster_entries',{method:'POST', auth:true, prefer:'return=minimal',
+        body:{athlete_id:aid, season_year:parseInt(todayStr().slice(0,4),10), grade:r.grade, sort_seed:900+r.ord}})
+    .then(function(res){ return (res.ok || res.status===409) ? aid : null; });
+  }).then(function(aid){
+    if(!aid){ athleteRest[k]=Date.now(); return false; }
+    var m=aidMap(); m[k]=aid; saveAids(m);
+    return true;
+  }, function(){ athleteRest[k]=Date.now(); return false; });
+}
+/* Every stored race, not just the open one: a walk-on named last week gets
+   the id on that finish too. */
+function relinkAll(){
+  var roster=buildRoster();
+  if(S){ S.roster=roster; relinkFinishes(S.fin,roster); }
+  SEASON.meets.forEach(function(m){ (m.races||[]).forEach(function(r){ relinkFinishes(r.fin,roster); }); });
+}
+function pushAthletes(list,home){
+  var any=false;
+  return seq(list,function(r){ return pushAthlete(r,home).then(function(ok){ if(ok) any=true; }); })
+    .then(function(){ if(any){ relinkAll(); saveSeason(); if(onScreen('rosterEdit')) renderExtras(); } return any; });
+}
+/* The quiet read. Lands only on a phone whose roster is the database's, so a
+   typed roster is never overwritten, never under the roster screen, where the
+   lists may be half edited, and never while an old unstamped finish still
+   depends on list positions: that is the Load button's job, with its guards. */
+function rosterFromDb(){
+  var map=aidMap(), cur=parseList(txt(RKEY_G),'F').concat(parseList(txt(RKEY_B),'M'));
+  return cur.length>0 && cur.every(function(r){ return !!map[histKey(r)]; });
+}
+function quietRoster(rows){
+  var g=rosterLines(rows,'F'), b=rosterLines(rows,'M');
+  if(!g && !b) return false;
+  if(!rosterFromDb() || onScreen('rosterEdit') || namedFinishCount()) return false;
+  saveAids(mergeAids(rows));
+  if(g===txt(RKEY_G) && b===txt(RKEY_B)) return false;
+  try{ localStorage.setItem(RKEY_G,g); localStorage.setItem(RKEY_B,b); }catch(e){ return false; }
+  $('rosterG').value=g; $('rosterB').value=b;
+  relinkAll();
+  return true;
+}
+function refreshRoster(){
+  return sbFetch(rosterPath(),{auth:true}).then(function(res){
+    return (res.ok && Array.isArray(res.data)) ? quietRoster(res.data) : false;
+  }, function(){ return false; });
 }
 
 /* ---------- sign in screen ---------- */
@@ -3482,6 +3594,7 @@ function openSheet(i){
 
      A mixed race has no division of its own, so it asks for one by offering a
      button each. Taking it from the race filed every walk-on as a girl. */
+  var cm=meetOfRace(currentRace()), testEv=!!(cm && cm.test);
   function addRunner(label,g){
     var add=document.createElement('button');
     add.className='opt meta'; add.textContent=label;
@@ -3489,7 +3602,9 @@ function openSheet(i){
       var place=i;
       askOpen({
         title:'Add a runner',
-        msg:'Not on the '+(ttRace()?(g==='M'?'boys':'girls'):S.division.toLowerCase())+' roster. Goes on the end of the list, so nobody else is renumbered. You can remove them later under Settings, Roster.',
+        msg:'Not on the '+(ttRace()?(g==='M'?'boys':'girls'):S.division.toLowerCase())+' roster. '+
+            (testEv ? 'This is a test event, so they stay on this phone only.'
+                    : 'They join the team roster on every phone once this one has signal.'),
         ok:'Add and name place '+(place+1),
         fields:[{label:'Name, and a grade if you know it', value:'', placeholder:'Sarah Miller, 7'}],
         onOk:function(v){
@@ -3497,7 +3612,7 @@ function openSheet(i){
           var gm=t.match(/[,\s]+([5-8])(?:st|nd|rd|th)?\s*$/i);
           if(gm){ gr=parseInt(gm[1],10); t=t.slice(0,gm.index).trim(); }
           if(!t) return 'Type a name.';
-          var id=addExtra(t,g,gr);
+          var id=addExtra(t,g,gr,testEv?'T':'U');
           if(id==null) return 'Could not save that name.';
           sheetPlace=place;
           assign(id,true);
@@ -4232,6 +4347,13 @@ function sideHint(list,el){
     (seeded ? seeded+' ordered by last race time, the rest in the order above.'
             : 'Order above is the picker order until they race.');
 }
+function extraWhere(r){
+  var on={}, map=aidMap(), k=histKey(r);
+  parseList(txt(RKEY_G),'F').concat(parseList(txt(RKEY_B),'M')).forEach(function(x){ on[histKey(x)]=1; });
+  if(on[k] || map[k]) return 'On the team roster';
+  if(r.up && !r.dead) return 'Joining the team roster';
+  return r.test ? 'Test event, this phone only' : 'This phone only';
+}
 function renderExtras(){
   var c=$('extraList'); c.innerHTML='';
   var list=parseExtras(txt(RKEY_X));
@@ -4241,12 +4363,16 @@ function renderExtras(){
     row.className='xrow'+(r.dead?' gone':'');
     var nm=document.createElement('span');
     nm.className='xn';
-    nm.innerHTML=esc(r.name)+'<span class="xg">'+esc((r.g==='M'?'Boys':'Girls')+(r.grade?', '+r.grade+'th':''))+'</span>';
+    nm.innerHTML=esc(r.name)+'<span class="xg">'+esc((r.g==='M'?'Boys':'Girls')+(r.grade?', '+r.grade+'th':'')+' \u00b7 '+extraWhere(r))+'</span>';
+    row.appendChild(nm);
+    /* On the team roster now, so removing it here would only hide it on one
+       phone. Taking a runner off the team is still the SQL editor. */
+    if(extraWhere(r)==='On the team roster'){ c.appendChild(row); return; }
     var b=document.createElement('button');
     b.className='linkbtn';
     b.textContent=r.dead?'Undo':'Remove';
     b.addEventListener('click',function(){ setExtraDead(r.li,!r.dead); renderExtras(); });
-    row.appendChild(nm); row.appendChild(b);
+    row.appendChild(b);
     c.appendChild(row);
   });
   var anyDead=false;
