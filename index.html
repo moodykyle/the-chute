@@ -485,6 +485,12 @@ input.code{
 .xrow .xn{font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .xrow.gone .xn{color:var(--ink-soft);text-decoration:line-through}
 .xrow .xg{color:var(--ink-soft);font-size:13px;margin-left:6px}
+/* 4.32: runners who did not finish or start, under the placed ones */
+.rrow.dnf{cursor:pointer}
+.rrow.dnf .pl{font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--ink-soft)}
+.rrow.dnf .tm{color:var(--ink-soft)}
+.dnfadd{display:block;margin:16px auto 20px}
+.dnfpick{display:flex;flex-direction:column;margin-top:6px}
 
 /* ---------- reconcile / results ---------- */
 .rrow{
@@ -995,7 +1001,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.31';
+var BUILD='v4.32';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1210,7 +1216,8 @@ var HOW=[
   'A team score is the sum of the places of its first five finishers. Low score wins. The sixth and seventh are <b>displacers</b>: they don\u2019t score, but they push other teams\u2019 runners back a place.',
   'Results show the score, the five places that make it, and the pack: the average time of the five, and the spread from first to fifth.',
   'The score is built from every place in the race, not only ours, which is why every runner has to be tapped. It won\u2019t always match the official score: official results drop runners from teams with fewer than five finishers and count every team\u2019s displacers, which a phone at the finish line can\u2019t know.',
-  'The <b>Team</b> tab and <b>All</b> tab above the list of finishers switch between our runners and every place in the race.']},
+  'The <b>Team</b> tab and <b>All</b> tab above the list of finishers switch between our runners and every place in the race.',
+  'A runner who started and dropped out, or was expected and never started, can be listed with <b>Add a runner who didn\u2019t finish</b> at the bottom of Results. They show under the placed runners as DNF or DNS and never change the score, places or PRs. Tap one to take it off.']},
  {t:'Time trials', p:[
   'A time trial is one race with everyone in it and a single <b>Finisher</b> button. Everyone is ours, so there\u2019s no Field button and nothing to score.',
   'Every result carries two places: overall, and within girls or boys. The <b>All</b>, <b>Girls</b> and <b>Boys</b> tabs filter the list, and both copy buttons follow the filter.',
@@ -1362,7 +1369,7 @@ function show(id){
     renderRecon();
     renderReconBar();
   }
-  if(id==='results') renderResults();
+  if(id==='results'){ renderResults(); pullDnfSoon(); }
   renderLive();
   if(id==='armed'){
     $('armedName').textContent=S.name;
@@ -2735,7 +2742,10 @@ function pollTick(){
     }) : false;
   }).then(function(ch){
     pulled=ch;
-    return watch ? pollRace(r) : (fill ? pollRace(fill) : {changed:false, added:[]});
+    var pr = watch ? r : fill;
+    return pr ? pollRace(pr).then(function(out){
+      return pullDnf(pr).then(function(ch){ if(ch) out.changed=true; return out; });
+    }) : {changed:false, added:[]};
   }).then(function(out){
     pollBusy=false;
     if(pulled || out.changed) saveSeason();
@@ -2753,8 +2763,8 @@ function pollTick(){
 
 function syncTick(){
   if(syncBusy) return;
-  var w=syncWork(null), pend=pendingAthletes();
-  if((!w.total && !pend.length) || !signedIn() || navigator.onLine===false){ renderSyncViews(); return; }
+  var w=syncWork(null), pend=pendingAthletes(), dq=pendingDnf();
+  if((!w.total && !pend.length && !dq.length) || !signedIn() || navigator.onLine===false){ renderSyncViews(); return; }
   syncBusy=true;
   ensureFresh().then(function(ok){
     if(!ok){ syncErr='Sign in again to save'; return false; }
@@ -2764,7 +2774,10 @@ function syncTick(){
          list is taken again after. */
       return (pend.length ? pushAthletes(pend,home) : Promise.resolve(false)).then(function(){
         var w2=syncWork(null);
-        return w2.total ? syncDrain(w2,home) : true;
+        return (w2.total ? syncDrain(w2,home) : Promise.resolve(true)).then(function(ok){
+          /* After the drain, so a race inserted this cycle is already there. */
+          return pushDnf(pendingDnf()).then(function(){ return ok; });
+        });
       });
     });
   }).then(function(done){
@@ -2987,6 +3000,188 @@ function refreshRoster(){
   return sbFetch(rosterPath(),{auth:true}).then(function(res){
     return (res.ok && Array.isArray(res.data)) ? quietRoster(res.data) : false;
   }, function(){ return false; });
+}
+
+/* ---------- did not finish, did not start (4.32) ----------
+   The app records who crosses the line. A coach who knows a runner started
+   and dropped out, or never started, says so here. It lives on the race, not
+   on the finishes: a finish is a place and a time, and everything that scores
+   or keeps records trusts that. These have neither, so scoring, PRs and
+   places never see them.
+
+   Local shape, on the race in the season: r.dnf = [{cid, a, n, g, s, up}],
+   the same identity as a finish (athlete id, or a name for a walk-on) plus
+   the status, DNF or DNS. r.dnfGone holds ids to delete. 0013 holds the rows
+   in race_nonfinishers, one per runner per race. */
+function dnfRace(){ return currentRace(); }
+function dnfList(r){ return (r && r.dnf) || []; }
+function dnfShown(){
+  var r=dnfRace(), v=ttRace() ? ttView : 'all';
+  return dnfList(r).filter(function(d){ return v==='all' || d.g===v; });
+}
+function dnfRunner(d){
+  if(!S) return null;
+  var map=aidMap();
+  for(var i=0;i<S.roster.length;i++){
+    var x=S.roster[i];
+    if(x.dead) continue;
+    if(d.a ? map[histKey(x)]===d.a : histKey(x)===histKey({g:d.g, name:d.n||''})) return x;
+  }
+  return null;
+}
+function dnfLabel(s){ return s==='DNS' ? 'Did not start' : 'Did not finish'; }
+function dnfBlock(){
+  var list=dnfShown(), h='';
+  if(list.length){
+    h+='<p class="hsect rsect">Did not finish or start</p>';
+    list.forEach(function(d){
+      var r=dnfRunner(d), tags=[dnfLabel(d.s)];
+      if(r && r.grade) tags.push(r.grade+'th');
+      h+='<div class="rrow home dnf" data-dnf="'+esc(d.cid)+'"><span class="pl num">'+esc(d.s)+'</span>'+
+         '<span class="who"><span class="wn">'+esc(d.n||'Runner')+'</span><small class="wt">'+tags.join(' \u00b7 ')+'</small></span>'+
+         '<span class="tm num"></span></div>';
+    });
+  }
+  h+='<button type="button" class="linkbtn dnfadd" id="dnfAdd">Add a runner who didn\u2019t finish</button>';
+  return h;
+}
+function wireDnf(){
+  var add=$('dnfAdd'); if(add) add.addEventListener('click',dnfPick);
+  Array.prototype.forEach.call($('resultBody').querySelectorAll('[data-dnf]'),function(el){
+    el.addEventListener('click',function(){ dnfRemoveAsk(el.getAttribute('data-dnf')); });
+  });
+}
+function dnfChat(){
+  var list=dnfShown(); if(!list.length) return '';
+  var dnf=list.filter(function(d){ return d.s==='DNF'; }).map(function(d){ return d.n; });
+  var dns=list.filter(function(d){ return d.s==='DNS'; }).map(function(d){ return d.n; });
+  return '\n'+(dnf.length?'Did not finish: '+dnf.join(', ')+'\n':'')+(dns.length?'Did not start: '+dns.join(', ')+'\n':'');
+}
+/* The roster for this race, less anyone with a place in it and anyone already
+   listed. A runner cannot have both. */
+function dnfCandidates(){
+  var r=dnfRace(), taken={}, out=[];
+  S.fin.forEach(function(f){ if(f.r!=null) taken['r'+f.r]=1; if(f.n) taken[histKey({g:f.g, name:f.n})]=1; });
+  dnfList(r).forEach(function(d){ var x=dnfRunner(d); if(x) taken['r'+x.id]=1; });
+  S.roster.forEach(function(x){
+    if(x.dead || !inDivision(x) || taken['r'+x.id] || taken[histKey(x)]) return;
+    out.push(x);
+  });
+  return out.sort(function(p,q){ return p.name.localeCompare(q.name); });
+}
+function dnfPick(){
+  var c=dnfCandidates();
+  askCfg=null;
+  $('askTitle').textContent='Didn\u2019t finish';
+  $('askF1').style.display='none'; $('askF2').style.display='none';
+  $('askOkRow').style.display='none'; $('askCancel').textContent='Cancel';
+  askNote('');
+  var m=$('askMsg'); m.style.display='';
+  if(!c.length){ m.innerHTML='<p>Everyone on the roster for this race already has a place or is listed.</p>'; $('ask').classList.add('on'); return; }
+  m.innerHTML='<p>Who started this race without a place? Runners with a place aren\u2019t listed.</p><div class="dnfpick"></div>';
+  var box=m.querySelector('.dnfpick');
+  c.forEach(function(x){
+    var b=document.createElement('button'); b.type='button'; b.className='opt';
+    b.innerHTML='<span class="on">'+esc(x.name)+'</span><span class="og">'+esc((ttRace()?(x.g==='M'?'Boys':'Girls')+(x.grade?', ':''):'')+(x.grade?x.grade+'th':''))+'</span>';
+    b.addEventListener('click',function(){ dnfStatus(x); });
+    box.appendChild(b);
+  });
+  $('ask').classList.add('on');
+}
+function dnfStatus(x){
+  $('askTitle').textContent=x.name;
+  var m=$('askMsg');
+  m.innerHTML='<div class="dnfpick"></div>';
+  var box=m.querySelector('.dnfpick');
+  [['DNF','Did not finish','Started, and dropped out'],['DNS','Did not start','Expected, and never started']].forEach(function(p){
+    var b=document.createElement('button'); b.type='button'; b.className='opt';
+    b.innerHTML='<span class="on">'+p[1]+'</span><span class="og">'+p[2]+'</span>';
+    b.addEventListener('click',function(){ dnfAdd(x,p[0]); askClose(); });
+    box.appendChild(b);
+  });
+}
+function dnfAdd(x,st){
+  var r=dnfRace(); if(!r) return;
+  var a=aidMap()[histKey(x)]||null;
+  (r.dnf=r.dnf||[]).push({cid:uid(), a:a, n:x.name, g:x.g, s:st, up:false});
+  saveSeason(); renderResults();
+}
+function dnfRemoveAsk(cid){
+  var r=dnfRace(), d=dnfList(r).filter(function(x){ return x.cid===cid; })[0];
+  if(!d) return;
+  askOpen({title:d.n||'Runner', msg:'Listed as '+dnfLabel(d.s).toLowerCase()+'. Take them off the list?', ok:'Remove',
+    onOk:function(){ dnfRemove(r,cid); return null; }});
+}
+function dnfRemove(r,cid){
+  var d=dnfList(r).filter(function(x){ return x.cid===cid; })[0];
+  if(!d) return;
+  r.dnf=dnfList(r).filter(function(x){ return x.cid!==cid; });
+  if(d.up) (r.dnfGone=r.dnfGone||[]).push(cid);
+  saveSeason(); renderResults();
+}
+/* Races with something to send, in a race the database already has. */
+function pendingDnf(){
+  var out=[];
+  SEASON.meets.forEach(function(m){ (m.races||[]).forEach(function(r){
+    if(!r.up || resting({bad:r.dnfBad})) return;
+    if(dnfList(r).some(function(d){ return !d.up; }) || (r.dnfGone&&r.dnfGone.length)) out.push(r);
+  }); });
+  return out;
+}
+function dnfBody(r,d){
+  return {id:d.cid, race_id:r.id, athlete_id:d.a||null, runner_name:d.a?null:(d.n||null),
+          runner_division:d.a?null:(d.g==='F'||d.g==='M'?d.g:null), status:d.s};
+}
+/* One row at a time: a 409 on one is the same runner already listed from
+   another phone, and should not sink the rest. The next read replaces this
+   phone's copy with theirs. */
+function pushDnf(list){
+  return seq(list,function(r){
+    var fresh=dnfList(r).filter(function(d){ return !d.up; }), bad=false;
+    return seq(fresh,function(d){
+      return sbFetch('/rest/v1/race_nonfinishers',{method:'POST', auth:true, prefer:'resolution=ignore-duplicates,return=minimal', body:dnfBody(r,d)})
+        .then(function(res){ if(res.ok || res.status===409) d.up=true; else bad=true; });
+    }).then(function(){
+      var gone=(r.dnfGone||[]).slice();
+      if(!gone.length) return;
+      return sbFetch('/rest/v1/race_nonfinishers?id='+inList(gone),{method:'DELETE', auth:true, prefer:'return=minimal'})
+        .then(function(res){ if(res.ok) r.dnfGone=(r.dnfGone||[]).filter(function(c){ return gone.indexOf(c)<0; }); else bad=true; });
+    }).then(function(){
+      if(bad) r.dnfBad=Date.now(); else delete r.dnfBad;
+      saveSeason();
+      return true;
+    });
+  });
+}
+/* The database's list wins for everything this phone already sent. Rows
+   still waiting to go up, and deletes still waiting, stay as this phone has
+   them. The name comes with the row, from athletes, so a phone without that
+   runner on its roster can still show them. */
+function pullDnf(r){
+  if(!r || !r.up || !UUID_RE.test(r.id)) return Promise.resolve(false);
+  return sbFetch('/rest/v1/race_nonfinishers?select=id,athlete_id,runner_name,runner_division,status,athletes(first_name,last_name,division)&race_id=eq.'+r.id,{auth:true})
+    .then(function(res){
+      if(!res.ok || !Array.isArray(res.data)) return false;
+      var gone=r.dnfGone||[], mine=dnfList(r).filter(function(d){ return !d.up; });
+      var from=res.data.filter(function(x){ return gone.indexOf(x.id)<0; }).map(function(x){
+        var a=x.athletes||null;
+        return {cid:x.id, a:x.athlete_id||null, s:x.status, up:true,
+                n: a ? String((a.first_name||'')+' '+(a.last_name||'')).trim() : (x.runner_name||''),
+                g: a ? a.division : (x.runner_division||null)};
+      });
+      var next=from.concat(mine.filter(function(d){ return !from.some(function(f){ return f.cid===d.cid; }); }));
+      var key=function(l){ return l.map(function(d){ return d.cid+d.s+(d.up?1:0); }).sort().join('|'); };
+      if(key(next)===key(dnfList(r))) return false;
+      r.dnf=next;
+      return true;
+    }, function(){ return false; });
+}
+function pullDnfSoon(){
+  var r=currentRace();
+  if(!r || !signedIn() || navigator.onLine===false) return;
+  ensureFresh().then(function(ok){ return ok ? pullDnf(r) : false; }).then(function(ch){
+    if(ch){ saveSeason(); if(onScreen('results')) renderResults(); }
+  });
 }
 
 /* ---------- sign in screen ---------- */
@@ -4019,7 +4214,9 @@ function renderResults(){
      are reachable without scrolling to the end of a hundred finishers. Only
      their labels are rendered, and only because the segment above changes what
      gets copied. The build number belongs on the About screen, not here. */
+  h+=dnfBlock();
   $('resultBody').innerHTML=h;
+  wireDnf();
   resNote=['Places are <b>raw order across the whole field</b>. Official scoring removes any team that ran fewer than five before assigning points, so these totals will shift.'];
   if(unnamed) resNote.push('<b>'+unnamed+' of your '+(unnamed===1?'places':'places')+' still '+(unnamed===1?'needs':'need')+' a name.</b> The score above is already final, since it only depends on where your runners crossed.');
   if(disp.length) resNote.push('The '+(disp.length===1?'one':'two')+' in brackets '+(disp.length===1?'is a <b>displacer</b>. It scores':'are <b>displacers</b>. They score')+' no points of '+(disp.length===1?'its':'their')+' own, '+(disp.length===1?'it pushes':'they push')+' other teams\' runners further back.');
@@ -4134,7 +4331,9 @@ function renderTTResults(){
   });
   });
 
+  h+=dnfBlock();
   $('resultBody').innerHTML=h;
+  wireDnf();
   resNote = two
     ? ['A time trial is not scored. Everyone started together and ran one of two distances.',
        'Places count within each distance, since a mile runner and an 800 runner are not racing each other. Every row carries both: overall in its distance, and within girls or boys.',
@@ -4232,6 +4431,11 @@ function buildCsv(full){
     out+=(i+1)+','+fmt(f.ms,3)+(f.m?'*':'')+','+csvCell((nameOf(f.r)||f.n||null)||'')+','+
          csvCell(f.h?S.team:'')+','+(r&&r.grade?r.grade:'')+','+sc+','+((recOf(f,rx)||{}).tag||'')+'\n';
   });
+  /* No place and no time, and the status where the place would be. */
+  dnfShown().forEach(function(d){
+    var r=dnfRunner(d);
+    out+=d.s+',,'+csvCell(d.n||'')+','+csvCell(S.team)+','+(r&&r.grade?r.grade:'')+',,\n';
+  });
   return out;
 }
 /* A time trial copies the same way a meet does, following the filter above
@@ -4261,6 +4465,10 @@ function buildTTCsv(){
          csvCell(r.name||'')+','+(r.div==='M'?'Boys':(r.div==='F'?'Girls':''))+','+
          (r.grade?r.grade:'')+','+((recOf(r.f,rx)||{}).tag||'')+'\n';
   });
+  dnfShown().forEach(function(d){
+    var r=dnfRunner(d);
+    out+=(two?',':'')+d.s+',,,'+csvCell(d.n||'')+','+(d.g==='M'?'Boys':(d.g==='F'?'Girls':''))+','+(r&&r.grade?r.grade:'')+',\n';
+  });
   return out;
 }
 function buildTTChat(){
@@ -4282,7 +4490,7 @@ function buildTTChat(){
     var rec=recOf(r.f,rx);
     out+=place+'  '+fmt(r.ms,1)+'  '+(r.name||'unnamed')+(rec?' ('+rec.tag+')':'')+tail+'\n';
   });
-  return out;
+  return out+dnfChat();
 }
 function csvCell(v){
   v=String(v);
@@ -4353,7 +4561,7 @@ function buildChat(full){
     var rec=recOf(f,rx); if(rec) who += ' ('+rec.tag+')';
     out += String(i+1).padStart(w,' ')+'  '+fmt(f.ms,1)+'  '+who+'\n';
   });
-  return out;
+  return out+dnfChat();
 }
 
 function copyOut(text,btn){
