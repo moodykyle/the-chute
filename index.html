@@ -946,6 +946,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
     <button type="button" id="addMissed"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5.5" x2="12" y2="18.5"/><line x1="5.5" y1="12" x2="18.5" y2="12"/></svg><span>Missed finish</span></button>
     <button type="button" id="shiftAll"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="12" x2="20" y2="12"/><path d="M8 8l-4 4 4 4"/><path d="M16 8l4 4-4 4"/></svg><span>Shift all times</span></button>
     <button type="button" id="backTiming"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13.5" r="7"/><line x1="12" y1="13.5" x2="12" y2="10"/><line x1="10" y1="3" x2="14" y2="3"/><line x1="12" y1="3" x2="12" y2="6.5"/></svg><span>Reopen clock</span></button>
+    <button type="button" id="addDnf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="7" r="3"/><path d="M6.5 20v-2.5a5.5 5.5 0 0 1 8-4.9"/><line x1="16" y1="15" x2="21" y2="20"/><line x1="21" y1="15" x2="16" y2="20"/></svg><span id="addDnfLab">Didn&rsquo;t finish</span></button>
   </div>
 </section>
 
@@ -1001,7 +1002,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.32';
+var BUILD='v4.33';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1217,7 +1218,7 @@ var HOW=[
   'Results show the score, the five places that make it, and the pack: the average time of the five, and the spread from first to fifth.',
   'The score is built from every place in the race, not only ours, which is why every runner has to be tapped. It won\u2019t always match the official score: official results drop runners from teams with fewer than five finishers and count every team\u2019s displacers, which a phone at the finish line can\u2019t know.',
   'The <b>Team</b> tab and <b>All</b> tab above the list of finishers switch between our runners and every place in the race.',
-  'A runner who started and dropped out, or was expected and never started, can be listed with <b>Add a runner who didn\u2019t finish</b> at the bottom of Results. They show under the placed runners as DNF or DNS and never change the score, places or PRs. Tap one to take it off.']},
+  'A runner who started and dropped out, or was expected and never started, can be listed with <b>Didn\u2019t finish</b> in Edit race, on any phone, or <b>Add a runner who didn\u2019t finish</b> at the bottom of Results. They show under the placed runners as DNF or DNS and never change the score, places or PRs. Tap one to take it off.']},
  {t:'Time trials', p:[
   'A time trial is one race with everyone in it and a single <b>Finisher</b> button. Everyone is ours, so there\u2019s no Field button and nothing to score.',
   'Every result carries two places: overall, and within girls or boys. The <b>All</b>, <b>Girls</b> and <b>Boys</b> tabs filter the list, and both copy buttons follow the filter.',
@@ -1366,6 +1367,7 @@ function show(id){
   if(id==='timing'){ startClock(); renderDeck(); } else stopClock();
   if(wantAwake() && (id==='timing' || id==='recon')) keepAwake(); else releaseAwake();
   if(id==='recon'){
+    pullDnfSoon();
     renderRecon();
     renderReconBar();
   }
@@ -3029,6 +3031,10 @@ function dnfRunner(d){
   }
   return null;
 }
+function dnfRedraw(){
+  if(onScreen('results')) renderResults();
+  if(onScreen('recon')) renderRecon();
+}
 function dnfLabel(s){ return s==='DNS' ? 'Did not start' : 'Did not finish'; }
 function dnfBlock(){
   var list=dnfShown(), h='';
@@ -3077,9 +3083,23 @@ function dnfPick(){
   $('askOkRow').style.display='none'; $('askCancel').textContent='Cancel';
   askNote('');
   var m=$('askMsg'); m.style.display='';
-  if(!c.length){ m.innerHTML='<p>Everyone on the roster for this race already has a place or is listed.</p>'; $('ask').classList.add('on'); return; }
-  m.innerHTML='<p>Who started this race without a place? Runners with a place aren\u2019t listed.</p><div class="dnfpick"></div>';
-  var box=m.querySelector('.dnfpick');
+  /* Anyone already marked comes first, removable here, so the list can be
+     managed from Edit race without going to Results. */
+  var have=dnfList(dnfRace()), h='';
+  if(have.length) h+='<p class="hsect">Already listed</p><div class="dnfpick dnfhave"></div>';
+  h+= c.length ? '<p>Who started this race without a place? Runners with a place aren\u2019t listed.</p><div class="dnfpick dnfnew"></div>'
+               : '<p>Everyone on the roster for this race already has a place or is listed.</p>';
+  m.innerHTML=h;
+  var hb=m.querySelector('.dnfhave');
+  have.forEach(function(d){
+    var row=document.createElement('div'); row.className='xrow';
+    row.innerHTML='<span class="xn">'+esc(d.n||'Runner')+'<span class="xg">'+esc(dnfLabel(d.s))+'</span></span>';
+    var b=document.createElement('button'); b.type='button'; b.className='linkbtn'; b.textContent='Remove';
+    b.addEventListener('click',function(){ dnfRemove(dnfRace(),d.cid); dnfPick(); });
+    row.appendChild(b); hb.appendChild(row);
+  });
+  var box=m.querySelector('.dnfnew');
+  if(!box){ $('ask').classList.add('on'); return; }
   c.forEach(function(x){
     var b=document.createElement('button'); b.type='button'; b.className='opt';
     b.innerHTML='<span class="on">'+esc(x.name)+'</span><span class="og">'+esc((ttRace()?(x.g==='M'?'Boys':'Girls')+(x.grade?', ':''):'')+(x.grade?x.grade+'th':''))+'</span>';
@@ -3104,7 +3124,7 @@ function dnfAdd(x,st){
   var r=dnfRace(); if(!r) return;
   var a=aidMap()[histKey(x)]||null;
   (r.dnf=r.dnf||[]).push({cid:uid(), a:a, n:x.name, g:x.g, s:st, up:false});
-  saveSeason(); renderResults();
+  saveSeason(); dnfRedraw();
 }
 function dnfRemoveAsk(cid){
   var r=dnfRace(), d=dnfList(r).filter(function(x){ return x.cid===cid; })[0];
@@ -3117,7 +3137,7 @@ function dnfRemove(r,cid){
   if(!d) return;
   r.dnf=dnfList(r).filter(function(x){ return x.cid!==cid; });
   if(d.up) (r.dnfGone=r.dnfGone||[]).push(cid);
-  saveSeason(); renderResults();
+  saveSeason(); dnfRedraw();
 }
 /* Races with something to send, in a race the database already has. */
 function pendingDnf(){
@@ -3180,7 +3200,7 @@ function pullDnfSoon(){
   var r=currentRace();
   if(!r || !signedIn() || navigator.onLine===false) return;
   ensureFresh().then(function(ok){ return ok ? pullDnf(r) : false; }).then(function(ch){
-    if(ch){ saveSeason(); if(onScreen('results')) renderResults(); }
+    if(ch){ saveSeason(); dnfRedraw(); }
   });
 }
 
@@ -3769,7 +3789,11 @@ function renderRecon(){
   var pinnedBottom = c.scrollHeight - c.scrollTop - c.clientHeight < 40;
   c.innerHTML='';
   var remote=remoteRace(currentRace());
-  $('reconActions').style.display = remote ? 'none' : '';
+  /* The timer's fixes stay on the timer. Marking a runner who didn't finish
+     is anyone's, so a naming phone keeps the row with just that button. */
+  ['addMissed','shiftAll','backTiming'].forEach(function(id){ $(id).style.display = remote ? 'none' : ''; });
+  var nd=dnfList(currentRace()).length;
+  $('addDnfLab').textContent='Didn\u2019t finish'+(nd?' ('+nd+')':'');
   if(remote && !Object.keys(aidMap()).length){
     var w=document.createElement('div');
     w.className='note';
@@ -4913,6 +4937,7 @@ $('askOk').addEventListener('click',askSubmit);
   $('askIn'+n).addEventListener('keydown',function(e){ if(e.key==='Enter') askSubmit(); });
 });
 
+$('addDnf').addEventListener('click',function(){ dnfPick(); });
 $('addMissed').addEventListener('click',function(){
   var n=S.fin.length, timeDirty=false;
   function idxOf(v){ var k=parseInt(String(v).replace(/[^0-9]/g,''),10); return isFinite(k)?k-1:null; }
