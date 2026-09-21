@@ -401,6 +401,9 @@ input.code{
   box-shadow:0 10px 0 rgba(0,0,0,.12);
 }
 .gun:active{transform:translateY(4px);box-shadow:0 6px 0 rgba(0,0,0,.12)}
+/* 4.41: armed on a day that is not the event's, waiting for the second tap. */
+.gun.armed{background:var(--danger);font-size:28px}
+.armed-sub.warn{color:var(--danger);font-weight:600}
 
 /* ---------- timing ---------- */
 .clockwrap{
@@ -1055,7 +1058,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.40';
+var BUILD='v4.41';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -2625,7 +2628,14 @@ function patchDist2(m,r){
    that was started has t0Wall from the database even before its finishes are
    read; one never started is never read, and holds nothing. */
 function hasResults(m){
-  return (m.races||[]).some(function(r){ return (r.fin&&r.fin.length) || r.t0Wall!=null; });
+  return (m.races||[]).some(function(r){
+    if(r.fin && r.fin.length) return true;
+    if(r.t0Wall==null) return false;
+    /* 4.41: a race this phone timed and ended with nobody in it is known to be
+       empty, since the timer holds every finish. It no longer turns a delete
+       into a hide, which the database would have allowed anyway (0012). */
+    return !(ownsRace(r) && raceState(r)==='done' && !r.pulled);
+  });
 }
 /* A delete the policy refuses is not an error to PostgREST: it deletes no
    rows and says 204. So the rows come back, and none means refused, or the
@@ -3962,9 +3972,14 @@ function unhideMeet(id){
   saveSeason(); renderHidden();
   if(!signedIn()){ hiddenMsg('Sign in and it comes back with the next refresh.',true); return; }
   hiddenMsg('Bringing it back...',false);
+  var before=lastPull;
   ensureFresh().then(function(ok){ return ok ? pullMeets() : false; }).then(function(ch){
     if(ch) saveSeason();
-    hiddenMsg(findMeet(id) ? 'Back on home.' : 'It comes back with the next refresh.', !findMeet(id));
+    /* 4.41: a pull that went through and did not bring it back means it is
+       not in the database any more, deleted there. */
+    hiddenMsg(findMeet(id) ? 'Back on home.'
+      : lastPull!==before ? 'It is no longer in the database, so there is nothing to bring back.'
+      : 'It comes back with the next refresh.', !findMeet(id));
   }, function(){ hiddenMsg('It comes back with the next refresh.',true); });
 }
 function renderAbout(){
@@ -4258,11 +4273,21 @@ function oneButton(){ return ttRace() || multiCoach(); }
    reading the race every few seconds, and moves to naming by itself once the
    timer's start is in the database. */
 var armedWait=false, waitTimer=null, WAIT_MS=3000;
+/* 4.41: the gun on any day but the event's date takes a second tap, and the
+   line above it says why before anyone touches it. A test event is for
+   practice, any day, so it starts on one tap. */
+function offDay(){
+  if(!S || !S.date) return false;
+  var m=findMeet(S.meetId);
+  return !(m && m.test) && S.date!==todayStr();
+}
 function renderArmed(){
-  var w=armedWait;
+  var w=armedWait, off=!w && offDay();
   $('gun').style.display = w ? 'none' : '';
   $('nameWait').style.display = w ? '' : 'none';
-  $('armedSub').textContent = !w ? 'Hold the phone in your dominant hand and put your thumb on the button.'
+  $('armedSub').classList.toggle('warn', off);
+  $('armedSub').textContent = off ? 'This event is dated '+fmtDate(S.date)+', not today. Start takes a second tap.'
+    : !w ? 'Hold the phone in your dominant hand and put your thumb on the button.'
     : signedIn() ? 'Waiting for the timer to start the clock.'
                  : 'Sign in to follow the timer\u2019s phone. Settings > Account.';
 }
@@ -5453,7 +5478,10 @@ $('mtypeTT').addEventListener('click',function(){ if(editingMeet) return; newTyp
 $('mdist').addEventListener('change',function(){ renderDist2(); splitPick=null; renderSplitCfg(); });
 $('msplit').addEventListener('change',renderSplitCfg);
 $('mtwo').addEventListener('change',renderDist2);
-$('gun').addEventListener('click',startRace);
+$('gun').addEventListener('click',function(){
+  if(offDay()) armTwoTap(this,'Start anyway?',startRace);
+  else startRace();
+});
 $('nameWait').addEventListener('click',function(){ stopWait(); renderArmed(); });
 $('coachInfo').addEventListener('click',function(){
   infoOpen('Coaches at the finish',[
