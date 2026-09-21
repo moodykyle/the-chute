@@ -656,6 +656,16 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 .hsect.rsect{padding:22px 16px 8px;font-size:22px;border-bottom:1px solid var(--rule)}
 .hsect.rsect:first-child{padding-top:22px}
 #mdist2Wrap{margin-top:14px}
+/* Mile splits, 4.38. A split row keeps its place when tapped, so the next
+   runner in a pack is still under the thumb; the time replaces the grade. */
+.spsub{font-size:13px;color:var(--ink-soft);margin-top:8px}
+.opt.spl{min-height:56px;align-items:center}
+.opt.spl.done{color:var(--ink-soft);font-weight:500}
+.opt.spl.done .og{color:var(--tape);font-weight:600;font-size:16px}
+.opt.spl.armed{background:var(--home-wash)}
+.opt.spl.hit{animation:splHit .5s ease-out}
+@keyframes splHit{from{background:var(--home-wash)}to{background:transparent}}
+.spempty{padding:20px 16px;color:var(--ink-soft)}
 </style>
 </head>
 <body>
@@ -983,6 +993,20 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
   </div>
 </section>
 
+<!-- MILE SPLITS -->
+<section class="screen" id="split">
+  <div class="bar nav">
+    <button class="linkbtn icon" id="splitHome" aria-label="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7"/><path d="M6.5 9.5V20h4v-5.5h3V20h4V9.5"/></svg></button>
+    <h1 class="navmid nt">Mile splits</h1>
+    <span aria-hidden="true"></span>
+  </div>
+  <div class="rhead"><div class="rid"><span class="ridtext" id="splitName"></span></div><div class="rwhen num" id="splitCount"></div></div>
+  <div class="seg2" id="splitSeg"></div>
+  <div class="seg2" id="splitMarks"></div>
+  <div class="clockwrap"><div class="clock num" id="splitClock">0:00</div><div class="spsub" id="splitSub"></div></div>
+  <div class="scroll" id="splitList"></div>
+</section>
+
 </div>
 
 <!-- ASSIGN SHEET -->
@@ -1018,7 +1042,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.37';
+var BUILD='v4.38';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1230,6 +1254,10 @@ var HOW=[
   'Every phone needs the roster before race day, or it has no names to pick from. If it wasn\u2019t loaded when you first signed in, go to <b>Settings &gt; Roster &gt; Load roster from database</b>. A phone without one also gets a reminder with a <b>Load roster</b> button when it opens a race to name.',
   'A meet\u2019s girls and boys races each have their own clock, so two coaches can time overlapping races, one phone each.',
   'Set <b>Coaches at the finish</b> to <b>Two or more</b> on the event and each phone picks its job on the event card before the gun: <b>Start clock</b> or <b>Name runners</b>. The timer gets one big <b>Finisher</b> button for everyone, and the namer\u2019s names mark our runners. Edit race opens on <b>All</b>, since places are unnamed until the namer gets to them.']},
+ {t:'Mile splits', p:[
+  'A coach at the mile marker can take splits. Open the meet on home and tap <b>Mile splits</b>. It runs on its own phone, beside the timer and the namer, and changes nothing they do.',
+  'Our runners are listed in the order they\u2019re likely to come by. Tap each one as they pass. The row stays put and shows the split, so the next runner is still under your thumb. Tapped the wrong one? Tap it twice to take it back.',
+  'A missed split is just missing. Splits show on Results beside the runner and in Copy CSV, once that runner has a name at the finish.']},
  {t:'Meets and scoring', p:[
   'A team score is the sum of the places of its first five finishers. Low score wins. The sixth and seventh are <b>displacers</b>: they don\u2019t score, but they push other teams\u2019 runners back a place.',
   'Results show the score, the five places that make it, and the pack: the average time of the five, and the spread from first to fifth.',
@@ -1364,7 +1392,7 @@ function show(id){
     var sc=document.querySelectorAll('#'+id+' .scroll');
     for(var j=0;j<sc.length;j++) sc[j].scrollTop=0;
   }
-  if(S && ['rosterEdit','home','meet','backup','signin','settings','account','about','resPrefs','howto'].indexOf(id)<0) { S.screen=id; save(); }
+  if(S && ['rosterEdit','home','meet','backup','signin','settings','account','about','resPrefs','howto'].indexOf(id)<0 && id!=='split') { S.screen=id; save(); }
   if(id==='home'){
     renderHome(); hintRoster();
     /* Pull as home opens, so a meet created on the other phone is there when
@@ -1382,7 +1410,9 @@ function show(id){
   if(id==='howto') renderHow();
   if(id==='resPrefs') renderResPrefs();
   if(id==='timing'){ startClock(); renderDeck(); } else stopClock();
-  if(wantAwake() && (id==='timing' || id==='recon')) keepAwake(); else releaseAwake();
+  if(wantAwake() && (id==='timing' || id==='recon')) keepAwake(); else if(id!=='split') releaseAwake();
+  if(id==='split'){ renderSplit(); spStart(); keepAwake(); } else spStop();
+  if(id==='results') pullSplitsSoon();
   if(id==='recon'){
     pullDnfSoon();
     renderRecon();
@@ -1413,7 +1443,7 @@ function wantAwake(){
   return S.screen==='timing' || (S.screen==='recon' && remoteRace(currentRace()));
 }
 document.addEventListener('visibilitychange',function(){
-  if(document.visibilityState==='visible' && wantAwake()) keepAwake();
+  if(document.visibilityState==='visible' && (wantAwake() || onScreen('split'))) keepAwake();
 });
 
 /* ---------- clock ---------- */
@@ -2821,8 +2851,8 @@ function pollTick(){
 
 function syncTick(){
   if(syncBusy) return;
-  var w=syncWork(null), pend=pendingAthletes(), dq=pendingDnf();
-  if((!w.total && !pend.length && !dq.length) || !signedIn() || navigator.onLine===false){ renderSyncViews(); return; }
+  var w=syncWork(null), pend=pendingAthletes(), dq=pendingDnf(), sq=pendingSplits();
+  if((!w.total && !pend.length && !dq.length && !sq.length) || !signedIn() || navigator.onLine===false){ renderSyncViews(); return; }
   syncBusy=true;
   ensureFresh().then(function(ok){
     if(!ok){ syncErr='Sign in again to save'; return false; }
@@ -2834,7 +2864,8 @@ function syncTick(){
         var w2=syncWork(null);
         return (w2.total ? syncDrain(w2,home) : Promise.resolve(true)).then(function(ok){
           /* After the drain, so a race inserted this cycle is already there. */
-          return pushDnf(pendingDnf()).then(function(){ return ok; });
+          /* Splits last of all: nothing waits on them. */
+          return pushDnf(pendingDnf()).then(function(){ return pushSplits(pendingSplits()); }).then(function(){ return ok; });
         });
       });
     });
@@ -3273,6 +3304,290 @@ function pullDnfSoon(){
   });
 }
 
+/* ---------- mile splits (4.38) ----------
+   A coach at the mile marker taps our runners by name as they pass. Best
+   effort: a split nobody tapped is just missing, and nothing else reads it.
+   It lives on the race, beside the finishes and never on them, and this
+   screen never touches S, the timer or the namer: a phone splitting a race
+   is not timing it or naming it.
+
+   Local shape, on the race in the season: r.splits = [{cid, a, n, g, m, at,
+   up}], the same identity as a DNF (athlete id, or a name for a walk-on),
+   the mark in metres, and the phone's wall clock at the tap. Elapsed comes
+   from the race's start when this phone has it, plus any shift, so a phone
+   that never heard the gun still records correctly. r.splitGone holds ids to
+   delete. 0015 holds the rows in race_splits, one per runner per mark. */
+var SPLIT_KEY='chute.split.v1', MILE_M=1609.344, SPLIT_POLL_MS=3000, SPLIT_IDLE_MS=30000;
+var SP=null, spTimer=null, spClock=null, spLastRead=0, spBusy=false;
+function splitList(r){ return (r && r.splits) || []; }
+/* Every whole mile short of the finish. A 2 mile race has one, a 5K three. */
+function splitMarks(m){
+  var d=distMeters(m && m.dist), out=[];
+  if(!d) return out;
+  for(var k=1; k*MILE_M<d-1; k++) out.push(Math.round(k*MILE_M));
+  return out;
+}
+function markLabel(mk){ return 'Mile '+Math.round(mk/MILE_M); }
+/* Races a splitter can work: a meet's girls and boys, not a time trial. */
+function splitRaces(m){ return (!m || isTT(m)) ? [] : (m.races||[]).filter(function(r){ return r.division!=='Mixed'; }); }
+function splittable(m){
+  return !!m && splitRaces(m).some(function(r){ return raceState(r)!=='done'; }) && splitMarks(m).length>0;
+}
+function splitKeyOf(d,map){
+  if(d.a) return 'a:'+d.a;
+  return (d.n && d.g) ? 'n:'+histKey({g:d.g, name:d.n}) : null;
+}
+function splitElapsed(r,d){
+  if(!r || r.t0Wall==null || d.at==null) return null;
+  return d.at-r.t0Wall+(r.shift||0);
+}
+/* One race's splits by runner, for Results and the CSV: key to {mark: ms}. */
+function splitsByRunner(r){
+  var out={}, n=0;
+  splitList(r).forEach(function(d){
+    var k=splitKeyOf(d), ms=splitElapsed(r,d);
+    if(!k || ms==null) return;
+    (out[k]=out[k]||{})[d.m]=ms; n++;
+  });
+  return n ? out : null;
+}
+function splitMarksIn(r){
+  var seen={};
+  splitList(r).forEach(function(d){ if(splitElapsed(r,d)!=null) seen[d.m]=1; });
+  return Object.keys(seen).map(Number).sort(function(a,b){ return a-b; });
+}
+function finSplitKey(f,map){ return f.h ? recKey(f,map) : null; }
+
+function spRace(){ var f=SP ? findRace(SP.mid,SP.rid) : null; return f ? f.race : null; }
+function spMeet(){ return SP ? findMeet(SP.mid) : null; }
+function spSave(){ try{ if(SP) localStorage.setItem(SPLIT_KEY,JSON.stringify(SP)); else localStorage.removeItem(SPLIT_KEY); }catch(e){} }
+function openSplit(mid,rid){
+  var m=findMeet(mid); if(!m) return;
+  var races=splitRaces(m); if(!races.length) return;
+  var r=null;
+  races.forEach(function(x){ if(x.id===rid) r=x; });
+  if(!r) r=races.filter(function(x){ return raceState(x)!=='done'; })[0] || races[0];
+  var marks=splitMarks(m);
+  SP={mid:mid, rid:r.id, mark:(SP && SP.mid===mid && marks.indexOf(SP.mark)>=0) ? SP.mark : marks[0]};
+  spSave();
+  show('split');
+}
+function closeSplit(){ SP=null; spSave(); spStop(); }
+function spStop(){
+  if(spTimer){ clearInterval(spTimer); spTimer=null; }
+  if(spClock){ clearInterval(spClock); spClock=null; }
+}
+function spStart(){
+  spStop();
+  spLastRead=0;
+  spTimer=setInterval(spTick,SPLIT_POLL_MS);
+  spClock=setInterval(spRenderClock,250);
+  spTick();
+}
+/* The roster for this race in the order they are likely to come by: best at
+   today's distance, then last race, then roster order. The same order the
+   naming sheet uses, worked out without S. */
+function spRunners(){
+  var m=spMeet(), r=spRace(); if(!m || !r) return [];
+  var g=divOf(r), map=aidMap(), ctx={m:m, r:r, idx:recordsIndex(), map:map}, d=distMeters(m.dist), bm={};
+  var list=buildRoster().filter(function(x){ return !x.dead && x.g===g; });
+  if(d) list.forEach(function(x){ var b=bestAt(rosterKey(x,map),d,ctx); if(b) bm[x.id]=b.ms; });
+  return list.sort(function(a,b){
+    var ba=bm[a.id], bb=bm[b.id];
+    if(ba!=null && bb!=null) return ba-bb;
+    if(ba!=null) return -1;
+    if(bb!=null) return 1;
+    var pa=priorOf(a), pb=priorOf(b);
+    if(pa&&pb&&pa.m&&pb.m&&pa.m!==pb.m) return pa.ms/pa.m-pb.ms/pb.m;
+    if(pa&&pb) return pa.ms-pb.ms;
+    if(pa) return -1;
+    if(pb) return 1;
+    return a.ord-b.ord;
+  });
+}
+function spFind(r,x,mk,map){
+  var k=rosterKey(x,map);
+  return splitList(r).filter(function(d){ return d.m===mk && splitKeyOf(d,map)===k; })[0] || null;
+}
+function spTimeText(r,d){
+  var ms=splitElapsed(r,d);
+  return ms==null ? 'Split' : fmt(ms,1);
+}
+function renderSplit(){
+  var m=spMeet(), r=spRace();
+  if(!m || !r){ closeSplit(); show('home'); return; }
+  var races=splitRaces(m), marks=splitMarks(m);
+  $('splitName').textContent=m.name;
+  var seg=$('splitSeg');
+  seg.innerHTML='';
+  seg.style.display = races.length>1 ? '' : 'none';
+  races.forEach(function(x){
+    var b=document.createElement('button'); b.type='button';
+    b.textContent=x.division; b.setAttribute('aria-pressed', x.id===r.id ? 'true' : 'false');
+    b.addEventListener('click',function(){ if(x.id!==SP.rid){ SP.rid=x.id; spSave(); spLastRead=0; renderSplit(); spTick(); } });
+    seg.appendChild(b);
+  });
+  var ms=$('splitMarks');
+  ms.innerHTML='';
+  ms.style.display = marks.length>1 ? '' : 'none';
+  marks.forEach(function(mk){
+    var b=document.createElement('button'); b.type='button';
+    b.textContent=markLabel(mk); b.setAttribute('aria-pressed', mk===SP.mark ? 'true' : 'false');
+    b.addEventListener('click',function(){ SP.mark=mk; spSave(); renderSplit(); });
+    ms.appendChild(b);
+  });
+  spRenderClock();
+  renderSplitList();
+}
+function spRenderClock(){
+  var r=spRace(); if(!r || !onScreen('split')) return;
+  var c=$('splitClock'), sub=$('splitSub');
+  if(r.t0Wall==null){
+    c.textContent='0:00';
+    sub.textContent = signedIn() ? 'Waiting for the timer to start the clock. Taps before then still count.'
+                                 : 'Sign in to follow the timer\u2019s phone. Settings > Account.';
+  } else {
+    var el=(r.endedMs!=null ? r.endedMs : Date.now()-r.t0Wall)+(r.shift||0);
+    c.textContent=fmt(el,0);
+    sub.textContent = r.endedMs!=null ? 'Race over' : markLabel(SP.mark)+'. Tap each runner as they pass.';
+  }
+}
+function renderSplitList(){
+  var r=spRace(), l=$('splitList'); if(!r) return;
+  var map=aidMap(), list=spRunners(), mk=SP.mark;
+  l.innerHTML='';
+  if(!list.length){
+    l.innerHTML='<p class="spempty">No roster on this phone. Settings > Roster.</p>';
+    return;
+  }
+  list.forEach(function(x){
+    var b=document.createElement('button');
+    b.type='button';
+    spPaint(b,r,x,mk,map);
+    b.addEventListener('click',function(){ spTap(b,x); });
+    l.appendChild(b);
+  });
+  var n=splitList(r).filter(function(d){ return d.m===mk; }).length;
+  $('splitCount').textContent = n+' of '+list.length+' split';
+}
+function spPaint(b,r,x,mk,map){
+  var d=spFind(r,x,mk,map);
+  b.className='opt home spl'+(d?' done':'');
+  b.innerHTML='<span class="on">'+esc(x.name)+'</span><span class="og">'+(d ? esc(spTimeText(r,d)) : (x.grade?esc(x.grade)+'th':''))+'</span>';
+}
+/* A tap records the runner in place: the row stays where it is, so the next
+   name is still under the thumb in a pack. A tap on a row already split asks
+   for a second tap to take it back. */
+function spTap(b,x){
+  var r=spRace(); if(!r) return;
+  var map=aidMap(), mk=SP.mark, d=spFind(r,x,mk,map);
+  if(d){
+    armTwoTap(b,'Tap again to undo',function(){ spRemove(r,d.cid); spPaint(b,r,x,mk,aidMap()); spCount(); });
+    return;
+  }
+  var a=map[histKey(x)]||null;
+  (r.splits=r.splits||[]).push({cid:uid(), a:a, n:x.name, g:x.g, m:mk, at:Date.now(), up:false});
+  saveSeason();
+  spPaint(b,r,x,mk,map);
+  replay(b,'hit');
+  spCount();
+}
+function spCount(){
+  var r=spRace(); if(!r) return;
+  var n=splitList(r).filter(function(d){ return d.m===SP.mark; }).length;
+  $('splitCount').textContent = n+' of '+$('splitList').querySelectorAll('.opt.spl').length+' split';
+}
+function spRemove(r,cid){
+  var d=splitList(r).filter(function(x){ return x.cid===cid; })[0];
+  if(!d) return;
+  r.splits=splitList(r).filter(function(x){ return x.cid!==cid; });
+  if(d.up) (r.splitGone=r.splitGone||[]).push(cid);
+  saveSeason();
+}
+/* Only the race row: the start, the end and any shift. Every few seconds
+   until the gun, then every half minute, which is all a split needs. */
+function spTick(){
+  var r=spRace();
+  if(!r || !onScreen('split')){ spStop(); return; }
+  if(spBusy || !signedIn() || navigator.onLine===false || !r.up || !UUID_RE.test(r.id)) return;
+  if(r.t0Wall!=null && Date.now()-spLastRead<SPLIT_IDLE_MS) return;
+  spBusy=true;
+  ensureFresh().then(function(ok){
+    if(!ok) return false;
+    return sbFetch('/rest/v1/races?select='+RACE_COLS+'&id=eq.'+r.id,{auth:true}).then(function(res){
+      if(!res.ok) return false;
+      spLastRead=Date.now();
+      var sr=res.data && res.data[0];
+      return !!(sr && (!ownsRace(r) || r.t0Wall==null) && !r.d && applyRaceRow(r,sr));
+    });
+  }).then(function(ch){
+    spBusy=false;
+    if(ch){ saveSeason(); if(onScreen('split')){ spRenderClock(); renderSplitList(); } }
+  }, function(){ spBusy=false; });
+}
+/* Races with something to send, in a race the database already has. */
+function pendingSplits(){
+  var out=[];
+  SEASON.meets.forEach(function(m){ (m.races||[]).forEach(function(r){
+    if(!r.up || resting({bad:r.splitBad})) return;
+    if(splitList(r).some(function(d){ return !d.up; }) || (r.splitGone&&r.splitGone.length)) out.push(r);
+  }); });
+  return out;
+}
+function splitBody(r,d){
+  return {id:d.cid, race_id:r.id, athlete_id:d.a||null, runner_name:d.a?null:(d.n||null),
+          runner_division:d.a?null:(d.g==='F'||d.g==='M'?d.g:null), split_m:d.m, tapped_at:isoAt(d.at)};
+}
+/* Sent after everything else, one row at a time, the way DNFs are: a 409 is
+   the same runner split from another phone. A failure here only rests the
+   splits; the finishes went up before it. */
+function pushSplits(list){
+  return seq(list,function(r){
+    var fresh=splitList(r).filter(function(d){ return !d.up; }), bad=false;
+    return seq(fresh,function(d){
+      return sbFetch('/rest/v1/race_splits',{method:'POST', auth:true, prefer:'resolution=ignore-duplicates,return=minimal', body:splitBody(r,d)})
+        .then(function(res){ if(res.ok || res.status===409) d.up=true; else bad=true; });
+    }).then(function(){
+      var gone=(r.splitGone||[]).slice();
+      if(!gone.length) return;
+      return sbFetch('/rest/v1/race_splits?id='+inList(gone),{method:'DELETE', auth:true, prefer:'return=minimal'})
+        .then(function(res){ if(res.ok) r.splitGone=(r.splitGone||[]).filter(function(c){ return gone.indexOf(c)<0; }); else bad=true; });
+    }).then(function(){
+      if(bad) r.splitBad=Date.now(); else delete r.splitBad;
+      saveSeason();
+      return true;
+    });
+  }).then(function(){ return true; }, function(){ return true; });
+}
+/* The database's list wins for everything this phone already sent, as with
+   DNFs. Rows still waiting to go up, and deletes still waiting, stay. */
+function pullSplits(r){
+  if(!r || !r.up || !UUID_RE.test(r.id)) return Promise.resolve(false);
+  return sbFetch('/rest/v1/race_splits?select=id,athlete_id,runner_name,runner_division,split_m,tapped_at,athletes(first_name,last_name,division)&race_id=eq.'+r.id,{auth:true})
+    .then(function(res){
+      if(!res.ok || !Array.isArray(res.data)) return false;
+      var gone=r.splitGone||[], mine=splitList(r).filter(function(d){ return !d.up; });
+      var from=res.data.filter(function(x){ return gone.indexOf(x.id)<0; }).map(function(x){
+        var a=x.athletes||null;
+        return {cid:x.id, a:x.athlete_id||null, m:x.split_m, at:Date.parse(x.tapped_at), up:true,
+                n: a ? String((a.first_name||'')+' '+(a.last_name||'')).trim() : (x.runner_name||''),
+                g: a ? a.division : (x.runner_division||null)};
+      });
+      var next=from.concat(mine.filter(function(d){ return !from.some(function(f){ return f.cid===d.cid; }); }));
+      var key=function(l){ return l.map(function(d){ return d.cid+'|'+d.m+'|'+d.at+(d.up?1:0); }).sort().join(','); };
+      if(key(next)===key(splitList(r))) return false;
+      r.splits=next;
+      return true;
+    }, function(){ return false; });
+}
+function pullSplitsSoon(){
+  var r=currentRace();
+  if(!r || !signedIn() || navigator.onLine===false) return;
+  ensureFresh().then(function(ok){ return ok ? pullSplits(r) : false; }).then(function(ch){
+    if(ch){ saveSeason(); if(onScreen('results')) renderResults(); }
+  }, function(){});
+}
+
 /* ---------- sign in screen ---------- */
 var siPhase='email', siEmail='', siUntil=0, siTimer=null, siBusy=false;
 function validEmail(s){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s).trim()); }
@@ -3661,6 +3976,15 @@ function meetCard(m,today){
   var p=document.createElement('div');
   p.className='mpanel';
   m.races.forEach(function(r){ p.appendChild(raceRow(m,r)); });
+  /* 4.38: a coach at the mile marker. Its own screen, so it never passes a
+     Start button and never touches the timing or naming phones' work. */
+  if(splittable(m)){
+    var sl=document.createElement('button');
+    sl.className='morelink';
+    sl.textContent='Mile splits';
+    sl.addEventListener('click',function(){ openSplit(m.id,null); });
+    p.appendChild(sl);
+  }
   var edit=document.createElement('button');
   edit.className='morelink';
   edit.textContent='Edit event';
@@ -4351,6 +4675,16 @@ function renderResults(){
      segment above says whose finishers these are, and the count was the list
      restating its own length. */
   var rp=resPrefs(), rctx=recCtx();
+  /* 4.38: a mile split, when the mile marker had someone on it. Always shown
+     when there is one, since nobody taps a split they did not want to see. */
+  var spl=splitsByRunner(currentRace()), smap=spl?aidMap():null;
+  function splTags(f,tags){
+    var got=spl && spl[finSplitKey(f,smap)];
+    if(!got) return;
+    Object.keys(got).map(Number).sort(function(a,b){ return a-b; }).forEach(function(mk){
+      tags.push(markLabel(mk)+' '+fmt(got[mk],1));
+    });
+  }
   if(resFull){
     var seen=0;
     S.fin.forEach(function(f,i){
@@ -4360,6 +4694,7 @@ function renderResults(){
         if(rp.grade && run && run.grade) tags.push(run.grade+'th');
         if(rp.disp && scoringRole(seen)==='displacer') tags.push('displacer');
         var rec=recOf(f,rctx); if(rec) tags.push(recHtml(rec));
+        splTags(f,tags);
       }
       var who = nm ? esc(nm) : (f.h ? 'needs a name' : 'Field');
       var cls = nm ? '' : (f.h ? ' pending' : ' anon');
@@ -4371,6 +4706,7 @@ function renderResults(){
       if(rp.grade && r.grade) tags.push(r.grade+'th');
       if(rp.disp && scoringRole(i+1)==='displacer') tags.push('displacer');
       var rec=recOf(r.f,rctx); if(rec) tags.push(recHtml(rec));
+      splTags(r.f,tags);
       h+=resRow(' home', r.place, r.name?esc(r.name):'needs a name', r.name?'':' pending', tags, r.ms, rp);
     });
   }
@@ -4578,13 +4914,20 @@ function buildCsv(full){
   if(full===undefined) full=resFull;
   var meet=S.name.replace(/, (Girls|Boys)$/,'');
   var p=ourPlaces(), top5=p.slice(0,5), scored=p.length>=5;
+  /* 4.38: a column per mile only when a split was taken, so a race without
+     them copies exactly as it always has. */
+  var sr=currentRace(), spl=splitsByRunner(sr), smarks=spl?splitMarksIn(sr):[], smap=spl?aidMap():null;
+  function splCells(f){
+    var got=spl && spl[finSplitKey(f,smap)];
+    return smarks.map(function(mk){ return ','+(got && got[mk]!=null ? fmt(got[mk],1) : ''); }).join('');
+  }
   var out='date,meet,distance,division,team,team_score,scoring_places,our_finishers,field_size\n'+
     csvCell(S.date||'')+','+csvCell(meet)+','+csvCell(meetDist())+','+
     csvCell(S.division)+','+csvCell(S.team)+','+
     (scored?top5.reduce(function(a,b){return a+b;},0):'')+','+
     (scored?top5.join('+'):'')+','+
     p.length+','+S.fin.length+'\n\n'+
-    'place,time,runner,team,grade,scoring,record\n';
+    'place,time,runner,team,grade,scoring,record'+smarks.map(function(mk){ return ',mile_'+Math.round(mk/MILE_M); }).join('')+'\n';
   /* The record column is data, so it is there whatever the display switch
      says. PR or SR, blank otherwise. */
   var seen=0, rx=recCtx(true);
@@ -4594,12 +4937,12 @@ function buildCsv(full){
     if(!full && !f.h) return;
     var r=runnerById(f.r);
     out+=(i+1)+','+fmt(f.ms,3)+(f.m?'*':'')+','+csvCell((nameOf(f.r)||f.n||null)||'')+','+
-         csvCell(f.h?S.team:'')+','+(r&&r.grade?r.grade:'')+','+sc+','+((recOf(f,rx)||{}).tag||'')+'\n';
+         csvCell(f.h?S.team:'')+','+(r&&r.grade?r.grade:'')+','+sc+','+((recOf(f,rx)||{}).tag||'')+splCells(f)+'\n';
   });
   /* No place and no time, and the status where the place would be. */
   dnfShown().forEach(function(d){
     var r=dnfRunner(d);
-    out+=d.s+',,'+csvCell(d.n||'')+','+csvCell(S.team)+','+(r&&r.grade?r.grade:'')+',,\n';
+    out+=d.s+',,'+csvCell(d.n||'')+','+csvCell(S.team)+','+(r&&r.grade?r.grade:'')+',,'+smarks.map(function(){ return ','; }).join('')+'\n';
   });
   return out;
 }
@@ -5040,6 +5383,7 @@ $('mtest').addEventListener('change',function(){
 /* Test races seed the picker the same way real ones do, because commitHistory
    cannot tell them apart. This is the way out, and it is deliberately the only
    thing in the app that deletes anything other than a meet. */
+$('splitHome').addEventListener('click',function(){ closeSplit(); show('home'); });
 $('histClear').addEventListener('click',function(){
   armTwoTap(this,'Tap again to clear',function(){
     HIST={};
@@ -5231,6 +5575,13 @@ document.addEventListener('keydown',function(e){
   }
   try{ localStorage.removeItem(KEY); }catch(e){}
   S=null;
+  /* A phone that was splitting goes back to it, while the race is still on. */
+  try{
+    var sp=JSON.parse(localStorage.getItem(SPLIT_KEY)||'null');
+    var sf=sp && findRace(sp.mid,sp.rid);
+    if(sf && raceState(sf.race)!=='done' && splittable(sf.meet)){ SP=sp; show('split'); return; }
+    localStorage.removeItem(SPLIT_KEY);
+  }catch(e){}
   show('home');
 })();
 })();
