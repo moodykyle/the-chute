@@ -184,7 +184,7 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
 /* 4.35: Name runners beside Start clock. An action, like Start clock, not a
    look-back like Results, so it keeps the red and loses only the fill. */
 .rbtn.outline{background:transparent;color:var(--ink);border:1px solid var(--red)}
-/* 4.38: with Track splits there are three jobs on one row, so each label
+/* 4.38: with Record splits there are three jobs on one row, so each label
    drops to the status line's size and stacks its two words. */
 .rrace .rbtns.three{gap:6px}
 .rrace .rbtns.three .rbtn{font-size:12px;line-height:1.15;padding:6px 10px;width:min-content;min-width:64px}
@@ -670,6 +670,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 .opt.spl.hit{animation:splHit .5s ease-out}
 @keyframes splHit{from{background:var(--home-wash)}to{background:transparent}}
 .spempty{padding:20px 16px;color:var(--ink-soft)}
+.hsect.rsect.spdone{padding-top:26px}
 </style>
 </head>
 <body>
@@ -1259,8 +1260,8 @@ var HOW=[
   'A meet\u2019s girls and boys races each have their own clock, so two coaches can time overlapping races, one phone each.',
   'Set <b>Coaches at the finish</b> to <b>Two or more</b> on the event and each phone picks its job on the event card before the gun: <b>Start clock</b> or <b>Name runners</b>. The timer gets one big <b>Finisher</b> button for everyone, and the namer\u2019s names mark our runners. Edit race opens on <b>All</b>, since places are unnamed until the namer gets to them.']},
  {t:'Mile splits', p:[
-  'A coach at the mile marker can take splits. Open the meet on home and tap <b>Track splits</b> on the race. It runs on its own phone, beside the timer and the namer, and changes nothing they do.',
-  'Our runners are listed in the order they\u2019re likely to come by. Tap each one as they pass. The row stays put and shows the split, so the next runner is still under your thumb. Tapped the wrong one? Tap it twice to take it back.',
+  'A coach at the mile marker can take splits. Open the meet on home and tap <b>Record splits</b> on the race. It runs on its own phone, beside the timer and the namer, and changes nothing they do.',
+  'Our runners are listed in the order they\u2019re likely to come by. Tap each one as they pass. The row stays put and shows the split, so the next runner is still under your thumb. In the next gap, split runners move down to <b>Split</b> in the order they passed. Tapped the wrong one? Tap it twice to take it back.',
   'A missed split is just missing. Splits show on Results beside the runner and in Copy CSV, once that runner has a name at the finish.']},
  {t:'Meets and scoring', p:[
   'A team score is the sum of the places of its first five finishers. Low score wins. The sixth and seventh are <b>displacers</b>: they don\u2019t score, but they push other teams\u2019 runners back a place.',
@@ -3332,6 +3333,9 @@ function splitMarks(m){
   return out;
 }
 function markLabel(mk){ return 'Mile '+Math.round(mk/MILE_M); }
+/* On a results row. A two mile race has one mark, so it is just Split; with
+   more, the mile as a unit word, so no two numbers sit side by side. */
+function splitTag(mk){ return splitMarks(curMeet()).length>1 ? Math.round(mk/MILE_M)+' mi' : 'Split'; }
 /* Races a splitter can work: a meet's girls and boys, not a time trial. */
 function splitRaces(m){ return (!m || isTT(m)) ? [] : (m.races||[]).filter(function(r){ return r.division!=='Mixed'; }); }
 function splitRowOk(m,r,st){
@@ -3339,7 +3343,7 @@ function splitRowOk(m,r,st){
   return !(st==='live' && ownsRace(r));
 }
 function splitBtn(m,r){
-  var b=document.createElement('button'); b.className='rbtn outline'; b.textContent='Track splits';
+  var b=document.createElement('button'); b.className='rbtn outline'; b.textContent='Record splits';
   b.addEventListener('click',function(){ openSplit(m.id,r.id); });
   return b;
 }
@@ -3387,6 +3391,8 @@ function openSplit(mid,rid){
 }
 function closeSplit(){ SP=null; spSave(); spStop(); }
 function spStop(){
+  if(spSettle){ clearTimeout(spSettle); spSettle=null; }
+  spHold={};
   if(spTimer){ clearInterval(spTimer); spTimer=null; }
   if(spClock){ clearInterval(spClock); spClock=null; }
 }
@@ -3462,8 +3468,16 @@ function spRenderClock(){
   } else {
     var el=(r.endedMs!=null ? r.endedMs : Date.now()-r.t0Wall)+(r.shift||0);
     c.textContent=fmt(el,0);
-    sub.textContent = r.endedMs!=null ? 'Race over' : markLabel(SP.mark)+'. Tap each runner as they pass.';
+    sub.textContent = r.endedMs!=null ? 'Race over. Tap a split twice to undo.' : 'Tap runners as they pass. Tap a split twice to undo.';
   }
+}
+/* Rows tapped since the last lull stay where they were tapped, so nothing
+   moves under a thumb in a pack. After SPLIT_SETTLE_MS with no tap they drop
+   into the Split section below, in the order they passed. */
+var spHold={}, spSettle=null, SPLIT_SETTLE_MS=2000;
+function spSettleSoon(){
+  if(spSettle) clearTimeout(spSettle);
+  spSettle=setTimeout(function(){ spSettle=null; spHold={}; if(onScreen('split')) renderSplitList(); },SPLIT_SETTLE_MS);
 }
 function renderSplitList(){
   var r=spRace(), l=$('splitList'); if(!r) return;
@@ -3473,15 +3487,25 @@ function renderSplitList(){
     l.innerHTML='<p class="spempty">No roster on this phone. Settings > Roster.</p>';
     return;
   }
+  var top=[], done=[];
   list.forEach(function(x){
+    var d=spFind(r,x,mk,map);
+    if(d && !spHold[d.cid]) done.push({x:x, at:d.at}); else top.push(x);
+  });
+  done.sort(function(a,b){ return (a.at||0)-(b.at||0); });
+  function add(x){
     var b=document.createElement('button');
     b.type='button';
     spPaint(b,r,x,mk,map);
     b.addEventListener('click',function(){ spTap(b,x); });
     l.appendChild(b);
-  });
-  var n=splitList(r).filter(function(d){ return d.m===mk; }).length;
-  $('splitCount').textContent = n+' of '+list.length+' split';
+  }
+  top.forEach(add);
+  if(done.length){
+    l.insertAdjacentHTML('beforeend','<p class="hsect rsect spdone">Split</p>');
+    done.forEach(function(o){ add(o.x); });
+  }
+  spCount();
 }
 function spPaint(b,r,x,mk,map){
   var d=spFind(r,x,mk,map);
@@ -3495,11 +3519,14 @@ function spTap(b,x){
   var r=spRace(); if(!r) return;
   var map=aidMap(), mk=SP.mark, d=spFind(r,x,mk,map);
   if(d){
-    armTwoTap(b,'Tap again to undo',function(){ spRemove(r,d.cid); spPaint(b,r,x,mk,aidMap()); spCount(); });
+    /* An undo is deliberate, so the runner goes straight back to the list. */
+    armTwoTap(b,'Tap again to undo',function(){ delete spHold[d.cid]; spRemove(r,d.cid); renderSplitList(); });
     return;
   }
-  var a=map[histKey(x)]||null;
-  (r.splits=r.splits||[]).push({cid:uid(), a:a, n:x.name, g:x.g, m:mk, at:Date.now(), up:false});
+  var a=map[histKey(x)]||null, nd={cid:uid(), a:a, n:x.name, g:x.g, m:mk, at:Date.now(), up:false};
+  (r.splits=r.splits||[]).push(nd);
+  spHold[nd.cid]=1;
+  spSettleSoon();
   saveSeason();
   spPaint(b,r,x,mk,map);
   replay(b,'hit');
@@ -3508,7 +3535,7 @@ function spTap(b,x){
 function spCount(){
   var r=spRace(); if(!r) return;
   var n=splitList(r).filter(function(d){ return d.m===SP.mark; }).length;
-  $('splitCount').textContent = n+' of '+$('splitList').querySelectorAll('.opt.spl').length+' split';
+  $('splitCount').textContent = n+' of '+spRunners().length+' split';
 }
 function spRemove(r,cid){
   var d=splitList(r).filter(function(x){ return x.cid===cid; })[0];
@@ -4021,7 +4048,7 @@ function raceRow(m,r){
   /* Two coaches: each phone picks its job here, before the gun, so a namer
      never passes a Start button. Once the clock starts, the other phones
      show Name runners, as above. */
-  /* 4.38: Track splits is a third job, for the coach at the mile marker, on
+  /* 4.38: Record splits is a third job, for the coach at the mile marker, on
      any race still to run or running, except on the phone timing it. It opens
      its own screen, so it never passes a Start button. */
   var spl = splitRowOk(m,r,st);
@@ -4697,7 +4724,7 @@ function renderResults(){
     var got=spl && spl[finSplitKey(f,smap)];
     if(!got) return;
     Object.keys(got).map(Number).sort(function(a,b){ return a-b; }).forEach(function(mk){
-      tags.push(markLabel(mk)+' '+fmt(got[mk],1));
+      tags.push(splitTag(mk)+' '+fmt(got[mk],1));
     });
   }
   if(resFull){
