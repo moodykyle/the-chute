@@ -1055,7 +1055,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.39';
+var BUILD='v4.40';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1268,7 +1268,7 @@ var HOW=[
   'A meet\u2019s girls and boys races each have their own clock, so two coaches can time overlapping races, one phone each.',
   'Set <b>Coaches at the finish</b> to <b>Two or more</b> on the event and each phone picks its job on the event card before the gun: <b>Start clock</b> or <b>Name runners</b>. The timer gets one big <b>Finisher</b> button for everyone, and the namer\u2019s names mark our runners. Edit race opens on <b>All</b>, since places are unnamed until the namer gets to them.']},
  {t:'Mile splits', p:[
-  'A coach out on the course can take splits. On the event, with <b>Coaches at the finish</b> at <b>Two or more</b>, turn on <b>Record splits</b> and tick where they are taken. On the day, open the meet on home and tap <b>Record splits</b> on the race. It runs on its own phone, beside the timer and the namer, and changes nothing they do.',
+  'A coach out on the course can take splits. On the event, turn on <b>Record splits</b> and tick where they are taken. On the day, open the meet on home and tap <b>Record splits</b> on the race. It runs on its own phone, beside the timer and the namer, and changes nothing they do.',
   'Our runners are listed in the order they\u2019re likely to come by. Tap each one as they pass. The row stays put and shows the split, so the next runner is still under your thumb. In the next gap, split runners move down to <b>Split</b> in the order they passed. Tapped the wrong one? Tap it twice to take it back.',
   'A missed split is just missing. Splits show on Results beside the runner and in Copy CSV, once that runner has a name at the finish.']},
  {t:'Meets and scoring', p:[
@@ -1931,13 +1931,13 @@ function renderDist2(){
     ? 'Runners are named at '+locked.join(' and ')+', so '+(locked.length>1?'both stay. Rename them first to change either.':'that stays. Rename them first to change it.')
     : DIST2_HINT;
 }
-/* 4.39: Record splits on the event form. Shown with two or more coaches on
-   a meet whose distance has a split point. splitPick holds the ticks while
+/* 4.39: Record splits on the event form. Shown on a meet whose distance has
+   a split point (4.40: with one coach at the finish too). splitPick holds the ticks while
    the form is open; null means the distance's defaults. */
 var splitPick=null;
 function splitCfgShown(){
   var m=editingMeet?findMeet(editingMeet):null, tt=m ? isTT(m) : (newType==='time_trial');
-  return !tt && $('mcoach').value==='multi' && splitCands($('mdist').value).length>0;
+  return !tt && splitCands($('mdist').value).length>0;
 }
 function renderSplitCfg(){
   var row=$('msplitRow'), box=$('msplitPts'), shown=splitCfgShown(), on=shown && $('msplit').checked;
@@ -3381,8 +3381,7 @@ function pullDnfSoon(){
 var SPLIT_KEY='chute.split.v1', MILE_M=1609.344, SPLIT_POLL_MS=3000, SPLIT_IDLE_MS=30000;
 var SP=null, spTimer=null, spClock=null, spLastRead=0, spBusy=false;
 function splitList(r){ return (r && r.splits) || []; }
-/* 4.39: splits are switched on per event, with two or more coaches, and the
-   event holds the points in metres (m.splits, meets.split_marks). The points
+/* 4.39: splits are switched on per event, and the event holds the points in metres (m.splits, meets.split_marks). The points
    a distance offers: on the track every lap, 400m; otherwise every whole mile
    short of the finish, or halfway when the race is a mile or less. */
 function isTrackDist(s){ return /^\d+\s*m$/i.test(String(s||'').trim()); }
@@ -3407,9 +3406,11 @@ function marksOf(v){
   return out.length ? out : null;
 }
 function sameMarks(a,b){ a=marksOf(a); b=marksOf(b); return (a?a.join(','):'')===(b?b.join(','):''); }
-/* The points the splitter works from. Nothing unless the event has them on. */
+/* The points the splitter works from. Nothing unless the event has them on.
+   4.40: whatever the coach setting. That setting is about the finish, and a
+   splitter stands somewhere else. */
 function splitMarks(m){
-  if(!m || isTT(m) || coachMode(m)!=='multi') return [];
+  if(!m || isTT(m)) return [];
   var d=distMeters(m.dist);
   return (marksOf(m.splits)||[]).filter(function(x){ return !d || x<d-1; });
 }
@@ -3537,7 +3538,8 @@ function renderSplit(){
   seg.style.display = races.length>1 ? '' : 'none';
   races.forEach(function(x){
     var b=document.createElement('button'); b.type='button';
-    b.textContent=x.division; b.setAttribute('aria-pressed', x.id===r.id ? 'true' : 'false');
+    b.setAttribute('data-rid', x.id);
+    b.textContent=spTabText(x); b.setAttribute('aria-pressed', x.id===r.id ? 'true' : 'false');
     b.addEventListener('click',function(){ if(x.id!==SP.rid){ SP.rid=x.id; spSave(); spLastRead=0; renderSplit(); spTick(); } });
     seg.appendChild(b);
   });
@@ -3553,8 +3555,23 @@ function renderSplit(){
   spRenderClock();
   renderSplitList();
 }
+/* 4.40: each race's tab says whether it is running, so the splitter can see
+   they are on the live race and which tab to move to once it ends. The tab
+   never switches by itself. */
+function spTabText(x){
+  var st=raceState(x);
+  return x.division+' \u00b7 '+(st==='live' ? 'Live' : st==='done' ? 'Done' : 'Not started');
+}
+function spRenderTabs(){
+  var m=spMeet(); if(!m) return;
+  [].slice.call($('splitSeg').querySelectorAll('button')).forEach(function(b){
+    var f=findRace(m.id, b.getAttribute('data-rid')), t=f ? spTabText(f.race) : null;
+    if(t && b.textContent!==t) b.textContent=t;
+  });
+}
 function spRenderClock(){
   var r=spRace(); if(!r || !onScreen('split')) return;
+  spRenderTabs();
   var c=$('splitClock'), sub=$('splitSub');
   if(r.t0Wall==null){
     c.textContent='0:00';
@@ -5434,7 +5451,6 @@ $('nextBand').addEventListener('click',function(){
 $('mtypeMeet').addEventListener('click',function(){ if(editingMeet) return; newType='meet'; renderMeetType(null); });
 $('mtypeTT').addEventListener('click',function(){ if(editingMeet) return; newType='time_trial'; renderMeetType(null); });
 $('mdist').addEventListener('change',function(){ renderDist2(); splitPick=null; renderSplitCfg(); });
-$('mcoach').addEventListener('change',renderSplitCfg);
 $('msplit').addEventListener('change',renderSplitCfg);
 $('mtwo').addEventListener('change',renderDist2);
 $('gun').addEventListener('click',startRace);
@@ -5443,8 +5459,7 @@ $('coachInfo').addEventListener('click',function(){
   infoOpen('Coaches at the finish',[
     '<b>One:</b> the timer marks our runners as they cross, with a team button and a field button, then names them.',
     '<b>Two or more:</b> the timer taps one button for every finisher, and a second coach names ours on another phone as places come in. Naming a place is what makes it ours, so that job moves off the timer.',
-    'Each phone picks its job on the event card before the gun: <b>Start clock</b> or <b>Name runners</b>.',
-    'With two or more, <b>Record splits</b> adds a third job, a coach at a split point on the course.']);
+    'Each phone picks its job on the event card before the gun: <b>Start clock</b> or <b>Name runners</b>.']);
 });
 
 $('tap').addEventListener('click',function(){ record(null,false); });
