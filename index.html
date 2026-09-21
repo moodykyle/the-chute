@@ -1018,7 +1018,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.36';
+var BUILD='v4.37';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -2466,7 +2466,7 @@ function drainRace(m,r,list,home){
    Every phone has a device id. The phone that starts a race's clock writes its
    id into the race, and that phone times it. Every other phone sees the race as
    timed elsewhere: it reads the taps, names them, and never changes the race. */
-var DEVICE_KEY='chute.device.v1', POLL_MS=3000, HOME_PULL_MS=5000, IDLE_PULL_MS=15000, WATCH_AFTER_MS=30*60*1000;
+var DEVICE_KEY='chute.device.v1', POLL_MS=3000, HOME_PULL_MS=5000, IDLE_PULL_MS=15000, WATCH_AFTER_MS=30*60*1000, RECHECK_MS=10*60*1000;
 var pollBusy=false, lastPull=0, lastPollOk=0, arrivedAt={};
 
 function deviceId(){
@@ -2724,7 +2724,7 @@ function pollRace(r){
     sbFetch('/rest/v1/finishes?select=client_id,elapsed_ms,seq,entered,team_id,athlete_id,runner_name,runner_division,distance_m,deleted_at,updated_at'+
             '&race_id=eq.'+r.id+'&order=updated_at.asc'+(since?'&updated_at=gte.'+encodeURIComponent(since):''),{auth:true})
   ]).then(function(rs){
-    if(!rs[0].ok || !rs[1].ok) return {changed:false, added:[]};
+    if(!rs[0].ok || !rs[1].ok) return {changed:false, added:[], failed:true};
     var raceCh=false, sr=rs[0].data && rs[0].data[0];
     if(sr && (!ownsRace(r) || r.t0Wall==null) && !r.d) raceCh=applyRaceRow(r,sr);
     if(sr && pullDists(meetOfRace(r),r,sr)) raceCh=true;
@@ -2752,6 +2752,24 @@ function firstUnread(){
   }); });
   return hit;
 }
+/* 4.37: a finished race used to be read once and never again, so a phone kept
+   whatever the database said the first time and missed every correction made
+   after. The Sep 3 time trial showed it: its rows got their team twelve minutes
+   after one phone had read them, and that phone went on counting nobody from it.
+   Now, while home is up, each finished race is checked again about every ten
+   minutes, the one checked longest ago first, one a tick. It is the same query
+   as ever, rows changed since the race's cursor, so an unchanged race costs one
+   request that comes back empty. Races this phone timed are checked too: the
+   merge already takes a name or team set elsewhere on the timer's own rows. */
+function firstStale(){
+  var hit=null, cur=currentRace(), now=Date.now();
+  SEASON.meets.forEach(function(m){ (m.races||[]).forEach(function(r){
+    if(!r.up || r.t0Wall==null || !r.read || r===cur || watchable(r)) return;
+    if(r.checkAt && now-r.checkAt<RECHECK_MS) return;
+    if(!hit || (r.checkAt||0)<(hit.checkAt||0)) hit=r;
+  }); });
+  return hit;
+}
 function pollTick(){
   if(pollBusy || !signedIn() || navigator.onLine===false || document.hidden) return;
   var r=currentRace();
@@ -2761,12 +2779,15 @@ function pollTick(){
                  (onScreen('recon') || onScreen('timing') || onScreen('results')));
   /* A meet pulled from the database arrives without its finishes. Read them in
      the background, one race a tick, so home shows real scores. */
-  var fill = watch ? null : firstUnread();
+  var fill = watch ? null : (firstUnread() || (onScreen('home') ? firstStale() : null));
   var today=todayStr(), hasToday=SEASON.meets.some(function(m){ return m.date===today; });
   var homeDue = onScreen('home') && Date.now()-lastPull > (hasToday ? HOME_PULL_MS : IDLE_PULL_MS);
   if(!watch && !homeDue && !fill) return;
   pollBusy=true;
-  if(fill) fill.fillAt=Date.now();
+  if(fill){ if(fill.read) fill.checkAt=Date.now(); else fill.fillAt=Date.now(); }
+  /* A check that did not get an answer is due again in half a minute, the
+     same wait an unread race gets, not in ten. */
+  function missed(){ if(fill && fill.read) fill.checkAt=Date.now()-RECHECK_MS+30000; }
   var pulled=false;
   /* Reads need a live token as much as writes do. An access token lasts an
      hour, and a phone with nothing to send never had the sync refresh it, so
@@ -2784,6 +2805,7 @@ function pollTick(){
     }) : {changed:false, added:[]};
   }).then(function(out){
     pollBusy=false;
+    if(out.failed) missed();
     if(pulled || out.changed) saveSeason();
     if(out.changed && S && currentRace()===r){
       relinkFinishes(S.fin,S.roster);
@@ -2794,7 +2816,7 @@ function pollTick(){
     /* Every read of a pulled race redraws home, changed or not: a race with no
        finishes reads as unchanged, and its Loading pill would otherwise stay. */
     if((pulled || fill) && onScreen('home')) renderHome();
-  }, function(){ pollBusy=false; });
+  }, function(){ pollBusy=false; missed(); });
 }
 
 function syncTick(){
@@ -3763,7 +3785,7 @@ function renderArmed(){
   $('gun').style.display = w ? 'none' : '';
   $('nameWait').style.display = w ? '' : 'none';
   $('armedSub').textContent = !w ? 'Hold the phone in your dominant hand and put your thumb on the button.'
-    : signedIn() ? 'Waiting for the race to start. This switches to naming by itself.'
+    : signedIn() ? 'Waiting for the timer to start the clock.'
                  : 'Sign in to follow the timer\u2019s phone. Settings > Account.';
 }
 function stopWait(){ armedWait=false; if(waitTimer){ clearInterval(waitTimer); waitTimer=null; } }
@@ -3857,7 +3879,21 @@ function nextUnnamed(){
   }
   return null;
 }
+/* 4.37: with two coaches every tap starts as a field finisher and only a name
+   makes it ours, so there is never a next place to point at and the old band
+   read "All 1 named" the whole race. The number worth watching is how many the
+   timer has tapped, which the stick in your hand checks, and it sat under the
+   last of 150 rows. It lives up here now; tapping the band goes to the newest. */
+function fieldBand(){ return multiCoach() && !ttRace(); }
 function renderNextBand(){
+  if(fieldBand()){
+    var nn=S.fin.filter(function(f){ return f.h && (nameOf(f.r)||f.n); }).length;
+    $('nextBand').classList.remove('done');
+    $('nextBand').style.display = S.fin.length ? '' : 'none';
+    $('nbNext').textContent=S.fin.length+' in field';
+    $('nbCount').textContent=nn+' named';
+    return;
+  }
   var i=nextUnnamed(), ours=S.fin.filter(function(f){ return f.h; }).length;
   var named=S.fin.filter(function(f){ return f.h && (nameOf(f.r)||f.n); }).length;
   /* Once every place is named the band stays, quieter, and says what the
@@ -4907,7 +4943,10 @@ $('goNewMeet').addEventListener('click',function(){ editMeet(null); });
 $('meetBack').addEventListener('click',function(){ editingMeet=null; show('home'); });
 $('meetSave').addEventListener('click',commitMeet);
 $('findIn').addEventListener('input',applyFind);
-$('nextBand').addEventListener('click',function(){ var i=nextUnnamed(); if(i!=null) openSheet(i); });
+$('nextBand').addEventListener('click',function(){
+  if(fieldBand()){ var c=$('reconList'); c.scrollTop=c.scrollHeight; return; }
+  var i=nextUnnamed(); if(i!=null) openSheet(i);
+});
 $('mtypeMeet').addEventListener('click',function(){ if(editingMeet) return; newType='meet'; renderMeetType(null); });
 $('mtypeTT').addEventListener('click',function(){ if(editingMeet) return; newType='time_trial'; renderMeetType(null); });
 $('mdist').addEventListener('change',renderDist2);
