@@ -3974,7 +3974,11 @@ function renderRecon(){
     ? 'Every place in the race, in order. Field runners hold a place and need no name.'
     : (unnamed ? unnamed+' still need a name. Work down the list in order.'
                : 'All named. Places and times never change, only who ran them.');
-  c.appendChild(n);
+  /* 4.37: with two coaches nothing counts as ours until it is named, so this
+     line could only ever say "7 of 7", and the band already carries both
+     numbers that mean something. Kept for one coach and time trials, where
+     "7 of 9" says two tapped as ours still need a name. */
+  if(!(remote && fieldBand())) c.appendChild(n);
   if(remote && pinnedBottom) c.scrollTop=c.scrollHeight;
 }
 function renderReconBar(){
