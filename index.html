@@ -184,6 +184,10 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
 /* 4.35: Name runners beside Start clock. An action, like Start clock, not a
    look-back like Results, so it keeps the red and loses only the fill. */
 .rbtn.outline{background:transparent;color:var(--ink);border:1px solid var(--red)}
+/* 4.38: with Track splits there are three jobs on one row, so each label
+   drops to the status line's size and stacks its two words. */
+.rrace .rbtns.three{gap:6px}
+.rrace .rbtns.three .rbtn{font-size:12px;line-height:1.15;padding:6px 10px;width:min-content;min-width:64px}
 /* Section headers in the wordmark's face, in the soft ink so the meet names
    stay the brightest thing on the list, with a red tick. The gap above sets
    the groups apart; the first header sits right under the bar. */
@@ -1255,7 +1259,7 @@ var HOW=[
   'A meet\u2019s girls and boys races each have their own clock, so two coaches can time overlapping races, one phone each.',
   'Set <b>Coaches at the finish</b> to <b>Two or more</b> on the event and each phone picks its job on the event card before the gun: <b>Start clock</b> or <b>Name runners</b>. The timer gets one big <b>Finisher</b> button for everyone, and the namer\u2019s names mark our runners. Edit race opens on <b>All</b>, since places are unnamed until the namer gets to them.']},
  {t:'Mile splits', p:[
-  'A coach at the mile marker can take splits. Open the meet on home and tap <b>Mile splits</b>. It runs on its own phone, beside the timer and the namer, and changes nothing they do.',
+  'A coach at the mile marker can take splits. Open the meet on home and tap <b>Track splits</b> on the race. It runs on its own phone, beside the timer and the namer, and changes nothing they do.',
   'Our runners are listed in the order they\u2019re likely to come by. Tap each one as they pass. The row stays put and shows the split, so the next runner is still under your thumb. Tapped the wrong one? Tap it twice to take it back.',
   'A missed split is just missing. Splits show on Results beside the runner and in Copy CSV, once that runner has a name at the finish.']},
  {t:'Meets and scoring', p:[
@@ -3330,6 +3334,15 @@ function splitMarks(m){
 function markLabel(mk){ return 'Mile '+Math.round(mk/MILE_M); }
 /* Races a splitter can work: a meet's girls and boys, not a time trial. */
 function splitRaces(m){ return (!m || isTT(m)) ? [] : (m.races||[]).filter(function(r){ return r.division!=='Mixed'; }); }
+function splitRowOk(m,r,st){
+  if(!m || isTT(m) || r.division==='Mixed' || st==='done' || !splitMarks(m).length) return false;
+  return !(st==='live' && ownsRace(r));
+}
+function splitBtn(m,r){
+  var b=document.createElement('button'); b.className='rbtn outline'; b.textContent='Track splits';
+  b.addEventListener('click',function(){ openSplit(m.id,r.id); });
+  return b;
+}
 function splittable(m){
   return !!m && splitRaces(m).some(function(r){ return raceState(r)!=='done'; }) && splitMarks(m).length>0;
 }
@@ -3976,15 +3989,6 @@ function meetCard(m,today){
   var p=document.createElement('div');
   p.className='mpanel';
   m.races.forEach(function(r){ p.appendChild(raceRow(m,r)); });
-  /* 4.38: a coach at the mile marker. Its own screen, so it never passes a
-     Start button and never touches the timing or naming phones' work. */
-  if(splittable(m)){
-    var sl=document.createElement('button');
-    sl.className='morelink';
-    sl.textContent='Mile splits';
-    sl.addEventListener('click',function(){ openSplit(m.id,null); });
-    p.appendChild(sl);
-  }
   var edit=document.createElement('button');
   edit.className='morelink';
   edit.textContent='Edit event';
@@ -4017,13 +4021,18 @@ function raceRow(m,r){
   /* Two coaches: each phone picks its job here, before the gun, so a namer
      never passes a Start button. Once the clock starts, the other phones
      show Name runners, as above. */
+  /* 4.38: Track splits is a third job, for the coach at the mile marker, on
+     any race still to run or running, except on the phone timing it. It opens
+     its own screen, so it never passes a Start button. */
+  var spl = splitRowOk(m,r,st);
   if(st==='new' && coachMode(m)==='multi'){
-    var two=document.createElement('div'); two.className='rbtns';
+    var two=document.createElement('div'); two.className='rbtns'+(spl?' three':'');
     var tb=document.createElement('button'); tb.className='rbtn'; tb.textContent='Start clock';
     tb.addEventListener('click',function(){ openRace(m.id,r.id); });
     var nb=document.createElement('button'); nb.className='rbtn outline'; nb.textContent='Name runners';
     nb.addEventListener('click',function(){ openRace(m.id,r.id); startWait(); });
     two.appendChild(tb); two.appendChild(nb);
+    if(spl) two.appendChild(splitBtn(m,r));
     row.appendChild(two);
     return row;
   }
@@ -4031,6 +4040,12 @@ function raceRow(m,r){
   btn.className='rbtn'+(ghost?' ghost':'');
   btn.textContent=label;
   btn.addEventListener('click',function(){ openRace(m.id,r.id); });
+  if(spl){
+    var pair=document.createElement('div'); pair.className='rbtns three';
+    pair.appendChild(btn); pair.appendChild(splitBtn(m,r));
+    row.appendChild(pair);
+    return row;
+  }
   row.appendChild(btn);
   return row;
 }
