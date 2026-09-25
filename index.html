@@ -1058,7 +1058,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.41';
+var BUILD='v4.42';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1190,8 +1190,21 @@ function raceState(r){
   if(r.endedMs==null) return 'live';
   return 'done';
 }
+/* 4.42: a meet race that ended with only our runners in it. Nobody else was
+   timed, so every place is a team place and a score would be ours against
+   nobody: five runners at 1 to 5 read as a perfect 15. The rule follows from
+   the finishes, so every phone agrees with no flag. A time trial is left out,
+   since everyone in it is ours by design and it is never scored anyway. */
+function teamOnly(fin,ended,div){
+  if(div==='Mixed' || ended==null || !fin || !fin.length) return false;
+  for(var i=0;i<fin.length;i++) if(!fin[i].h) return false;
+  return true;
+}
+function teamOnlyRace(r){ return !!r && teamOnly(r.fin,r.endedMs,r.division); }
+function teamOnlyS(){ return !!S && teamOnly(S.fin,S.endedMs,S.division); }
 /* Team score from stored finishes, without needing the race loaded. */
 function scoreOf(r){
+  if(teamOnlyRace(r)) return null;
   var ours=[];
   (r.fin||[]).forEach(function(f,i){ if(f.h) ours.push(i+1); });
   if(ours.length<5) return null;
@@ -4167,6 +4180,7 @@ function raceRow(m,r){
        only number worth showing is how many ran. */
     sub = r.division==='Mixed'
       ? n+(n===1?' finisher':' finishers')
+      : teamOnlyRace(r) ? 'Team only \u00b7 '+n+(n===1?' finisher':' finishers')
       : (sc!=null? 'Team score '+sc : ours+' finishers, no score') + ' \u00b7 '+n+' in field';
     label='Results'; ghost=true;
   }
@@ -4232,6 +4246,7 @@ function meetRow(m,open,today){
   }
   /* A meet nobody has started gets no pill. "Set up" said nothing a tap
      would change, and the name needs the room. */
+  else if(fin && m.races.some(teamOnlyRace)) tag='Team only';
   else tag = fin ? 'No score' : (anyRun ? 'In progress' : '');
   var raceDay=(m.date===today && !fin), p=(m.date||'').split('-'), ok=(p.length===3);
   var meta=[distsText(m), m.venue].filter(Boolean).join(' \u00b7 ');
@@ -4817,11 +4832,12 @@ function renderResults(){
   });
   var top5=ours.slice(0,5);
   var score=top5.reduce(function(a,b){return a+b.place;},0);
-  var complete=ours.length>=5;
+  var tonly=teamOnlyS();
+  var complete=ours.length>=5 && !tonly;
   var unnamed=ours.filter(function(r){return !r.name;}).length;
 
   var disp=[];
-  ours.forEach(function(r,i){ if(scoringRole(i+1)==='displacer') disp.push(r.place); });
+  if(!tonly) ours.forEach(function(r,i){ if(scoringRole(i+1)==='displacer') disp.push(r.place); });
   var sst=scoringStats();
 
   /* The score, the five that made it, and the two behind them, in one block.
@@ -4834,11 +4850,12 @@ function renderResults(){
      '<button type="button" class="info" id="resInfo" aria-label="About this score">i</button></div>'+
      '<div class="rwhen num">'+esc([S.date?fmtDate(S.date,true):'', meetDist()].filter(Boolean).join(' \u00b7 '))+'</div>'+
      '<div class="rgrid">'+
-       '<div class="rscore num">'+(complete?score:'&#183;')+'</div>'+
+       '<div class="rscore num">'+(complete?score:(tonly?'':'&#183;'))+'</div>'+
        '<div class="rside">'+
          '<div class="req num">'+(complete
             ? top5.map(function(r){return r.place;}).join('<span class="op">+</span>')+
               (disp.length?'<span class="disp">('+disp.join(', ')+')</span>':'')
+            : tonly ? 'Team only, no score'
             : 'Need 5 finishers to score. You have '+ours.length+'.')+'</div>'+
          (sst?'<div class="rstat num">Top 5 Avg '+fmt(sst.avg,0)+' \u00b7 Spread '+fmt(sst.spread,0)+'</div>':'')+
        '</div>'+
@@ -4871,7 +4888,7 @@ function renderResults(){
       if(f.h){
         seen++;
         if(rp.grade && run && run.grade) tags.push(run.grade+'th');
-        if(rp.disp && scoringRole(seen)==='displacer') tags.push('displacer');
+        if(rp.disp && !tonly && scoringRole(seen)==='displacer') tags.push('displacer');
         var rec=recOf(f,rctx); if(rec) tags.push(recHtml(rec));
         splTags(f,tags);
       }
@@ -4883,7 +4900,7 @@ function renderResults(){
     ours.forEach(function(r,i){
       var tags=[];
       if(rp.grade && r.grade) tags.push(r.grade+'th');
-      if(rp.disp && scoringRole(i+1)==='displacer') tags.push('displacer');
+      if(rp.disp && !tonly && scoringRole(i+1)==='displacer') tags.push('displacer');
       var rec=recOf(r.f,rctx); if(rec) tags.push(recHtml(rec));
       splTags(r.f,tags);
       h+=resRow(' home', r.place, r.name?esc(r.name):'needs a name', r.name?'':' pending', tags, r.ms, rp);
@@ -4897,7 +4914,9 @@ function renderResults(){
   h+=dnfBlock();
   $('resultBody').innerHTML=h;
   wireDnf();
-  resNote=['Places are <b>raw order across the whole field</b>. Official scoring removes any team that ran fewer than five before assigning points, so these totals will shift.'];
+  resNote = tonly
+    ? ['Only our runners were timed in this race, so <b>places are team places</b> and there is no score. If the full field is loaded later, places and the score follow from it.']
+    : ['Places are <b>raw order across the whole field</b>. Official scoring removes any team that ran fewer than five before assigning points, so these totals will shift.'];
   if(unnamed) resNote.push('<b>'+unnamed+' of your '+(unnamed===1?'places':'places')+' still '+(unnamed===1?'needs':'need')+' a name.</b> The score above is already final, since it only depends on where your runners crossed.');
   if(disp.length) resNote.push('The '+(disp.length===1?'one':'two')+' in brackets '+(disp.length===1?'is a <b>displacer</b>. It scores':'are <b>displacers</b>. They score')+' no points of '+(disp.length===1?'its':'their')+' own, '+(disp.length===1?'it pushes':'they push')+' other teams\' runners further back.');
   $('resInfo').addEventListener('click',function(){ infoOpen('About this score',resNote); });
@@ -5092,7 +5111,7 @@ function buildCsv(full){
   if(ttRace()) return buildTTCsv();
   if(full===undefined) full=resFull;
   var meet=S.name.replace(/, (Girls|Boys)$/,'');
-  var p=ourPlaces(), top5=p.slice(0,5), scored=p.length>=5;
+  var tonly=teamOnlyS(), p=ourPlaces(), top5=p.slice(0,5), scored=p.length>=5 && !tonly;
   /* 4.38: a column per mile only when a split was taken, so a race without
      them copies exactly as it always has. */
   var sr=currentRace(), spl=splitsByRunner(sr), smarks=spl?splitMarksIn(sr):[], smap=spl?aidMap():null;
@@ -5112,7 +5131,7 @@ function buildCsv(full){
   var seen=0, rx=recCtx(true);
   S.fin.forEach(function(f,i){
     var sc='';
-    if(f.h){ seen++; sc = scoringRole(seen); }
+    if(f.h){ seen++; sc = tonly ? '' : scoringRole(seen); }
     if(!full && !f.h) return;
     var r=runnerById(f.r);
     out+=(i+1)+','+fmt(f.ms,3)+(f.m?'*':'')+','+csvCell((nameOf(f.r)||f.n||null)||'')+','+
@@ -5199,7 +5218,7 @@ function csvCell(v){
 function buildChat(full){
   if(ttRace()) return buildTTChat();
   if(full===undefined) full=resFull;
-  var p=ourPlaces(), top5=p.slice(0,5);
+  var p=ourPlaces(), top5=p.slice(0,5), tonly=teamOnlyS();
 
   /* Meet name first, on its own line. It is the part that changes race to
      race and the part a reader scans for; the team and division are the same
@@ -5216,14 +5235,14 @@ function buildChat(full){
      notification previews two lines, and without it the girls message and the
      boys message look identical until you open them. */
   var out=S.name.replace(/, (Girls|Boys)$/,'')+'\n';
-  out+=[S.division, meetDist(), S.fin.length+' in the field']
+  out+=[S.division, meetDist(), tonly ? S.fin.length+' ran, team only' : S.fin.length+' in the field']
          .filter(Boolean).join(', ')+'\n';
   var st=startTime();
   out+=fmtDate(S.date,true)+(st?', '+st:'')+'\n';
   out+='\n';
 
   out+=S.team+'\n';
-  if(p.length>=5){
+  if(p.length>=5 && !tonly){
     out+='Team Score '+top5.reduce(function(a,b){return a+b;},0)+
          ' ('+top5.join(' + ')+')\n';
   }
@@ -5232,7 +5251,7 @@ function buildChat(full){
      parenthesise the place in the list itself, which works in the monospace
      they are set in; this copy lands in a proportional chat font where that
      column would not hold. */
-  var disp=ourFinishers().slice(5,7).map(function(x){ return x.place; });
+  var disp=tonly ? [] : ourFinishers().slice(5,7).map(function(x){ return x.place; });
   if(disp.length) out+='Displacers '+disp.join(', ')+'\n';
 
   var st2=scoringStats();
