@@ -500,9 +500,11 @@ input.code{
    the two heights and the gap, so there is more to hit and the chute above
    keeps the same height. */
 .deck.solo .tap-home{height:calc(2 * clamp(88px,14vh,118px) + 10px)}
-/* 4.46: on the Team clock the names are what you hit. Name later is the
-   fallback, so it gives the list the room and reads as the second choice. */
-.deck.solo.team .tap-home{height:64px;background:var(--chalk);border:2px solid var(--red);color:var(--ink);font-size:19px}
+/* 4.46: on the Team clock the names are what you hit and Name later is the
+   fallback, so it is outlined rather than solid. 4.47: back to a full tap
+   button's height, with a gap above it, so a thumb going for it in a hurry
+   does not land on the last name instead. */
+.deck.solo.team .tap-home{height:clamp(88px,14vh,118px);margin-top:6px;background:var(--chalk);border:2px solid var(--red);color:var(--ink);font-size:21px}
 .deck.solo.team .tap-home:active{background:var(--rule);filter:none}
 .row .who.pending,.rrow .who.pending{font-weight:600;font-style:italic}
 .deck-row{display:flex;align-items:center;justify-content:space-between;
@@ -1098,7 +1100,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.46';
+var BUILD='v4.47';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1310,7 +1312,7 @@ var HOW=[
   'Tap once for every runner you time. What the buttons are depends on <b>Timing</b>, set on the event.',
   '<b>Both.</b> Tap <b>{TEAM} Finisher</b> for our runners and <b>Field Finisher</b> for everyone else, so the score builds as you go. Without popsicle sticks or a second coach, this is how you know which places were ours when you name them afterward.',
   '<b>Field.</b> One big <b>Finisher</b> button for every runner, never looking away from the line. Our runners get their names afterward, from the finish sticks or from a second coach naming on their own phone; see Naming finishers.',
-  '<b>Team.</b> Our runners only, for when the field is too big to tap. The clock screen lists the roster in the order they are likely to finish: tap a name as that runner crosses, and the place, time and name land together. Can\u2019t find a name in time, in a pack or for someone not on the list? Tap <b>Name later</b> and name that place from the list under <b>In</b>. A tapped name stays put until the next gap, so the list never moves under your thumb. With nobody else timed, places are team places and there is no score; Results says <b>Team only</b>.',
+  '<b>Team.</b> Our runners only, for when the field is too big to tap. The clock screen lists the roster in the order they are likely to finish: tap a name as that runner crosses, and the place, time and name land together. Can\u2019t find a name in time, in a pack or for someone not on the list? Tap <b>Name later</b>; that place is added at the bottom of the list, and tapping it there names it. Nothing on the list ever moves on its own: a tapped name stays where it is for the rest of the race, showing its place and time, so the name under your thumb is always the one you meant. With nobody else timed, places are team places and there is no score; Results says <b>Team only</b>.',
   'The count at the top shows how many runners are in, so you can check it against the chute. <b>Undo last</b> takes back a mis-tap. <b>End race</b> needs two taps, so a stray thumb can\u2019t stop the clock.',
   '<b>Leave clock</b> takes you home while the race keeps running, for when a second race starts before the first one ends. Start the second race from home, and both clocks keep going. A phone can only tap the race on its screen, though, so one coach timing both means switching back and forth. When races overlap, a phone for each is easier. A strip on home shows what is running and allows for easy navigation.']},
  {t:'Naming finishers', p:[
@@ -2195,7 +2197,6 @@ function resetViews(){
 function openRace(mid,rid){
   var f=findRace(mid,rid); if(!f) return;
   resetViews();
-  tmHold={}; if(tmSettle){ clearTimeout(tmSettle); tmSettle=null; }
   /* Field timing: every tap starts as a field finisher, so Team is empty
      until names go on. Edit race opens where the places are. */
   if(timingOf(f.meet)==='field'){
@@ -4553,39 +4554,42 @@ function renderChute(){
    the order they are likely to finish, and a tap on a name is the finish:
    place, time and name in one step, nothing to name afterwards. When a name
    cannot be found in time (a pack, a face you cannot place, a runner not on
-   the list) the big button below records one of ours to name later, the way
+   the list) Name later below records one of ours to name afterwards, the way
    every finish worked before.
 
-   The rule from the split screen holds: a row tapped in a pack stays where
-   it was, showing its place and time, so the next name is still under the
-   thumb. After a lull the tapped rows drop into In below, in place order,
-   where a tap opens the name sheet to fix or name a place.
+   4.47: nothing on this list ever moves on its own. 4.46 dropped tapped
+   names into a section below after a lull, which slid every row up at a
+   moment nobody chose, and a thumb already on its way lands on the wrong
+   name. Now the order is fixed when the race opens and a tapped row stays
+   where it is for the rest of the race, showing its place and time. The
+   only thing that ever appears is a Name later place, added at the very
+   bottom, below every name, where it cannot push anything.
 
    Taps on names are made here, on the phone that owns the clock, through the
    same record() as the buttons, so the timer still owns every finish. */
-var tmHold={}, tmSettle=null, TEAM_SETTLE_MS=2000;
+var tmOrder={};
 function teamClock(){ return !!S && !ttRace() && raceTiming()==='team'; }
+/* The roster in expected order, worked out once per race and then held. A
+   runner added mid-race goes on the end, never in between. */
 function teamRunners(){
-  return byExpected(S.roster.filter(function(r){ return !r.dead && inDivision(r); }));
+  var list=S.roster.filter(function(r){ return !r.dead && inDivision(r); });
+  var byId={}; list.forEach(function(r){ byId[r.id]=r; });
+  var ord=tmOrder[S.raceId];
+  if(!ord){ ord=tmOrder[S.raceId]=byExpected(list).map(function(r){ return r.id; }); }
+  list.forEach(function(r){ if(ord.indexOf(r.id)<0) ord.push(r.id); });
+  return ord.map(function(id){ return byId[id]; }).filter(Boolean);
 }
 function finIndexOf(id){
   for(var i=0;i<S.fin.length;i++) if(S.fin[i].r===id) return i;
   return -1;
 }
-function teamSettleSoon(){
-  if(tmSettle) clearTimeout(tmSettle);
-  tmSettle=setTimeout(function(){
-    tmSettle=null; tmHold={};
-    if(S && $('timing').classList.contains('on') && teamClock()) renderTeamList();
-  },TEAM_SETTLE_MS);
-}
 function renderTeamList(){
-  var c=$('chute'), keep=c.scrollTop, list=teamRunners();
+  var c=$('chute'), keep=c.scrollTop, list=teamRunners(), shown={};
   c.innerHTML='';
   if(!list.length) c.insertAdjacentHTML('beforeend','<p class="spempty">No roster on this phone, so there are no names to tap. Use Name later for each of ours, or load the roster in Settings.</p>');
   list.forEach(function(x){
     var i=finIndexOf(x.id);
-    if(i>=0 && !tmHold[x.id]) return;
+    if(i>=0) shown[i]=1;
     var b=document.createElement('button');
     b.type='button';
     b.className='opt home spl'+(i>=0?' done':'');
@@ -4594,10 +4598,12 @@ function renderTeamList(){
     b.addEventListener('click',function(){ teamTap(b,x); });
     c.appendChild(b);
   });
+  /* Every place that is not a name above: Name later taps, and anyone named
+     who is not on this list. Below all the names, in place order. */
   var rows=[];
-  S.fin.forEach(function(f,i){ if(!(f.r!=null && tmHold[f.r])) rows.push(i); });
+  S.fin.forEach(function(f,i){ if(!shown[i]) rows.push(i); });
   if(rows.length){
-    c.insertAdjacentHTML('beforeend','<p class="hsect rsect spdone">In</p>');
+    c.insertAdjacentHTML('beforeend','<p class="hsect rsect spdone">Name later</p>');
     rows.forEach(function(i){ c.appendChild(chuteRow(i)); });
   }
   c.scrollTop=keep;
@@ -4609,16 +4615,15 @@ function teamTap(b,x){
      sheet for that place, to fix it, never a second finish. */
   if(i>=0){ openSheet(i); return; }
   var n=S.fin.length;
-  tmHold[x.id]=1;
   record(x.id,true);
-  if(S.fin.length!==n+1){ delete tmHold[x.id]; return; }
+  if(S.fin.length!==n+1) return;
   stampRunner(S.fin[n],x);
   save();
-  teamSettleSoon();
   renderTeamList();
   var hit=[].slice.call($('chute').querySelectorAll('.opt.spl')).filter(function(e){ return e.querySelector('.on').textContent===x.name; })[0];
   if(hit) replay(hit,'hit');
 }
+
 
 var reconAll=false;
 /* Wired for the first time in v2.3. The markup shipped in b5, the handlers
