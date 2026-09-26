@@ -485,6 +485,10 @@ input.code{
 .row .who.pending,.rrow .who.pending{font-weight:600;font-style:italic}
 .deck-row{display:flex;align-items:center;justify-content:space-between;
   gap:8px;flex-wrap:wrap;margin-top:9px}
+/* 4.43: four links when splits are on. Tighter sides so they hold one line
+   at 360 wide; wrapping is still allowed rather than clipping a label. */
+.deck-row{gap:6px}
+.deck-row .linkbtn{padding-left:8px;padding-right:8px}
 /* Sits above everything, including the sheet, because it is the one thing that
    must never be missed: a race is running and it is not the one on screen. */
 .livestrip{
@@ -502,6 +506,9 @@ input.code{
 .livestrip.stale{border-top-color:var(--tape);background:var(--chalk)}
 .livestrip.stale .ltime{color:var(--ink-soft)}
 .livestrip.test{border-top:4px solid var(--test)}
+/* 4.43: the leaders are close and this phone is the clock. */
+.livestrip.due{border-top:4px solid var(--tape);background:var(--tape);color:#fff}
+.livestrip.due .ltime,.livestrip.due .lmeta{color:#fff}
 .livestrip .ltest{color:var(--test);font-weight:600}
 .xrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--rule)}
 .xrow .xn{font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -962,6 +969,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
     <div class="deck-row">
       <button class="linkbtn quiet" id="undo">Undo last</button>
       <button class="linkbtn quiet" id="leaveClock">Leave clock</button>
+      <button class="linkbtn quiet" id="toSplits">Splits</button>
       <button class="linkbtn quiet" id="stop">End race</button>
     </div>
   </div>
@@ -1058,7 +1066,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.42';
+var BUILD='v4.43';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1480,12 +1488,49 @@ var liveMid=null, liveRid=null;
 /* Reads the season directly rather than S, because S is the race being looked
    at, not the one running. Its clock comes off t0Wall for the same reason: the
    performance.now anchor belongs to whatever race is loaded. */
+/* 4.43: the race this phone is timing, if one is running. On the split
+   screen it is the only strip worth showing: a splitter on a second phone has
+   no clock to go back to. */
+function ownedLive(){
+  var best=null;
+  SEASON.meets.forEach(function(m){
+    (m.races||[]).forEach(function(r){
+      if(raceState(r)==='live' && ownsRace(r) && (!best || r.t0Wall>best.race.t0Wall)) best={meet:m, race:r};
+    });
+  });
+  return best;
+}
+/* When the leaders are due, as elapsed ms, so the timer is back at the line
+   first. The winner is taken as our fastest best at this distance less a
+   minute, since the winner has come in 30 seconds to a minute ahead of our
+   first; a minute more is the time to get back. With no best to go on, the
+   winner is taken at 5:00 a mile. Worked out once per race, since the season
+   does not change mid-race in any way that moves it. */
+var LEAD_WIN_MS=60000, LEAD_BACK_MS=60000, LEAD_PACE_MS=300000, dueMemo={};
+function leadersDue(m,r){
+  if(!m || !r || r.division==='Mixed') return null;
+  if(dueMemo[r.id]!==undefined) return dueMemo[r.id];
+  var d=distMeters(m.dist), win=null;
+  if(d){
+    var g=divOf(r), map=aidMap(), ctx={m:m, r:r, idx:recordsIndex(), map:map};
+    buildRoster().forEach(function(x){
+      if(x.dead || x.g!==g) return;
+      var b=bestAt(rosterKey(x,map),d,ctx);
+      if(b && (win==null || b.ms<win)) win=b.ms;
+    });
+    win = win!=null ? win-LEAD_WIN_MS : Math.round(d/1609.344*LEAD_PACE_MS);
+  }
+  dueMemo[r.id] = win!=null ? Math.max(0, win-LEAD_BACK_MS) : null;
+  return dueMemo[r.id];
+}
+var dueBuzzed={};
 function renderLive(){
   var el=$('liveStrip'), ok=false, ids=['home','recon','results','meet'];
   for(var i=0;i<ids.length;i++) if($(ids[i]).classList.contains('on')) ok=true;
-  var f = ok ? liveRace() : null;
+  var onSplit=$('split').classList.contains('on');
+  var f = ok ? liveRace() : (onSplit ? ownedLive() : null);
   if(!f){
-    el.classList.remove('on');
+    el.classList.remove('on','due');
     document.body.classList.remove('haslive');
     liveMid=liveRid=null;
     return;
@@ -1497,9 +1542,22 @@ function renderLive(){
   $('liveName').textContent=f.meet.name+', '+f.race.division;
   $('liveTime').textContent=fmt(Date.now()-f.race.t0Wall,0);
   var sy=f.meet.test ? '<span class="ltest">TEST</span>' : esc(syncShort(f.meet));
+  /* Only on the phone timing it: anywhere else the leaders are someone
+     else's to catch. */
+  var due = (!stale && ownsRace(f.race)) ? leadersDue(f.meet,f.race) : null;
+  var el2 = Date.now()-f.race.t0Wall, late = due!=null && el2>=due;
   $('liveMeta').innerHTML = stale
     ? 'Clock left running \u00b7 '+fin.length+' in \u00b7 tap to end it'
+    : late
+    ? '<b>Leaders due</b> \u00b7 about '+fmt(due+LEAD_BACK_MS,0)+' \u00b7 tap to go back to the clock'
     : 'Running \u00b7 '+fin.length+' in, '+ours+' ours \u00b7 '+sy+' \u00b7 tap to go back';
+  el.classList.toggle('due',late);
+  /* One buzz as it turns, where the phone can. iPhone Safari cannot, so the
+     colour is the warning and this is extra. */
+  if(late && !dueBuzzed[f.race.id]){
+    dueBuzzed[f.race.id]=true;
+    try{ if(navigator.vibrate) navigator.vibrate([200,100,200]); }catch(e){}
+  }
   el.classList.toggle('test',!!f.meet.test);
   el.classList.toggle('stale',stale);
   el.classList.add('on');
@@ -3457,9 +3515,13 @@ function splitTag(mk){
 }
 /* Races a splitter can work: a meet's girls and boys, not a time trial. */
 function splitRaces(m){ return (!m || isTT(m)) ? [] : (m.races||[]).filter(function(r){ return r.division!=='Mixed'; }); }
+/* 4.43: the phone timing a race can split it too. Before, the timer was
+   kept off the split screen; on a loop course the mile mark can sit beside the
+   finish, and one coach can do both. The split screen writes only race_splits,
+   never a finish, so the timer still owns every tap: finishes are made only on
+   the clock screen, which the strip brings back in one tap. */
 function splitRowOk(m,r,st){
-  if(!m || isTT(m) || r.division==='Mixed' || st==='done' || !splitMarks(m).length) return false;
-  return !(st==='live' && ownsRace(r));
+  return !(!m || isTT(m) || r.division==='Mixed' || st==='done' || !splitMarks(m).length);
 }
 function splitBtn(m,r){
   var b=document.createElement('button'); b.className='rbtn outline'; b.textContent='Record splits';
@@ -4331,6 +4393,10 @@ function renderDeck(){
   $('deck').classList.toggle('solo', one);
   $('tapHome').textContent = one ? 'Finisher' : (S.team+' Finisher');
   $('ttTeam').style.display = tt ? 'none' : '';
+  /* 4.43: one phone timing and splitting. Only on an event with splits on,
+     so a race without them keeps the deck it always had. */
+  var m=curMeet(), r=currentRace();
+  $('toSplits').style.display = (m && r && splitRowOk(m,r,raceState(r))) ? '' : 'none';
 }
 /* Restarting a CSS animation needs the class off, a reflow read, then the class
    on. Without the reflow the browser coalesces both changes and nothing plays,
@@ -5623,6 +5689,7 @@ document.addEventListener('visibilitychange',function(){ if(!document.hidden){ l
 /* No confirmation. The race keeps running, the strip brings you back, and you
    are one tap from the chute again. Nothing is lost, so nothing is asked. */
 $('leaveClock').addEventListener('click',function(){ show('home'); });
+$('toSplits').addEventListener('click',function(){ if(S) openSplit(S.meetId,S.raceId); });
 
 $('askCancel').addEventListener('click',askClose);
 $('ask').addEventListener('click',function(e){ if(e.target===this) askClose(); });
