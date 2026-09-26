@@ -313,6 +313,12 @@ select{min-height:47px}
 #resultActions .syncnote.test{padding:6px 12px;border-radius:7px}
 .syncnote.test{background:var(--test);color:var(--test-ink);font-weight:600;letter-spacing:.04em;padding:6px 16px;margin-bottom:8px}
 .rhead{padding:13px 16px 13px;border-bottom:1px solid var(--rule)}
+/* 4.50: Tidy, on the split screen and the Team clock. The lists never move
+   on their own; this is the one way to move them, on purpose, in a gap. */
+.sphead{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.sphead>div{min-width:0}
+.barend{display:flex;align-items:center;gap:10px;flex:0 0 auto}
+.linkbtn.tidy{flex:0 0 auto}
 .rid{display:flex;align-items:center;gap:8px}
 .ridtext{font-size:15px;font-weight:700;color:var(--ink);min-width:0;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -992,7 +998,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 <section class="screen" id="timing">
   <div class="bar">
     <h1 id="timeName"></h1>
-    <span class="count" id="finCount"><b id="cIn">0</b> in<span id="ttTeam"> · <b id="cOurs">0</b> team</span></span>
+    <span class="barend"><span class="count" id="finCount"><b id="cIn">0</b> in<span id="ttTeam"> · <b id="cOurs">0</b> team</span></span><button class="linkbtn tidy" id="teamTidy">Tidy</button></span>
   </div>
   <div class="clockwrap"><div class="clock num" id="clock">0:00<span class="ms">.0</span></div></div>
   <div class="chute" id="chute"></div>
@@ -1058,7 +1064,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
     <h1 class="navmid nt">Splits</h1>
     <span aria-hidden="true"></span>
   </div>
-  <div class="rhead"><div class="rid"><span class="ridtext" id="splitName"></span></div><div class="rwhen num" id="splitCount"></div></div>
+  <div class="rhead sphead"><div><div class="rid"><span class="ridtext" id="splitName"></span></div><div class="rwhen num" id="splitCount"></div></div><button class="linkbtn tidy" id="splitTidy">Tidy</button></div>
   <div class="seg2" id="splitSeg"></div>
   <div class="seg2" id="splitMarks"></div>
   <div class="clockwrap"><div class="clock num" id="splitClock">0:00</div><div class="spsub" id="splitSub"></div></div>
@@ -1100,7 +1106,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.47';
+var BUILD='v4.51';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1306,13 +1312,14 @@ var HOW=[
   'Everything starts with an event, added from <b>Add Event</b> on the home screen. There are two kinds, chosen once when the event is created.',
   '<b>A meet</b> holds a girls race and a boys race, each with its own clock and its own results, and is scored.',
   '<b>A time trial</b> holds one race with everyone in it, girls and boys together, and is not scored. It can also run two distances from the same start; see Time trials.',
-  'Tap an event to open it and see its races.']},
+  'When you make an event you also pick its <b>Timing</b>, whether to <b>Record splits</b>, and <b>Live</b> or <b>Test</b>. Live or Test is never pre-picked, and Save waits until you choose, since a live event can\u2019t be made a test later. Tap an event on home to open it and see its races.']},
  {t:'Timing a race', p:[
-  'Open the race and tap <b>Start</b> when the gun goes. The clock runs on the phone, so no signal is needed.',
+  'Open the event on home and tap <b>Start clock</b> on the race when the gun goes. The clock runs on the phone, so no signal is needed.',
   'Tap once for every runner you time. What the buttons are depends on <b>Timing</b>, set on the event.',
   '<b>Both.</b> Tap <b>{TEAM} Finisher</b> for our runners and <b>Field Finisher</b> for everyone else, so the score builds as you go. Without popsicle sticks or a second coach, this is how you know which places were ours when you name them afterward.',
   '<b>Field.</b> One big <b>Finisher</b> button for every runner, never looking away from the line. Our runners get their names afterward, from the finish sticks or from a second coach naming on their own phone; see Naming finishers.',
-  '<b>Team.</b> Our runners only, for when the field is too big to tap. The clock screen lists the roster in the order they are likely to finish: tap a name as that runner crosses, and the place, time and name land together. Can\u2019t find a name in time, in a pack or for someone not on the list? Tap <b>Name later</b>; that place is added at the bottom of the list, and tapping it there names it. Nothing on the list ever moves on its own: a tapped name stays where it is for the rest of the race, showing its place and time, so the name under your thumb is always the one you meant. With nobody else timed, places are team places and there is no score; Results says <b>Team only</b>.',
+  '<b>Team.</b> Our runners only, for when the field is too big to tap. The clock screen lists the roster in the order they\u2019re likely to finish. Tap a name as that runner crosses, and the place, time and name land together. With nobody else timed, places are team places and there\u2019s no score; Results says <b>Team only</b>.',
+  'On the Team clock nothing moves on its own: a tapped name stays where it is, showing its place and time. Can\u2019t find a name in time? Tap <b>Name later</b>, and that place goes on the very bottom to name when you can. When the list fills up, tap <b>Tidy</b> in a gap: every name already in moves down to <b>In</b>, and the ones still to come are back at the top.',
   'The count at the top shows how many runners are in, so you can check it against the chute. <b>Undo last</b> takes back a mis-tap. <b>End race</b> needs two taps, so a stray thumb can\u2019t stop the clock.',
   '<b>Leave clock</b> takes you home while the race keeps running, for when a second race starts before the first one ends. Start the second race from home, and both clocks keep going. A phone can only tap the race on its screen, though, so one coach timing both means switching back and forth. When races overlap, a phone for each is easier. A strip on home shows what is running and allows for easy navigation.']},
  {t:'Naming finishers', p:[
@@ -1330,23 +1337,24 @@ var HOW=[
   'While a race is running, a naming phone shows how current it is, like <b>Updated 4s ago</b>. If it falls behind, names still save and catch up when the signal returns.',
   'Every phone needs the roster before race day, or it has no names to pick from. If it wasn\u2019t loaded when you first signed in, go to <b>Settings &gt; Roster &gt; Load roster from database</b>. A phone without one also gets a reminder with a <b>Load roster</b> button when it opens a race to name.',
   'A meet\u2019s girls and boys races each have their own clock, so two coaches can time overlapping races, one phone each.',
-  'With <b>Timing</b> set to <b>Field</b> or <b>Team</b>, each phone picks its job on the event card before the gun: <b>Start clock</b> or <b>Name runners</b>. With Field, the namer\u2019s names mark our runners, and Edit race opens on <b>All</b>, since places are unnamed until the namer gets to them.']},
+  'Before the gun, each phone picks its job on the event card: <b>Start clock</b> or <b>Name runners</b>, whatever the Timing, so a second phone can always join. With Field, the namer\u2019s names mark our runners, and Edit race opens on <b>All</b>, since places are unnamed until the namer gets to them.']},
  {t:'Mile splits', p:[
   'A coach out on the course can take splits. On the event, turn on <b>Record splits</b>, and on a race with more than one mile, pick which. On the day, open the meet on home and tap <b>Record splits</b> on the race. It runs on its own phone, beside the timer and the namer, and changes nothing they do.',
-  'The timer can take splits too, when the split point is beside the finish. <b>Splits</b> on the clock screen opens them, and the strip at the bottom goes back to the clock in one tap. It turns coral when the leaders are due, a minute before our fastest runner\u2019s best less a minute.',
-  'Our runners are listed in the order they\u2019re likely to come by. Tap each one as they pass. The row stays put and shows the split, so the next runner is still under your thumb. In the next gap, split runners move down to <b>Split</b> in the order they passed. Tapped the wrong one? Tap it twice to take it back.',
+  'The timer can take splits too, when the split point is beside the finish. <b>Splits</b> on the clock screen opens them, and the strip at the bottom goes back to the clock in one tap. It turns coral when the leaders are due. The winner is expected about a minute ahead of our fastest runner\u2019s best at the distance, and the warning comes a minute before that, so there\u2019s time to get back to the line.',
+  'Our runners are listed in the order they\u2019re likely to come by. Tap each one as they pass. The row stays where it is and shows the split, so nothing on the list ever moves on its own and the next runner is still under your thumb. When the split rows pile up, tap <b>Tidy</b> in a gap: everyone split so far moves to <b>Split</b> at the bottom and the ones still to come are back at the top. Tapped the wrong one? Tap it twice to take it back.',
   'A missed split is just missing. Splits show on Results beside the runner and in Copy CSV, once that runner has a name at the finish.']},
  {t:'Meets and scoring', p:[
   'A team score is the sum of the places of its first five finishers. Low score wins. The sixth and seventh are <b>displacers</b>: they don\u2019t score, but they push other teams\u2019 runners back a place.',
   'Results show the score, the five places that make it, and the pack: the average time of the five, and the spread from first to fifth.',
-  'The score is built from every place in the race, not only ours, which is why every runner has to be tapped. It won\u2019t always match the official score: official results drop runners from teams with fewer than five finishers and count every team\u2019s displacers, which a phone at the finish line can\u2019t know.',
+  'The score is built from every place in the race, not only ours, which is why every runner has to be tapped. With Timing on <b>Team</b>, only ours are timed, so there\u2019s no score.',
+  'In our conference, every finisher keeps their place, even from a team with fewer than five, so a race where everyone was tapped should match the official score. Other conferences may drop those runners first, which would move the numbers.',
   'The <b>Team</b> tab and <b>All</b> tab above the list of finishers switch between our runners and every place in the race.',
   'A runner who started and dropped out, or was expected and never started, can be listed with <b>Didn\u2019t finish</b> in Edit race, on any phone. They show under the placed runners, on Edit race and Results, as DNF or DNS and never change the score, places or PRs. To take one off, tap it in Edit race.']},
  {t:'Time trials', p:[
   'A time trial is one race with everyone in it and a single <b>Finisher</b> button. Everyone is ours, so there\u2019s no Field button and nothing to score.',
   'Every result carries two places: overall, and within girls or boys. The <b>All</b>, <b>Girls</b> and <b>Boys</b> tabs filter the list, and both copy buttons follow the filter.',
   'In the name selector, a runner who isn\u2019t on the roster is added with <b>Add a girl</b> or <b>Add a boy</b>, since a mixed race can\u2019t tell on its own.',
-  '<b>More than one distance.</b> If some runners go a mile and others the 800 from the same start, tick <b>More than one distance</b> when creating the event and pick the second distance. The name selector adds a second step and asks which distance each runner ran. Results are grouped by distance with places counted within each, since a miler and an 800 runner aren\u2019t racing each other.']},
+  '<b>More than one distance.</b> If some runners go a mile and others the 800 from the same start, turn on <b>More than one distance</b> when creating the event and pick the second distance. The name selector adds a second step and asks which distance each runner ran. Results are grouped by distance with places counted within each, since a miler and an 800 runner aren\u2019t racing each other.']},
  {t:'PRs and SRs', p:[
   'A <b>PR</b> is a runner\u2019s fastest ever at one exact distance. An <b>SR</b> is their fastest this season. Only one shows at a time, and a PR wins, since it\u2019s always a season best too.',
   'Each result is judged against earlier races only, so an old result keeps the flag it earned that day. A runner\u2019s first time at a distance sets the mark but earns nothing, since there was nothing to beat, and matching a best doesn\u2019t count.',
@@ -1365,7 +1373,7 @@ var HOW=[
  {t:'Saving and sync', p:[
   'Everything is saved on the phone the moment it happens, so a race can be timed with no signal at all. When the phone is signed in and online, it\u2019s sent to the database, where every other phone can see it.',
   'The line above the copy buttons on results says where things stand. <b>Saved to the database</b> is what you want to see. <b>Not signed in</b> or <b>Offline</b> with a number waiting means the results are safe on this phone, but nobody else has them yet.',
-  'A <b>test event</b> is for coaches testing the app\u2019s features. A test event syncs like any other, so two phones can rehearse together, and never counts toward records. Deleting a test event removes it from every phone and the database.',
+  'A <b>test event</b> syncs like any other, so two phones can rehearse together, and never counts toward records. You pick Live or Test each time you make an event. Deleting a test event removes it from every phone and the database.',
   'A real event can\u2019t be turned into a test event. A real event with no results yet deletes like a test one, from every phone. One with results can\u2019t be deleted from the app: <b>Hide</b> removes it from that phone only, and the database keeps the results. It\u2019s listed under <b>Hidden events</b> at the bottom of Settings, where <b>Show again</b> brings it back.',
   'Delete is the trash can at the top of the event form, and it always asks for a second tap.']},
  {t:'Roster', p:[
@@ -3668,8 +3676,6 @@ function openSplit(mid,rid){
 }
 function closeSplit(){ SP=null; spSave(); spStop(); }
 function spStop(){
-  if(spSettle){ clearTimeout(spSettle); spSettle=null; }
-  spHold={};
   if(spTimer){ clearInterval(spTimer); spTimer=null; }
   if(spClock){ clearInterval(spClock); spClock=null; }
 }
@@ -3683,12 +3689,24 @@ function spStart(){
 /* The roster for this race in the order they are likely to come by: best at
    today's distance, then last race, then roster order. The same order the
    naming sheet uses, worked out without S. */
+/* 4.49: the order is worked out once per race and then held, the same as
+   the Team clock. Anything that could reorder it mid-race (a pull bringing
+   in a result, a best changing) must not move a row under a thumb. A runner
+   added mid-race goes on the end. */
+var spOrder={};
 function spRunners(){
   var m=spMeet(), r=spRace(); if(!m || !r) return [];
-  var g=divOf(r), map=aidMap(), ctx={m:m, r:r, idx:recordsIndex(), map:map}, d=distMeters(m.dist), bm={};
-  var list=buildRoster().filter(function(x){ return !x.dead && x.g===g; });
+  var g=divOf(r), list=buildRoster().filter(function(x){ return !x.dead && x.g===g; });
+  var byId={}; list.forEach(function(x){ byId[x.id]=x; });
+  var ord=spOrder[r.id];
+  if(!ord) ord=spOrder[r.id]=spExpected(m,r,list).map(function(x){ return x.id; });
+  list.forEach(function(x){ if(ord.indexOf(x.id)<0) ord.push(x.id); });
+  return ord.map(function(id){ return byId[id]; }).filter(Boolean);
+}
+function spExpected(m,r,list){
+  var map=aidMap(), ctx={m:m, r:r, idx:recordsIndex(), map:map}, d=distMeters(m.dist), bm={};
   if(d) list.forEach(function(x){ var b=bestAt(rosterKey(x,map),d,ctx); if(b) bm[x.id]=b.ms; });
-  return list.sort(function(a,b){
+  return list.slice().sort(function(a,b){
     var ba=bm[a.id], bb=bm[b.id];
     if(ba!=null && bb!=null) return ba-bb;
     if(ba!=null) return -1;
@@ -3764,28 +3782,26 @@ function spRenderClock(){
     sub.textContent = r.endedMs!=null ? 'Race over. Tap a split twice to undo.' : 'Tap runners as they pass. Tap a split twice to undo.';
   }
 }
-/* Rows tapped since the last lull stay where they were tapped, so nothing
-   moves under a thumb in a pack. After SPLIT_SETTLE_MS with no tap they drop
-   into the Split section below, in the order they passed. */
-var spHold={}, spSettle=null, SPLIT_SETTLE_MS=2000;
-function spSettleSoon(){
-  if(spSettle) clearTimeout(spSettle);
-  spSettle=setTimeout(function(){ spSettle=null; spHold={}; if(onScreen('split')) renderSplitList(); },SPLIT_SETTLE_MS);
-}
+/* 4.49: nothing on this list moves on its own. A tapped row stays where it
+   is, showing its split, for as long as the screen is open. Before, rows
+   tapped in a pack held still only until a two-second lull and then dropped
+   into a Split section below, sliding every row above up at a moment nobody
+   chose. The Team clock learned the same thing in 4.47. */
+/* 4.50: Tidy moves everyone split so far into a Split section at the bottom,
+   in the order they passed, so the ones still to come are back at the top.
+   Only when tapped; anyone split after that stays in place until the next
+   Tidy. Held per race and split point, for as long as the phone is open. */
+var spTidied={};
+function spTidyKey(){ return SP ? SP.rid+'|'+SP.mark : ''; }
 function renderSplitList(){
   var r=spRace(), l=$('splitList'); if(!r) return;
-  var map=aidMap(), list=spRunners(), mk=SP.mark;
+  var map=aidMap(), list=spRunners(), mk=SP.mark, tid=spTidied[spTidyKey()]||{}, below=[], loose=0;
   l.innerHTML='';
   if(!list.length){
     l.innerHTML='<p class="spempty">No roster on this phone. Settings > Roster.</p>';
+    $('splitTidy').style.display='none';
     return;
   }
-  var top=[], done=[];
-  list.forEach(function(x){
-    var d=spFind(r,x,mk,map);
-    if(d && !spHold[d.cid]) done.push({x:x, at:d.at}); else top.push(x);
-  });
-  done.sort(function(a,b){ return (a.at||0)-(b.at||0); });
   function add(x){
     var b=document.createElement('button');
     b.type='button';
@@ -3793,11 +3809,17 @@ function renderSplitList(){
     b.addEventListener('click',function(){ spTap(b,x); });
     l.appendChild(b);
   }
-  top.forEach(add);
-  if(done.length){
+  list.forEach(function(x){
+    var d=spFind(r,x,mk,map);
+    if(d && tid[d.cid]) below.push({x:x, at:d.at});
+    else { add(x); if(d) loose++; }
+  });
+  if(below.length){
+    below.sort(function(a,b){ return (a.at||0)-(b.at||0); });
     l.insertAdjacentHTML('beforeend','<p class="hsect rsect spdone">Split</p>');
-    done.forEach(function(o){ add(o.x); });
+    below.forEach(function(o){ add(o.x); });
   }
+  $('splitTidy').style.display = loose ? '' : 'none';
   spCount();
 }
 function spPaint(b,r,x,mk,map){
@@ -3808,21 +3830,29 @@ function spPaint(b,r,x,mk,map){
 /* A tap records the runner in place: the row stays where it is, so the next
    name is still under the thumb in a pack. A tap on a row already split asks
    for a second tap to take it back. */
+function spTidy(){
+  var r=spRace(); if(!r || !SP) return;
+  var k=spTidyKey(), tid=spTidied[k]=spTidied[k]||{};
+  splitList(r).forEach(function(d){ if(d.m===SP.mark) tid[d.cid]=1; });
+  renderSplitList();
+  $('splitList').scrollTop=0;
+}
 function spTap(b,x){
   var r=spRace(); if(!r) return;
   var map=aidMap(), mk=SP.mark, d=spFind(r,x,mk,map);
   if(d){
     /* An undo is deliberate, so the runner goes straight back to the list. */
-    armTwoTap(b,'Tap again to undo',function(){ delete spHold[d.cid]; spRemove(r,d.cid); renderSplitList(); });
+    armTwoTap(b,'Tap again to undo',function(){ spRemove(r,d.cid); renderSplitList(); });
     return;
   }
   var a=map[histKey(x)]||null, nd={cid:uid(), a:a, n:x.name, g:x.g, m:mk, at:Date.now(), up:false};
   (r.splits=r.splits||[]).push(nd);
-  spHold[nd.cid]=1;
-  spSettleSoon();
   saveSeason();
   spPaint(b,r,x,mk,map);
   replay(b,'hit');
+  /* The row is painted in place rather than the list redrawn, so Tidy is
+     offered here: there is now something to tidy. */
+  $('splitTidy').style.display='';
   spCount();
 }
 function spCount(){
@@ -4344,15 +4374,18 @@ function raceRow(m,r){
   }
   if(r.lost) sub='Started on another phone first \u00b7 these taps stay here';
   row.innerHTML='<div><div class="lbl">'+esc(r.division==='Mixed'?'Everyone':r.division)+'</div><div class="st">'+esc(sub)+'</div></div>';
-  /* Field and Team timing name runners after the tap, so a second phone may
-     be naming: each phone picks its job here, before the gun, so a namer
-     never passes a Start button. Once the clock starts, the other phones
-     show Name runners, as above. Both names as it goes, on one phone. */
+  /* Each phone picks its job here, before the gun, so a namer never passes a
+     Start button. Once the clock starts, the other phones show Name runners,
+     as above. 4.48: offered whatever the Timing. It used to be left off Both,
+     on the idea that Both is one coach naming as they go, but nothing about
+     Both stops a second phone naming ours while the timer taps, and whether a
+     second phone turns up is not known when the event is made. A time trial
+     keeps its one Start. */
   /* 4.38: Record splits is a third job, for the coach at the mile marker, on
      any race still to run or running, except on the phone timing it. It opens
      its own screen, so it never passes a Start button. */
   var spl = splitRowOk(m,r,st);
-  if(st==='new' && timingOf(m)!=='both'){
+  if(st==='new' && !isTT(m)){
     var two=document.createElement('div'); two.className='rbtns'+(spl?' three':'');
     var tb=document.createElement('button'); tb.className='rbtn'; tb.textContent='Start clock';
     tb.addEventListener('click',function(){ openRace(m.id,r.id); });
@@ -4490,6 +4523,7 @@ function renderDeck(){
   $('tapHome').style.marginBottom = one ? '0' : '';
   $('deck').classList.toggle('solo', one);
   $('deck').classList.toggle('team', teamClock());
+  if(!teamClock()) $('teamTidy').style.display='none';
   /* One button that counts everyone says Finisher; one that counts only ours
      says whose. */
   $('tapHome').textContent = (tt || fieldTiming()) ? 'Finisher' : teamClock() ? 'Name later' : (S.team+' Finisher');
@@ -4567,7 +4601,7 @@ function renderChute(){
 
    Taps on names are made here, on the phone that owns the clock, through the
    same record() as the buttons, so the timer still owns every finish. */
-var tmOrder={};
+var tmOrder={}, tmTidied={};
 function teamClock(){ return !!S && !ttRace() && raceTiming()==='team'; }
 /* The roster in expected order, worked out once per race and then held. A
    runner added mid-race goes on the end, never in between. */
@@ -4584,12 +4618,14 @@ function finIndexOf(id){
   return -1;
 }
 function renderTeamList(){
-  var c=$('chute'), keep=c.scrollTop, list=teamRunners(), shown={};
+  var c=$('chute'), keep=c.scrollTop, list=teamRunners(), shown={}, tid=tmTidied[S.raceId]||{}, loose=0;
   c.innerHTML='';
   if(!list.length) c.insertAdjacentHTML('beforeend','<p class="spempty">No roster on this phone, so there are no names to tap. Use Name later for each of ours, or load the roster in Settings.</p>');
   list.forEach(function(x){
     var i=finIndexOf(x.id);
-    if(i>=0) shown[i]=1;
+    /* Tidied: this name is in, and was moved to In below on purpose. */
+    if(i>=0 && tid[S.fin[i].cid]) return;
+    if(i>=0){ shown[i]=1; loose++; }
     var b=document.createElement('button');
     b.type='button';
     b.className='opt home spl'+(i>=0?' done':'');
@@ -4598,15 +4634,27 @@ function renderTeamList(){
     b.addEventListener('click',function(){ teamTap(b,x); });
     c.appendChild(b);
   });
-  /* Every place that is not a name above: Name later taps, and anyone named
-     who is not on this list. Below all the names, in place order. */
-  var rows=[];
-  S.fin.forEach(function(f,i){ if(!shown[i]) rows.push(i); });
+  /* Every place that is not a name above: Name later taps, anyone named who
+     is not on this list, and (4.50) names moved here by Tidy. Below all the
+     names, in place order; a new place is always the last one, so it lands
+     at the very end and pushes nothing. */
+  var rows=[], anyTid=false;
+  S.fin.forEach(function(f,i){ if(!shown[i]){ rows.push(i); if(tid[f.cid]) anyTid=true; } });
   if(rows.length){
-    c.insertAdjacentHTML('beforeend','<p class="hsect rsect spdone">Name later</p>');
+    c.insertAdjacentHTML('beforeend','<p class="hsect rsect spdone">'+(anyTid?'In':'Name later')+'</p>');
     rows.forEach(function(i){ c.appendChild(chuteRow(i)); });
   }
+  $('teamTidy').style.display = loose ? '' : 'none';
   c.scrollTop=keep;
+}
+/* 4.50: Tidy moves every name already in down to In, in place order, so
+   the ones still to come are back at the top. Only when tapped. */
+function teamTidy(){
+  if(!S || !teamClock()) return;
+  var tid=tmTidied[S.raceId]=tmTidied[S.raceId]||{};
+  S.fin.forEach(function(f){ if(f.r!=null) tid[f.cid]=1; });
+  renderTeamList();
+  $('chute').scrollTop=0;
 }
 function teamTap(b,x){
   if(!S || S.t0Mono==null || S.endedMs!=null) return;
@@ -5162,7 +5210,7 @@ function renderResults(){
   wireDnf();
   resNote = tonly
     ? ['Only our runners were timed in this race, so <b>places are team places</b> and there is no score. If the full field is loaded later, places and the score follow from it.']
-    : ['Places are <b>raw order across the whole field</b>. Official scoring removes any team that ran fewer than five before assigning points, so these totals will shift.'];
+    : ['Places are <b>raw order across the whole field</b>. In our conference every finisher keeps their place, even from a team with fewer than five, so if every runner was tapped this should match the official score. A missed or extra tap moves it.'];
   if(unnamed) resNote.push('<b>'+unnamed+' of your '+(unnamed===1?'places':'places')+' still '+(unnamed===1?'needs':'need')+' a name.</b> The score above is already final, since it only depends on where your runners crossed.');
   if(disp.length) resNote.push('The '+(disp.length===1?'one':'two')+' in brackets '+(disp.length===1?'is a <b>displacer</b>. It scores':'are <b>displacers</b>. They score')+' no points of '+(disp.length===1?'its':'their')+' own, '+(disp.length===1?'it pushes':'they push')+' other teams\' runners further back.');
   $('resInfo').addEventListener('click',function(){ infoOpen('About this score',resNote); });
@@ -5868,6 +5916,8 @@ document.addEventListener('visibilitychange',function(){ if(!document.hidden){ l
 /* No confirmation. The race keeps running, the strip brings you back, and you
    are one tap from the chute again. Nothing is lost, so nothing is asked. */
 $('leaveClock').addEventListener('click',function(){ show('home'); });
+$('teamTidy').addEventListener('click',teamTidy);
+$('splitTidy').addEventListener('click',spTidy);
 $('toSplits').addEventListener('click',function(){ if(S) openSplit(S.meetId,S.raceId); });
 
 $('askCancel').addEventListener('click',askClose);
