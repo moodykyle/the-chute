@@ -1066,7 +1066,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.43';
+var BUILD='v4.44';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -5579,7 +5579,9 @@ $('tap').addEventListener('click',function(){ record(null,false); });
 $('tapHome').addEventListener('click',function(){ record(null, ttRace() || !multiCoach()); });
 $('undo').addEventListener('click',undo);
 $('stop').addEventListener('click',function(){
-  armTwoTap(this,'Again to end',function(){ endRace(); show('recon'); });
+  /* 4.44: End? like Delete? and Hide?. Again to end was wider than End race,
+     and with Splits in the row it pushed End race onto a line of its own. */
+  armTwoTap(this,'End?',function(){ endRace(); show('recon'); });
 });
 $('backTiming').addEventListener('click',function(){
   if(S && remoteRace(currentRace())){ show('home'); return; }
@@ -5605,13 +5607,18 @@ $('backRecon').addEventListener('click',function(){ show('recon'); });
 var armDiscard=null, armLabel='';
 /* Markup, not text, is put back, so a button that is an icon gets its icon
    back rather than an empty pill. */
+/* 4.44: the button keeps at least its own width while armed, so a shorter
+   question never pulls the buttons beside it sideways under a thumb. */
 function armTwoTap(b,confirmText,act){
+  function disarm(){ armDiscard=null; b.innerHTML=armLabel; b.classList.remove('armed'); b.style.minWidth=''; }
   if(armDiscard!==b){
+    var w=b.offsetWidth;
     armDiscard=b; armLabel=b.innerHTML; b.textContent=confirmText; b.classList.add('armed');
-    setTimeout(function(){ if(armDiscard===b){ armDiscard=null; b.innerHTML=armLabel; b.classList.remove('armed'); } },4000);
+    if(w) b.style.minWidth=w+'px';
+    setTimeout(function(){ if(armDiscard===b) disarm(); },4000);
     return;
   }
-  armDiscard=null; b.innerHTML=armLabel; b.classList.remove('armed'); act();
+  disarm(); act();
 }
 $('meetDelete').addEventListener('click',function(){
   var dm=editingMeet?findMeet(editingMeet):null;
