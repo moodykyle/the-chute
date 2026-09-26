@@ -349,10 +349,45 @@ select{min-height:47px}
 .req .op{color:var(--ink-soft);font-weight:400;margin:0 1px}
 .req .disp{margin-left:7px;font-size:13px;color:var(--ink-soft);font-weight:400}
 .rstat{margin-top:3px;font-size:13px;color:var(--ink-soft)}
+/* 4.52: the way into Meet scores, under the score, with our place once the
+   schools are in. */
+.mslink{display:flex;align-items:center;gap:6px;margin-top:10px;padding:8px 0 0;background:none;border:0;
+  border-top:1px solid var(--rule);width:100%;min-height:36px;font:inherit;font-size:14px;color:var(--ink-soft);text-align:left}
+.mslink b{color:var(--ink);font-weight:600}
+.mslink .chev{margin-left:auto;font-size:18px;line-height:1}
+/* 4.52: Meet scores. A standings row: place, school over its scoring places,
+   then the score over the raw score. Ours on the home wash, as on Results. */
+#mscore .scroll .pad{padding:16px 16px 4px}
+.msrow,.msschool{display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:10px;width:100%;
+  padding:11px 16px;background:none;border:0;border-bottom:1px solid var(--rule);font:inherit;color:var(--ink);text-align:left}
+.msschool{grid-template-columns:minmax(0,1fr) auto}
+.msrow.home,.msschool.home{background:var(--home-wash)}
+.msp{font-size:20px;font-weight:600;color:var(--ink-soft)}
+.msn{display:flex;flex-direction:column;min-width:0}
+.mss{font-size:16px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mspl{font-size:13px;color:var(--ink-soft);margin-top:2px;overflow-wrap:anywhere}
+.msc{display:flex;flex-direction:column;align-items:flex-end}
+.msv{font-size:22px;font-weight:600}
+.msr{font-size:12px;color:var(--ink-soft)}
+.msschool .chev{font-size:13px;color:var(--ink-soft)}
+.msrun{padding:4px 16px 10px 60px;border-bottom:1px solid var(--rule)}
+.msline{display:grid;grid-template-columns:36px 56px minmax(0,1fr) auto;gap:8px;font-size:13px;color:var(--ink-soft);padding:3px 0}
+.msnm{color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.msflags{margin:12px 16px 0;padding:10px 12px;border:1px solid var(--tape);border-radius:8px;font-size:13px;line-height:1.5;color:var(--ink)}
+.msflags div+div{margin-top:4px}
+.msform{padding:14px 16px 0;border-bottom:1px solid var(--rule);background:var(--chalk)}
+.msmsg{padding:0 16px}
+.msprev{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--rule)}
+.msprev .msn{flex:1;min-width:0}
+.msprev.ours{opacity:.55}
+.msnote{flex:0 0 auto;font-size:12px;color:var(--ink-soft)}
+.msprev .warn,.hint .warn{color:var(--tape)}
+.msmsg .warn{color:var(--tape)} .msmsg .good{color:var(--tape)}
+#msActions button:disabled{opacity:.45}
 .copyrow{display:flex;gap:9px;padding:14px 16px 18px}
 /* Pinned below the list now rather than sitting at the end of it. On a hundred
    finisher race the copy buttons were a long scroll away. */
-#resultActions,#reconActions{flex:0 0 auto;border-top:1px solid var(--rule);
+#resultActions,#reconActions,#msActions{flex:0 0 auto;border-top:1px solid var(--rule);
   padding:12px 16px calc(12px + env(safe-area-inset-bottom))}
 .copyrow button{
   flex:1;min-width:0;padding:14px 10px;border-radius:9px;border:1px solid var(--rule);
@@ -1057,6 +1092,18 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
   </div>
 </section>
 
+<!-- MEET SCORES, 4.52 -->
+<section class="screen" id="mscore">
+  <div class="bar nav"><button class="linkbtn back" id="msBack"><span class="bc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5 8 12l7 7"/></svg></span><span class="bl">Results</span><span class="bh" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7"/><path d="M6.5 9.5V20h4v-5.5h3V20h4V9.5"/></svg></span></button><h1 class="navmid nt">Meet scores</h1><span aria-hidden="true"></span></div>
+  <div class="scroll" id="msBody"></div>
+  <div id="msActions">
+    <div class="copyrow">
+      <button type="button" id="msCopyText">Copy Text - Meet</button>
+      <button type="button" id="msCopyCsv">Copy CSV - Meet</button>
+    </div>
+  </div>
+</section>
+
 <!-- MILE SPLITS -->
 <section class="screen" id="split">
   <div class="bar nav">
@@ -1106,7 +1153,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.51';
+var BUILD='v4.52';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1258,11 +1305,110 @@ function teamOnlyS(){ return !!S && teamOnly(S.fin,S.endedMs,S.division); }
 /* Team score from stored finishes, without needing the race loaded. */
 function scoreOf(r){
   if(teamOnlyRace(r)) return null;
+  var mr=meetResult(r);
+  if(mr) return mr.score;
   var ours=[];
   (r.fin||[]).forEach(function(f,i){ if(f.h) ours.push(i+1); });
   if(ours.length<5) return null;
   return ours.slice(0,5).reduce(function(a,b){return a+b;},0);
 }
+/* ---------- 4.52: meet scoring ----------
+   Every place and time in the field is on the timer's phone, and every school
+   reports its own top seven. That is all team scoring needs, because under the
+   MAAC rule every other runner comes out: runners past a school's seventh and
+   runners nobody claimed (unattached, or from a school that did not report)
+   are removed, and the places left are renumbered 1 to N. A school with fewer
+   than five keeps its places and displaces, but has no score. Ties go to the
+   sixth runner, and a school with a sixth beats one without.
+
+   The raw scoring beside it is the one done by hand on the night: the first
+   five reported places as they stand. Both come from the same claims.
+
+   Our places come from the app, all of them, never from a sheet. A place
+   another school claims where the app has one of ours stays ours, and is
+   flagged. Reproduces the 24 Sep Brook Run scoring done by hand in session
+   14 to the point: boys 35, 91, 96, 108, 109; girls 48, 68, 75, 106, 123.
+
+   Local shape, on the race: r.schools = [{cid, s, p:[places], up}], and
+   r.schoolGone ids to delete. 0018 holds them in race_school_places. */
+var OURS_KEY='';
+function numAsc(a,b){ return a-b; }
+function sum5(a){ return a.slice(0,5).reduce(function(x,y){ return x+y; },0); }
+function meetScore(field, ours, claims){
+  var flags=[], owner={}, lists={}, names=[OURS_KEY];
+  lists[OURS_KEY]=ours.slice().sort(numAsc);
+  lists[OURS_KEY].forEach(function(p){ owner[p]=OURS_KEY; });
+  claims.forEach(function(c){
+    var s=c.s, ps=[], seen={};
+    if(lists[s]) return;
+    names.push(s);
+    (c.p||[]).forEach(function(p){
+      if(!(p>=1 && p<=field && p===Math.floor(p))){ flags.push({kind:'outside', school:s, place:p}); return; }
+      if(seen[p]) return; seen[p]=1;
+      if(owner[p]===OURS_KEY){ flags.push({kind:'ours', school:s, place:p}); return; }
+      if(owner[p]!=null) flags.push({kind:'twice', school:s, other:owner[p], place:p});
+      else owner[p]=s;
+      ps.push(p);
+    });
+    ps.sort(numAsc);
+    if(ps.length>7) flags.push({kind:'many', school:s, n:ps.length});
+    lists[s]=ps;
+  });
+  var elig={};
+  names.forEach(function(s){ lists[s].slice(0,7).forEach(function(p){ elig[p]=1; }); });
+  var order=Object.keys(elig).map(Number).sort(numAsc), adj={};
+  order.forEach(function(p,i){ adj[p]=i+1; });
+  function rank(rows){
+    rows.sort(function(a,b){
+      if(a.score!==b.score) return a.score-b.score;
+      return (a.sixth==null?1e9:a.sixth)-(b.sixth==null?1e9:b.sixth);
+    });
+    rows.forEach(function(r,i){
+      var p=rows[i-1];
+      r.place=(p && p.score===r.score && p.sixth===r.sixth) ? p.place : i+1;
+    });
+    return rows;
+  }
+  var maac=[], raw=[], small=[];
+  names.forEach(function(s){
+    var r7=lists[s].slice(0,7), a=r7.map(function(p){ return adj[p]; });
+    if(r7.length<5){ small.push({school:s, raw:r7, adj:a}); return; }
+    maac.push({school:s, score:sum5(a), sixth:a[5]==null?null:a[5], scorers:a.slice(0,5), disp:a.slice(5), raw:r7});
+    raw.push({school:s, score:sum5(r7), sixth:r7[5]==null?null:r7[5], scorers:r7.slice(0,5), disp:r7.slice(5)});
+  });
+  small.sort(function(a,b){ return (a.raw[0]||1e9)-(b.raw[0]||1e9); });
+  return {maac:rank(maac), raw:rank(raw), small:small, adj:adj, owner:owner,
+          positions:order.length, unclaimed:field-Object.keys(owner).length, flags:flags};
+}
+function schoolsOf(r){ return (r && r.schools) || []; }
+/* Meet scores apply to a meet race with a field and at least one school
+   entered. A Team only race has no field to score against, so none. */
+function meetScorable(r){ return !!r && r.division!=='Mixed' && !teamOnlyRace(r) && (r.fin||[]).length>0; }
+function meetResult(r){
+  if(!meetScorable(r) || !schoolsOf(r).length) return null;
+  var fin=r.fin||[], ours=[];
+  fin.forEach(function(f,i){ if(f.h) ours.push(i+1); });
+  var res=meetScore(fin.length, ours, schoolsOf(r));
+  var me=null;
+  res.maac.forEach(function(t){ if(t.school===OURS_KEY) me=t; });
+  var raw=null;
+  res.raw.forEach(function(t){ if(t.school===OURS_KEY) raw=t; });
+  return {res:res, of:res.maac.length, score:me?me.score:null, place:me?me.place:null,
+          scorers:me?me.scorers:[], disp:me?me.disp:[], raw:raw};
+}
+/* The race on screen as meetResult wants it: the live finishes on S with the
+   schools held on the race in the season. */
+function sRaceLike(){
+  if(!S) return null;
+  return {fin:S.fin, division:S.division, endedMs:S.endedMs, schools:schoolsOf(currentRace())};
+}
+function sMeetResult(){ return meetResult(sRaceLike()); }
+function ordinal(n){
+  var t=n%100, d=n%10;
+  return n+((t>=11 && t<=13) ? 'th' : d===1 ? 'st' : d===2 ? 'nd' : d===3 ? 'rd' : 'th');
+}
+/* "1st of 12", for a race with meet scores and a score of our own. */
+function placeLine(mr){ return (mr && mr.place!=null) ? ordinal(mr.place)+' of '+mr.of : ''; }
 /* Any race with a clock started and no end on it, whichever started last. The
    race currently on screen is not excluded: leaving the boys clock to name the
    girls is exactly when you need to see the boys clock. renderLive decides
@@ -1347,7 +1493,8 @@ var HOW=[
   'A team score is the sum of the places of its first five finishers. Low score wins. The sixth and seventh are <b>displacers</b>: they don\u2019t score, but they push other teams\u2019 runners back a place.',
   'Results show the score, the five places that make it, and the pack: the average time of the five, and the spread from first to fifth.',
   'The score is built from every place in the race, not only ours, which is why every runner has to be tapped. With Timing on <b>Team</b>, only ours are timed, so there\u2019s no score.',
-  'In our conference, every finisher keeps their place, even from a team with fewer than five, so a race where everyone was tapped should match the official score. Other conferences may drop those runners first, which would move the numbers.',
+  'On its own, the app scores ours against every place in the race. Under our conference\u2019s rule, runners past a school\u2019s seventh and unattached runners come out first and the rest move up, so the real score can be lower. A school with fewer than five keeps its places and pushes others back, but has no score.',
+  '<b>Meet scores</b>, under the score on Results, scores the whole meet that way. Enter each school\u2019s places from the meet\u2019s sheet, or paste the sheet in one go; ours come from the race. It shows every school\u2019s score and place beside the raw score done by hand, flags a place two schools claim, and copies the lot for the head coach. Once schools are in, home and Results show our score under the rule and our place.',
   'The <b>Team</b> tab and <b>All</b> tab above the list of finishers switch between our runners and every place in the race.',
   'A runner who started and dropped out, or was expected and never started, can be listed with <b>Didn\u2019t finish</b> in Edit race, on any phone. They show under the placed runners, on Edit race and Results, as DNF or DNS and never change the score, places or PRs. To take one off, tap it in Edit race.']},
  {t:'Time trials', p:[
@@ -1454,7 +1601,7 @@ function fmt(ms,prec){
 /* ---------- dom ---------- */
 function $(id){ return document.getElementById(id); }
 /* Where each page's Back goes, named on the button. Home is the house. */
-var NAV_NAMES={settings:'Settings', account:'Account', rosterEdit:'Roster', home:'Home'};
+var NAV_NAMES={settings:'Settings', account:'Account', rosterEdit:'Roster', home:'Home', results:'Results'};
 function navBack(id){
   var b=document.querySelector('#'+id+' .bar.nav .linkbtn.back');
   if(!b || id==='recon') return;
@@ -1478,7 +1625,7 @@ function show(id){
     var sc=document.querySelectorAll('#'+id+' .scroll');
     for(var j=0;j<sc.length;j++) sc[j].scrollTop=0;
   }
-  if(S && ['rosterEdit','home','meet','backup','signin','settings','account','about','resPrefs','howto'].indexOf(id)<0 && id!=='split') { S.screen=id; save(); }
+  if(S && ['rosterEdit','home','meet','backup','signin','settings','account','about','resPrefs','howto'].indexOf(id)<0 && id!=='split' && id!=='mscore') { S.screen=id; save(); }
   if(id==='home'){
     renderHome(); hintRoster();
     /* Pull as home opens, so a meet created on the other phone is there when
@@ -1498,7 +1645,8 @@ function show(id){
   if(id==='timing'){ startClock(); renderDeck(); } else stopClock();
   if(wantAwake() && (id==='timing' || id==='recon')) keepAwake(); else if(id!=='split') releaseAwake();
   if(id==='split'){ renderSplit(); spStart(); keepAwake(); } else spStop();
-  if(id==='results') pullSplitsSoon();
+  if(id==='results'){ pullSplitsSoon(); pullSchoolsSoon(); }
+  if(id==='mscore'){ renderMeetScores(); pullSchoolsSoon(); }
   if(id==='recon'){
     pullDnfSoon();
     renderRecon();
@@ -3077,7 +3225,8 @@ function pollTick(){
     pulled=ch;
     var pr = watch ? r : fill;
     return pr ? pollRace(pr).then(function(out){
-      return pullDnf(pr).then(function(ch){ if(ch) out.changed=true; return out; });
+      return pullDnf(pr).then(function(ch){ if(ch) out.changed=true; return pullSchools(pr); })
+        .then(function(ch){ if(ch) out.changed=true; return out; });
     }) : {changed:false, added:[]};
   }).then(function(out){
     pollBusy=false;
@@ -3097,8 +3246,8 @@ function pollTick(){
 
 function syncTick(){
   if(syncBusy) return;
-  var w=syncWork(null), pend=pendingAthletes(), dq=pendingDnf(), sq=pendingSplits();
-  if((!w.total && !pend.length && !dq.length && !sq.length) || !signedIn() || navigator.onLine===false){ renderSyncViews(); return; }
+  var w=syncWork(null), pend=pendingAthletes(), dq=pendingDnf(), sq=pendingSplits(), mq=pendingSchools();
+  if((!w.total && !pend.length && !dq.length && !sq.length && !mq.length) || !signedIn() || navigator.onLine===false){ renderSyncViews(); return; }
   syncBusy=true;
   ensureFresh().then(function(ok){
     if(!ok){ syncErr='Sign in again to save'; return false; }
@@ -3111,7 +3260,8 @@ function syncTick(){
         return (w2.total ? syncDrain(w2,home) : Promise.resolve(true)).then(function(ok){
           /* After the drain, so a race inserted this cycle is already there. */
           /* Splits last of all: nothing waits on them. */
-          return pushDnf(pendingDnf()).then(function(){ return pushSplits(pendingSplits()); }).then(function(){ return ok; });
+          return pushDnf(pendingDnf()).then(function(){ return pushSplits(pendingSplits()); })
+            .then(function(){ return pushSchools(pendingSchools()); }).then(function(){ return ok; });
         });
       });
     });
@@ -3951,6 +4101,410 @@ function pullSplitsSoon(){
   }, function(){});
 }
 
+/* ---------- 4.52: the Meet scores screen ----------
+   Top, the standings: MAAC score and place, the raw score beside it, each
+   school's scoring places with displacers in brackets. A school opens in
+   place to show its runners with the app's time on each. Schools with fewer
+   than five follow, unscored, with their places. Below, the schools as
+   entered: ours from the app and never typed, then one row per school, each
+   editable, plus a paste box that takes the head coach's sheet as it is. */
+var msOpen={}, msEdit=null, msPaste=false, msMsg='', msText='', msRead=null;
+function msRace(){ return currentRace(); }
+function normSchool(t){ return String(t||'').replace(/\s+/g,' ').trim(); }
+function schoolKey(t){ return normSchool(t).toLowerCase(); }
+/* The words that make a school's name longer without telling it apart, so
+   \"Peachtree Middle School\" on her sheet is recognised as \"Peachtree MS\". */
+function schoolCore(t){
+  return schoolKey(t).replace(/[.'\u2019]/g,'').replace(/[^a-z0-9 ]/g,' ').split(/\s+/)
+    .filter(function(w){ return w && ['the','ms','middle','school','academy','of'].indexOf(w)<0; }).join(' ');
+}
+function isOurSchool(t){ var a=schoolCore(t), b=schoolCore(S && S.team); return !!a && a===b; }
+/* Places typed or pasted: every whole number, in any separators. */
+function placesIn(t){ return (String(t||'').match(/\d+/g)||[]).map(Number).filter(function(n){ return n>0; }); }
+/* A sheet pasted, or the cards read aloud into the keyboard's mic. Read as a
+   run of words and numbers: words are a school, the numbers after them are
+   its places, and words again start the next school. So dictation needs no
+   "new line": "Cliff Valley 1 2 19 35 46. Intown 3 7 21..." is two schools.
+   Periods and commas are ignored, "and" between two places is dropped, and
+   one to ninety-nine said as words become digits. A spreadsheet row still
+   works: a rank before the name is dropped, and so is a total on the end,
+   which is a valid place in a big field, so it goes only when it equals the
+   sum of the first five. A header row, and words with no places, come back
+   as not read. A name that matches one used this season, ignoring case and
+   punctuation, takes that spelling, so "st martins" is St. Martin's. */
+var NUM_WORDS=(function(){
+  var u=['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen',
+         'fourteen','fifteen','sixteen','seventeen','eighteen','nineteen'], t=['','','twenty','thirty','forty','fifty',
+         'sixty','seventy','eighty','ninety'], m={};
+  u.forEach(function(w,i){ if(i) m[w]=i; });
+  t.forEach(function(w,i){ if(!w) return; m[w]=i*10; for(var k=1;k<10;k++) m[w+'-'+u[k]]=i*10+k; });
+  return m;
+})();
+var HEADER_WORDS=['place','places','school','schools','team','teams','name','rank','total','score','runner','runners','finish'];
+function tokensOf(line){
+  var raw=line.replace(/\u00a0/g,' ').replace(/([a-z]+)\s+(one|two|three|four|five|six|seven|eight|nine)\b/gi,function(all,a,b){
+    return NUM_WORDS[a.toLowerCase()]>=20 && NUM_WORDS[a.toLowerCase()]%10===0 ? a+'-'+b : all; })
+    .split(/[\s,;:\t()+\/]+|\.(?=\s|$)/);
+  var out=[];
+  raw.forEach(function(w){
+    w=w.replace(/^[.\-]+|[.\-]+$/g,'');
+    if(!w) return;
+    var n=w.match(/^(\d+)(st|nd|rd|th)?$/i), lw=w.toLowerCase();
+    if(n) out.push({n:+n[1]});
+    else if(NUM_WORDS[lw]) out.push({n:NUM_WORDS[lw]});
+    else out.push({w:w});
+  });
+  return out;
+}
+function knownSchool(name){
+  var c=schoolCore(name), hit=null;
+  if(!c) return name;
+  knownSchools().forEach(function(k){ if(!hit && schoolCore(k)===c) hit=k; });
+  return hit||name;
+}
+function parseSchoolLines(text){
+  var rows=[], skipped=[], cur=null, pendWords=[];
+  function close(){
+    if(!cur) return;
+    var nm=normSchool(cur.w.join(' ').replace(/\s+(places?|at)$/i,'')), p=cur.p;
+    var hdr=nm && nm.toLowerCase().split(' ').every(function(x){ return HEADER_WORDS.indexOf(x)>=0; });
+    if(p.length>=6 && p[p.length-1]===sum5(p)) p.pop();
+    if(!nm || hdr || !p.length) skipped.push(cur.w.join(' ')+(p.length?' '+p.join(' '):''));
+    else rows.push({s:knownSchool(nm), p:p});
+    cur=null;
+  }
+  String(text||'').split(/\r?\n/).forEach(function(line){
+    var tk=tokensOf(line), k=0;
+    /* A rank in front of a name, as a spreadsheet row has: numbers that open
+       a line, before any school is open, with a name after them. */
+    var named=tk.some(function(x){ return x.w; });
+    if(named && (!cur || /\t/.test(line))){ close(); while(k<tk.length && tk[k].n!=null) k++; }
+    for(; k<tk.length; k++){
+      var x=tk[k];
+      if(x.w){
+        if(/^(and|&)$/i.test(x.w) && cur && cur.p.length && tk[k+1] && tk[k+1].n!=null) continue;
+        if(cur && cur.p.length) close();
+        if(!cur) cur={w:[], p:[]};
+        cur.w.push(x.w);
+      } else if(cur){ cur.p.push(x.n); }
+    }
+    /* A line of words with nothing after it is a header or a name alone; a
+       spreadsheet row always ends its school at the line. */
+    if(cur && (!cur.p.length || /\t/.test(line))) close();
+  });
+  close();
+  return {rows:rows, skipped:skipped};
+}
+/* Every school named this season, for the name box, so girls and boys, and
+   one meet and the next, spell a school the same way. */
+function knownSchools(){
+  var seen={}, out=[];
+  SEASON.meets.forEach(function(m){ (m.races||[]).forEach(function(r){
+    schoolsOf(r).forEach(function(c){ var k=schoolKey(c.s); if(!seen[k]){ seen[k]=1; out.push(c.s); } });
+  }); });
+  return out.sort(function(a,b){ return a.localeCompare(b); });
+}
+/* Adds or replaces a school on the race by name. Returns false when the name
+   is ours, since our places only ever come from the app. */
+function putSchool(r,name,places,cid){
+  name=normSchool(name);
+  if(!name || isOurSchool(name)) return false;
+  r.schools=schoolsOf(r).slice();
+  var hit=null;
+  r.schools.forEach(function(c){ if(cid ? c.cid===cid : schoolKey(c.s)===schoolKey(name)) hit=c; });
+  if(hit){ hit.s=name; hit.p=places.slice(); hit.up=false; }
+  else r.schools.push({cid:uid(), s:name, p:places.slice(), up:false});
+  return true;
+}
+function dropSchool(r,cid){
+  var gone=schoolsOf(r).filter(function(c){ return c.cid===cid; })[0];
+  if(!gone) return;
+  r.schools=schoolsOf(r).filter(function(c){ return c.cid!==cid; });
+  if(gone.ins){ r.schoolGone=(r.schoolGone||[]); r.schoolGone.push(cid); }
+}
+function schoolLabel(k){ return k===OURS_KEY ? (S.team||'Us') : k; }
+function flagText(f){
+  if(f.kind==='ours') return 'Place '+f.place+': '+esc(f.school)+' has it, but the app has one of ours there. It stays ours.';
+  if(f.kind==='twice') return 'Place '+f.place+': claimed by both '+esc(f.school)+' and '+esc(schoolLabel(f.other))+'.';
+  if(f.kind==='outside') return esc(f.school)+' lists '+f.place+', but only '+S.fin.length+' finished. Left out.';
+  return esc(f.school)+' lists '+f.n+'. The first seven count.';
+}
+function openMeetScores(){
+  msOpen={}; msEdit=null; msMsg=''; msText=''; msRead=null; msPaste=!schoolsOf(msRace()).length;
+  backTo='results'; show('mscore');
+}
+function renderMeetScores(){
+  var r=msRace(); if(!S || !r) return;
+  var mr=sMeetResult(), h='';
+  h+='<div class="rhead"><div class="rid"><span class="ridtext">'+esc(S.name)+'</span></div>'+
+     '<div class="rwhen num">'+esc([S.date?fmtDate(S.date,true):'', meetDist(), S.fin.length+' in field'].filter(Boolean).join(' \u00b7 '))+'</div></div>';
+  if(mr){
+    var res=mr.res;
+    var fl=res.flags.slice().sort(function(a,b){ return (a.place||0)-(b.place||0); });
+    if(fl.length) h+='<div class="msflags">'+fl.map(function(f){ return '<div>'+flagText(f)+'</div>'; }).join('')+'</div>';
+    h+='<div class="hsect rsect">Standings</div>';
+    var rawOf={}; res.raw.forEach(function(t){ rawOf[t.school]=t; });
+    res.maac.forEach(function(t){
+      var k='t:'+t.school, open=!!msOpen[k], raw=rawOf[t.school];
+      h+='<button type="button" class="msrow'+(t.school===OURS_KEY?' home':'')+'" data-k="'+esc(k)+'" aria-expanded="'+open+'">'+
+         '<span class="msp num">'+t.place+'</span>'+
+         '<span class="msn"><span class="mss">'+esc(schoolLabel(t.school))+'</span>'+
+         '<span class="mspl num">'+t.scorers.join('+')+(t.disp.length?' ('+t.disp.join(', ')+')':'')+'</span></span>'+
+         '<span class="msc"><span class="msv num">'+t.score+'</span><span class="msr num">raw '+raw.score+'</span></span></button>';
+      if(open) h+=msRunners(t.school,res);
+    });
+    if(res.small.length){
+      h+='<div class="hsect rsect">No team score</div>';
+      res.small.forEach(function(t){
+        var k='s:'+t.school, open=!!msOpen[k];
+        h+='<button type="button" class="msrow small'+(t.school===OURS_KEY?' home':'')+'" data-k="'+esc(k)+'" aria-expanded="'+open+'">'+
+           '<span class="msp num"></span>'+
+           '<span class="msn"><span class="mss">'+esc(schoolLabel(t.school))+'</span>'+
+           '<span class="mspl num">'+(t.adj.length?t.adj.join(', '):'none in scoring places')+'</span></span>'+
+           '<span class="msc"><span class="msr num">'+t.raw.length+(t.raw.length===1?' finisher':' finishers')+'</span></span></button>';
+        if(open) h+=msRunners(t.school,res);
+      });
+    }
+    h+='<div class="note">'+res.positions+' of '+S.fin.length+' in scoring places. '+
+       (res.unclaimed ? res.unclaimed+' places nobody claimed, past a school\u2019s seventh or unattached, come out.' : 'Every place is claimed.')+'</div>';
+  } else {
+    h+='<div class="note">Enter each school\u2019s places from the meet\u2019s sheet. Ours come from this race. The score follows the <b>MAAC rule</b>: runners past a school\u2019s seventh and runners nobody claimed come out, and a school with fewer than five keeps its places.</div>';
+  }
+  h+='<div class="hsect rsect">Schools</div>';
+  h+='<div class="msschool home"><span class="msn"><span class="mss">'+esc(S.team||'Us')+'</span>'+
+     '<span class="mspl">From this race, '+ourPlaces().length+(ourPlaces().length===1?' runner':' runners')+'</span></span></div>';
+  schoolsOf(r).slice().sort(function(a,b){ return (a.p[0]||1e9)-(b.p[0]||1e9); }).forEach(function(c){
+    if(msEdit===c.cid){ h+=msForm(c); return; }
+    h+='<button type="button" class="msschool" data-e="'+esc(c.cid)+'"><span class="msn"><span class="mss">'+esc(c.s)+'</span>'+
+       '<span class="mspl num">'+c.p.join(', ')+'</span></span><span class="chev">Edit</span></button>';
+  });
+  if(msEdit==='new') h+=msForm(null);
+  if(msMsg) h+='<div class="hint msmsg">'+msMsg+'</div>';
+  h+='<div class="pad">';
+  if(msEdit==null) h+='<div class="btnrow"><button type="button" id="msAdd">Add a school</button>'+
+                       '<button type="button" id="msPasteBtn"'+(msPaste?' class="go"':'')+'>Read or paste</button></div>';
+  /* 4.52: the cards are handwritten, so the way in is reading them aloud
+     into the keyboard's mic, or pasting a sheet. Read it shows what was
+     heard, school by school, and nothing is saved until Add: a misheard 15
+     for 50 is caught with the card still in hand. */
+  if(msPaste && msEdit==null && !msRead){
+    h+='<div class="field"><label for="msPasteIn">Read the cards, or paste a sheet</label>'+
+       '<textarea id="msPasteIn" spellcheck="false" placeholder="Cliff Valley 1 2 19 35 46. Intown 3 7 21 39 56 59 75.">'+esc(msText)+'</textarea>'+
+       '<div class="hint">Tap the mic on the keyboard and read each card: the school, then its places, then the next school. A sheet pasted from a spreadsheet works too.</div></div>'+
+       '<div class="btnrow"><button type="button" class="go" id="msReadGo">Read it</button></div>';
+  }
+  if(msPaste && msEdit==null && msRead){
+    var fieldN=S.fin.length, have={};
+    schoolsOf(r).forEach(function(c){ have[schoolKey(c.s)]=1; });
+    var known={}; knownSchools().forEach(function(k){ known[schoolKey(k)]=1; });
+    var adds=msRead.rows.filter(function(x){ return !isOurSchool(x.s); });
+    h+='<div class="field"><label>Read '+adds.length+(adds.length===1?' school':' schools')+'. Check each against its card.</label>';
+    msRead.rows.forEach(function(x){
+      var ours=isOurSchool(x.s), past=x.p.filter(function(p){ return p>fieldN; });
+      var note = ours ? 'ours, left out' : have[schoolKey(x.s)] ? 'replaces the one here' : known[schoolKey(x.s)] ? '' : 'new name';
+      h+='<div class="msprev'+(ours?' ours':'')+'"><span class="msn"><span class="mss">'+esc(x.s)+'</span>'+
+         '<span class="mspl num">'+x.p.map(function(p){ return p>fieldN ? '<b class="warn">'+p+'</b>' : p; }).join(', ')+
+         (past.length?' <span class="warn">past the '+fieldN+' in the field</span>':'')+'</span></span>'+
+         (note?'<span class="msnote">'+note+'</span>':'')+'</div>';
+    });
+    if(msRead.skipped.length) h+='<div class="hint"><span class="warn">Not read:</span> '+msRead.skipped.map(esc).join('; ')+'</div>';
+    h+='</div><div class="btnrow">'+
+       (adds.length?'<button type="button" class="go" id="msPasteGo">Add '+adds.length+(adds.length===1?' school':' schools')+'</button>':'')+
+       '<button type="button" id="msReadBack">Back to the text</button></div>';
+  }
+  h+='</div>';
+  var body=$('msBody'), keep=body.scrollTop;
+  body.innerHTML=h;
+  body.scrollTop=keep;
+  msWire(r);
+  /* An edit opens where the school's row was, which may be above the fold
+     when the list is scrolled down. Bring the form up to meet the tap. */
+  var fm=body.querySelector('.msform');
+  if(fm && msEdit!=null && fm.scrollIntoView) fm.scrollIntoView({block:'nearest'});
+  var has=!!mr;
+  $('msCopyText').disabled=!has; $('msCopyCsv').disabled=!has;
+}
+/* A school's runners, with the app's time on each: overall place, time,
+   and the scoring place when it has one. Ours carry their names. */
+function msRunners(k,res){
+  var h='<div class="msrun">';
+  Object.keys(res.owner).map(Number).filter(function(p){ return res.owner[p]===k; }).sort(numAsc).forEach(function(p){
+    var f=S.fin[p-1], sc=res.adj[p];
+    if(k===OURS_KEY && !sc) return;
+    var nm = (k===OURS_KEY && f) ? (nameOf(f.r)||f.n||'needs a name') : '';
+    /* Scoring place for the five, in brackets for the sixth and seventh,
+       the way the standings line writes them. */
+    var rank=Object.keys(res.owner).map(Number).filter(function(q){ return res.owner[q]===k && res.adj[q]; }).sort(numAsc).indexOf(p);
+    var what = !sc ? 'out' : rank<5 ? String(sc) : '('+sc+')';
+    h+='<div class="msline num"><span>'+p+'</span><span>'+(f?fmt(f.ms,1):'')+'</span><span class="msnm">'+esc(nm)+'</span><span>'+what+'</span></div>';
+  });
+  return h+'</div>';
+}
+function msForm(c){
+  var list=knownSchools().map(function(n){ return '<option value="'+esc(n)+'">'; }).join('');
+  return '<div class="msform"><div class="field"><label for="msName">School</label>'+
+    '<input type="text" id="msName" list="msNames" autocomplete="off" value="'+esc(c?c.s:'')+'"><datalist id="msNames">'+list+'</datalist></div>'+
+    '<div class="field"><label for="msPlaces">Places, their top seven</label>'+
+    '<input type="text" id="msPlaces" inputmode="numeric" autocomplete="off" value="'+esc(c?c.p.join(', '):'')+'"></div>'+
+    '<div class="btnrow"><button type="button" class="go" id="msSave">Save</button>'+
+    (c?'<button type="button" id="msRemove">Remove</button>':'')+
+    '<button type="button" id="msCancel">Cancel</button></div></div>';
+}
+function msDone(r){ saveSeason(); setTimeout(syncTick,0); renderMeetScores(); }
+function msWire(r){
+  var body=$('msBody');
+  Array.prototype.forEach.call(body.querySelectorAll('.msrow'),function(b){
+    b.addEventListener('click',function(){ var k=b.getAttribute('data-k'); msOpen[k]=!msOpen[k]; renderMeetScores(); });
+  });
+  Array.prototype.forEach.call(body.querySelectorAll('.msschool[data-e]'),function(b){
+    b.addEventListener('click',function(){ msEdit=b.getAttribute('data-e'); msPaste=false; msMsg=''; renderMeetScores(); });
+  });
+  if($('msAdd')) $('msAdd').addEventListener('click',function(){ msEdit='new'; msPaste=false; msMsg=''; renderMeetScores(); });
+  if($('msPasteBtn')) $('msPasteBtn').addEventListener('click',function(){ msPaste=!msPaste; msRead=null; msMsg=''; renderMeetScores(); });
+  if($('msCancel')) $('msCancel').addEventListener('click',function(){ msEdit=null; msMsg=''; renderMeetScores(); });
+  if($('msRemove')) $('msRemove').addEventListener('click',function(){
+    var cid=msEdit;
+    armTwoTap(this,'Remove?',function(){ dropSchool(r,cid); msEdit=null; msMsg=''; msDone(r); });
+  });
+  if($('msSave')) $('msSave').addEventListener('click',function(){
+    var name=normSchool($('msName').value), p=placesIn($('msPlaces').value), cid=(msEdit==='new'?null:msEdit);
+    if(!name){ msMsg='<span class="warn">Give the school a name.</span>'; renderMeetScores(); return; }
+    if(isOurSchool(name)){ msMsg='<span class="warn">Our places come from this race, not from a sheet.</span>'; renderMeetScores(); return; }
+    if(!p.length){ msMsg='<span class="warn">Add at least one place.</span>'; renderMeetScores(); return; }
+    var clash=schoolsOf(r).some(function(c){ return c.cid!==cid && schoolKey(c.s)===schoolKey(name); });
+    if(clash){ msMsg='<span class="warn">'+esc(name)+' is already listed. Edit that one instead.</span>'; renderMeetScores(); return; }
+    putSchool(r,name,p,cid); msEdit=null; msMsg=''; msDone(r);
+  });
+  if($('msPasteIn')) $('msPasteIn').addEventListener('input',function(){ msText=this.value; });
+  if($('msReadGo')) $('msReadGo').addEventListener('click',function(){
+    msText=$('msPasteIn').value; msMsg='';
+    var got=parseSchoolLines(msText);
+    if(!got.rows.length){ msMsg='<span class="warn">No school with places in that. Say the school, then its places.</span>'; renderMeetScores(); return; }
+    msRead=got; renderMeetScores();
+  });
+  if($('msReadBack')) $('msReadBack').addEventListener('click',function(){ msRead=null; msMsg=''; renderMeetScores(); });
+  if($('msPasteGo')) $('msPasteGo').addEventListener('click',function(){
+    var added=0;
+    msRead.rows.forEach(function(x){ if(putSchool(r,x.s,x.p)) added++; });
+    msMsg='<span class="good">'+added+(added===1?' school':' schools')+' added.</span>';
+    msRead=null; msText=''; msPaste=false;
+    msDone(r);
+  });
+}
+/* The whole meet, for the head coach: standings, then the schools that did
+   not score, then how it was scored. Scoring places, with the raw score. */
+function buildMeetChat(){
+  var mr=sMeetResult(); if(!mr) return '';
+  var res=mr.res, rawOf={};
+  res.raw.forEach(function(t){ rawOf[t.school]=t; });
+  var out=S.name.replace(/, (Girls|Boys)$/,'')+'\n'+[S.division, meetDist(), S.fin.length+' in the field'].filter(Boolean).join(', ')+'\n'+
+          fmtDate(S.date,true)+'\n\nTeam scores, MAAC rule\n';
+  res.maac.forEach(function(t){
+    out+=t.place+'. '+schoolLabel(t.school)+' '+t.score+' ('+t.scorers.join(' + ')+')'+
+         (t.disp.length?', displacers '+t.disp.join(', '):'')+'\n';
+  });
+  if(res.small.length){
+    out+='\nFewer than five, no team score\n';
+    res.small.forEach(function(t){ out+=schoolLabel(t.school)+(t.adj.length?' ('+t.adj.join(', ')+')':'')+'\n'; });
+  }
+  out+='\nRaw places, as scored by hand\n';
+  res.raw.forEach(function(t){ out+=t.place+'. '+schoolLabel(t.school)+' '+t.score+'\n'; });
+  out+='\nMAAC rule: runners past a school\u2019s seventh and unattached runners come out and places are renumbered. Schools with fewer than five keep their places and displace.\n';
+  return out;
+}
+/* The shape sent to the head coach on 24 Sep: a standings block, then every
+   place in the field with its time, school and scoring place. */
+function buildMeetCsv(){
+  var mr=sMeetResult(); if(!mr) return '';
+  var res=mr.res, rawOf={}, out='';
+  res.raw.forEach(function(t){ rawOf[t.school]=t; });
+  out+='place_maac_rule,place_raw_places,school,score_maac_rule,score_raw_places,scorers_maac_rule,displacers_maac_rule,scorers_raw_places\n';
+  res.maac.forEach(function(t){
+    var r=rawOf[t.school];
+    out+=t.place+','+r.place+','+csvCell(schoolLabel(t.school))+','+t.score+','+r.score+','+t.scorers.join('+')+','+t.disp.join('+')+','+r.scorers.join('+')+'\n';
+  });
+  res.small.forEach(function(t){
+    out+=',,'+csvCell(schoolLabel(t.school))+',no team score,no team score,'+t.adj.join('+')+',,'+t.raw.join('+')+'\n';
+  });
+  out+='\nplace,time,school,scoring_place,runner\n';
+  S.fin.forEach(function(f,i){
+    var p=i+1, k=res.owner[p], nm=(f.h ? (nameOf(f.r)||f.n||'') : '');
+    out+=p+','+fmt(f.ms,3)+','+(k!=null?csvCell(schoolLabel(k)):'')+','+(res.adj[p]||'')+','+csvCell(nm)+'\n';
+  });
+  out+='\n'+csvCell('MAAC rule: runners past a school\u2019s seventh and unattached runners come out, then places are renumbered. Schools with fewer than five keep their places and displace. Raw places: overall finish place.')+'\n';
+  return out;
+}
+
+/* ---------- 4.52: meet scores to and from the database ----------
+   The same shape as splits: rows keyed by an id the phone writes, sent after
+   everything else, one at a time. A new school is an insert; an edit to one
+   the database already has is a PATCH of its name and places, the only
+   columns 0018 lets change (c.ins says which). A 409 on an insert is the same
+   school entered on another phone first; the database's row wins, as with a
+   split, and the next read brings it here. */
+function pendingSchools(){
+  var out=[];
+  SEASON.meets.forEach(function(m){ (m.races||[]).forEach(function(r){
+    if(!r.up || resting({bad:r.schoolBad})) return;
+    if(schoolsOf(r).some(function(c){ return !c.up; }) || (r.schoolGone&&r.schoolGone.length)) out.push(r);
+  }); });
+  return out;
+}
+function schoolBody(r,c){ return {id:c.cid, race_id:r.id, school:c.s, places:c.p}; }
+function pushSchools(list){
+  return seq(list,function(r){
+    var fresh=schoolsOf(r).filter(function(c){ return !c.up; }), bad=false;
+    return seq(fresh,function(c){
+      var sent=JSON.stringify(schoolBody(r,c)), ins=!!c.ins;
+      var req = ins
+        ? sbFetch('/rest/v1/race_school_places?id=eq.'+c.cid,{method:'PATCH', auth:true, prefer:'return=minimal', body:{school:c.s, places:c.p}})
+        : sbFetch('/rest/v1/race_school_places',{method:'POST', auth:true, prefer:'resolution=ignore-duplicates,return=minimal', body:schoolBody(r,c)});
+      return req.then(function(res){
+        var ok = res.ok || (!ins && res.status===409);
+        if(ok) c.ins=true; else bad=true;
+        /* Edited again while this was in flight: it goes again next time. */
+        if(ok && JSON.stringify(schoolBody(r,c))===sent) c.up=true;
+      });
+    }).then(function(){
+      var gone=(r.schoolGone||[]).slice();
+      if(!gone.length) return;
+      return sbFetch('/rest/v1/race_school_places?id='+inList(gone),{method:'DELETE', auth:true, prefer:'return=minimal'})
+        .then(function(res){ if(res.ok) r.schoolGone=(r.schoolGone||[]).filter(function(c){ return gone.indexOf(c)<0; }); else bad=true; });
+    }).then(function(){
+      if(bad) r.schoolBad=Date.now(); else delete r.schoolBad;
+      saveSeason();
+      return true;
+    });
+  }).then(function(){ return true; }, function(){ return true; });
+}
+/* The database's list wins for everything this phone already sent. */
+function pullSchools(r){
+  if(!r || !r.up || !UUID_RE.test(r.id) || r.division==='Mixed') return Promise.resolve(false);
+  return sbFetch('/rest/v1/race_school_places?select=id,school,places&race_id=eq.'+r.id,{auth:true})
+    .then(function(res){
+      if(!res.ok || !Array.isArray(res.data)) return false;
+      var gone=r.schoolGone||[], mine=schoolsOf(r).filter(function(c){ return !c.up; });
+      var from=res.data.filter(function(x){ return gone.indexOf(x.id)<0; }).map(function(x){
+        return {cid:x.id, s:x.school, p:(x.places||[]).map(Number), up:true, ins:true};
+      });
+      var next=from.filter(function(f){ return !mine.some(function(d){ return d.cid===f.cid; }); }).concat(mine);
+      var key=function(l){ return l.map(function(c){ return c.cid+'|'+c.s+'|'+c.p.join('.')+(c.up?1:0); }).sort().join(','); };
+      if(key(next)===key(schoolsOf(r))) return false;
+      r.schools=next;
+      return true;
+    }, function(){ return false; });
+}
+function pullSchoolsSoon(){
+  var r=currentRace();
+  if(!r || !signedIn() || navigator.onLine===false) return;
+  ensureFresh().then(function(ok){ return ok ? pullSchools(r) : false; }).then(function(ch){
+    if(!ch) return;
+    saveSeason();
+    if(onScreen('results')) renderResults();
+    if(onScreen('mscore') && msEdit==null) renderMeetScores();
+  }, function(){});
+}
+
 /* ---------- sign in screen ---------- */
 var siPhase='email', siEmail='', siUntil=0, siTimer=null, siBusy=false;
 function validEmail(s){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s).trim()); }
@@ -4369,7 +4923,8 @@ function raceRow(m,r){
     sub = r.division==='Mixed'
       ? n+(n===1?' finisher':' finishers')
       : teamOnlyRace(r) ? 'Team only \u00b7 '+n+(n===1?' finisher':' finishers')
-      : (sc!=null? 'Team score '+sc : ours+' finishers, no score') + ' \u00b7 '+n+' in field';
+      : (sc!=null? 'Team score '+sc : ours+' finishers, no score') +
+        (placeLine(meetResult(r)) ? ' \u00b7 '+placeLine(meetResult(r)) : '') + ' \u00b7 '+n+' in field';
     label='Results'; ghost=true;
   }
   if(r.lost) sub='Started on another phone first \u00b7 these taps stay here';
@@ -4432,7 +4987,10 @@ function meetRow(m,open,today){
   else if(isTT(m)){ if(fin && ran){ tag=ran+' ran'; cls+=' scored'; } else tag = fin ? 'No times' : (anyRun ? 'In progress' : ''); }
   else if(scored.length){
     tag=scored.map(function(r){
-      return String(r.division||'?').charAt(0).toUpperCase()+' '+scoreOf(r);
+      /* 4.52: with meet scores in, our place rides beside the score. */
+      var mr=meetResult(r);
+      return String(r.division||'?').charAt(0).toUpperCase()+' '+scoreOf(r)+
+             (mr && mr.place!=null ? ' ('+ordinal(mr.place)+')' : '');
     }).join(' \u00b7 ');
     cls+=' scored';
   }
@@ -5128,10 +5686,15 @@ function renderResults(){
   var score=top5.reduce(function(a,b){return a+b.place;},0);
   var tonly=teamOnlyS();
   var complete=ours.length>=5 && !tonly;
+  /* 4.52: with the other schools entered, the score is the meet score, and
+     the places beside it are scoring places, so the sum still adds up. */
+  var mr=sMeetResult(), shown=top5.map(function(r){ return r.place; });
   var unnamed=ours.filter(function(r){return !r.name;}).length;
 
   var disp=[];
   if(!tonly) ours.forEach(function(r,i){ if(scoringRole(i+1)==='displacer') disp.push(r.place); });
+  var shownDisp=disp;
+  if(mr && mr.score!=null){ score=mr.score; shown=mr.scorers; shownDisp=mr.disp; }
   var sst=scoringStats();
 
   /* The score, the five that made it, and the two behind them, in one block.
@@ -5147,13 +5710,16 @@ function renderResults(){
        '<div class="rscore num">'+(complete?score:(tonly?'':'&#183;'))+'</div>'+
        '<div class="rside">'+
          '<div class="req num">'+(complete
-            ? top5.map(function(r){return r.place;}).join('<span class="op">+</span>')+
-              (disp.length?'<span class="disp">('+disp.join(', ')+')</span>':'')
+            ? shown.join('<span class="op">+</span>')+
+              (shownDisp.length?'<span class="disp">('+shownDisp.join(', ')+')</span>':'')
             : tonly ? 'Team only, no score'
             : 'Need 5 finishers to score. You have '+ours.length+'.')+'</div>'+
          (sst?'<div class="rstat num">Top 5 Avg '+fmt(sst.avg,0)+' \u00b7 Spread '+fmt(sst.spread,0)+'</div>':'')+
        '</div>'+
-     '</div></div>';
+     '</div>'+
+     (meetScorable(sRaceLike()) ? '<button type="button" class="mslink" id="resMeet">'+
+        (placeLine(mr) ? '<b>'+esc(placeLine(mr))+'</b> \u00b7 ' : '')+'Meet scores<span class="chev">&#8250;</span></button>' : '')+
+     '</div>';
 
   /* Same toggle as reconcile, so the two screens behave alike. The score
      above never changes with it: the view switches, the race does not. */
@@ -5186,7 +5752,9 @@ function renderResults(){
         var rec=recOf(f,rctx); if(rec) tags.push(recHtml(rec));
         splTags(f,tags);
       }
-      var who = nm ? esc(nm) : (f.h ? 'needs a name' : 'Field');
+      /* 4.52: a field place a school claimed in Meet scores carries its name. */
+      var sch = (!f.h && mr) ? mr.res.owner[i+1] : null;
+      var who = nm ? esc(nm) : (f.h ? 'needs a name' : (sch ? esc(sch) : 'Field'));
       var cls = nm ? '' : (f.h ? ' pending' : ' anon');
       h+=resRow(f.h?' home':'', i+1, who, cls, tags, f.ms, rp);
     });
@@ -5208,9 +5776,11 @@ function renderResults(){
   h+=dnfBlock();
   $('resultBody').innerHTML=h;
   wireDnf();
+  if($('resMeet')) $('resMeet').addEventListener('click',openMeetScores);
   resNote = tonly
     ? ['Only our runners were timed in this race, so <b>places are team places</b> and there is no score. If the full field is loaded later, places and the score follow from it.']
-    : ['Places are <b>raw order across the whole field</b>. In our conference every finisher keeps their place, even from a team with fewer than five, so if every runner was tapped this should match the official score. A missed or extra tap moves it.'];
+    : mr ? ['Scored under the <b>MAAC rule</b> from the places each school reported in <b>Meet scores</b>. Runners past a school\u2019s seventh and runners nobody claimed come out, the rest are renumbered, and a school with fewer than five keeps its places. The places beside the score are scoring places; the list below keeps overall places.']
+    : ['Places are <b>raw order across the whole field</b>. Under the MAAC rule, runners past a school\u2019s seventh and unattached runners come out before scoring, so the score under that rule can be lower. Enter the other schools in <b>Meet scores</b> to score it properly. A missed or extra tap moves it.'];
   if(unnamed) resNote.push('<b>'+unnamed+' of your '+(unnamed===1?'places':'places')+' still '+(unnamed===1?'needs':'need')+' a name.</b> The score above is already final, since it only depends on where your runners crossed.');
   if(disp.length) resNote.push('The '+(disp.length===1?'one':'two')+' in brackets '+(disp.length===1?'is a <b>displacer</b>. It scores':'are <b>displacers</b>. They score')+' no points of '+(disp.length===1?'its':'their')+' own, '+(disp.length===1?'it pushes':'they push')+' other teams\' runners further back.');
   $('resInfo').addEventListener('click',function(){ infoOpen('About this score',resNote); });
@@ -5413,12 +5983,15 @@ function buildCsv(full){
     var got=spl && spl[finSplitKey(f,smap)];
     return smarks.map(function(mk){ return ','+(got && got[mk]!=null ? fmt(got[mk],1) : ''); }).join('');
   }
-  var out='date,meet,distance,division,team,team_score,scoring_places,our_finishers,field_size\n'+
+  /* 4.52: team_place on the end, so a sheet built on the old columns still
+     lines up. With meet scores in, the score and places are the meet's. */
+  var cmr=sMeetResult(), csc=(cmr && cmr.score!=null);
+  var out='date,meet,distance,division,team,team_score,scoring_places,our_finishers,field_size,team_place\n'+
     csvCell(S.date||'')+','+csvCell(meet)+','+csvCell(meetDist())+','+
     csvCell(S.division)+','+csvCell(S.team)+','+
-    (scored?top5.reduce(function(a,b){return a+b;},0):'')+','+
-    (scored?top5.join('+'):'')+','+
-    p.length+','+S.fin.length+'\n\n'+
+    (csc?cmr.score:(scored?top5.reduce(function(a,b){return a+b;},0):''))+','+
+    (csc?cmr.scorers.join('+'):(scored?top5.join('+'):''))+','+
+    p.length+','+S.fin.length+','+(csc?csvCell(placeLine(cmr)):'')+'\n\n'+
     'place,time,runner,team,grade,scoring,record'+smarks.map(function(mk){ return ','+markCol(mk); }).join('')+'\n';
   /* The record column is data, so it is there whatever the display switch
      says. PR or SR, blank otherwise. */
@@ -5429,7 +6002,7 @@ function buildCsv(full){
     if(!full && !f.h) return;
     var r=runnerById(f.r);
     out+=(i+1)+','+fmt(f.ms,3)+(f.m?'*':'')+','+csvCell((nameOf(f.r)||f.n||null)||'')+','+
-         csvCell(f.h?S.team:'')+','+(r&&r.grade?r.grade:'')+','+sc+','+((recOf(f,rx)||{}).tag||'')+splCells(f)+'\n';
+         csvCell(f.h?S.team:((cmr && cmr.res.owner[i+1]) || ''))+','+(r&&r.grade?r.grade:'')+','+sc+','+((recOf(f,rx)||{}).tag||'')+splCells(f)+'\n';
   });
   /* No place and no time, and the status where the place would be. */
   dnfShown().forEach(function(d){
@@ -5536,7 +6109,12 @@ function buildChat(full){
   out+='\n';
 
   out+=S.team+'\n';
-  if(p.length>=5 && !tonly){
+  var cmr=sMeetResult(), cdisp=null;
+  if(cmr && cmr.score!=null){
+    out+='Team Score '+cmr.score+' ('+cmr.scorers.join(' + ')+')\n';
+    out+=placeLine(cmr)+' teams\n';
+    cdisp=cmr.disp;
+  } else if(p.length>=5 && !tonly){
     out+='Team Score '+top5.reduce(function(a,b){return a+b;},0)+
          ' ('+top5.join(' + ')+')\n';
   }
@@ -5545,7 +6123,7 @@ function buildChat(full){
      parenthesise the place in the list itself, which works in the monospace
      they are set in; this copy lands in a proportional chat font where that
      column would not hold. */
-  var disp=tonly ? [] : ourFinishers().slice(5,7).map(function(x){ return x.place; });
+  var disp=cdisp || (tonly ? [] : ourFinishers().slice(5,7).map(function(x){ return x.place; }));
   if(disp.length) out+='Displacers '+disp.join(', ')+'\n';
 
   var st2=scoringStats();
@@ -5556,7 +6134,7 @@ function buildChat(full){
   S.fin.forEach(function(f,i){
     if(!full && !f.h) return;
     var nm=(nameOf(f.r)||f.n||null), run=runnerById(f.r);
-    var who = nm ? nm : (f.h ? 'needs a name' : 'Field');
+    var who = nm ? nm : (f.h ? 'needs a name' : ((cmr && cmr.res.owner[i+1]) || 'Field'));
     if(f.h && run && run.grade) who += ', '+run.grade+'th';
     var rec=recOf(f,rx); if(rec) who += ' ('+rec.tag+')';
     out += String(i+1).padStart(w,' ')+'  '+fmt(f.ms,1)+'  '+who+'\n';
@@ -5896,6 +6474,9 @@ $('extraPurge').addEventListener('click',function(){
   });
 });
 $('copyChat').addEventListener('click',function(){ copyOut(buildChat(), this); });
+$('msCopyText').addEventListener('click',function(){ copyOut(buildMeetChat(), this); });
+$('msCopyCsv').addEventListener('click',function(){ copyOut(buildMeetCsv(), this); });
+$('msBack').addEventListener('click',function(){ show('results'); });
 $('copyCsv').addEventListener('click',function(){ copyOut(buildCsv(), this); });
 $('rosterPull').addEventListener('click',pullRoster);
 $('rosterDone').addEventListener('click',function(){ goBack('rosterEdit'); });
