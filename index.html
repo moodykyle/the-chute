@@ -283,8 +283,26 @@ select{min-height:47px}
 .check{display:flex;align-items:center;gap:11px;font-size:16px;color:var(--ink)}
 .check input[type=checkbox]{flex:0 0 auto;width:22px;height:22px;margin:0;accent-color:var(--test)}
 /* 4.39: the split points under Record splits, one tick box each. */
-.splitpts{display:flex;flex-wrap:wrap;gap:10px 22px;margin:12px 0 0 33px}
-.splitpts .check{font-size:15px}
+.splitpts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+/* 4.45: the event form in three groups, each a band with a rule under it. */
+.mform{padding:0}
+.fgrp{padding:18px 16px 0;border-bottom:1px solid var(--rule)}
+.fgrp:last-child{border-bottom:0}
+/* The screen-wide .seg2 carries padding and a rule; inside a form field it
+   should sit flush with the inputs, so this has to outrank it. */
+.seg2.fseg{padding:0;border:0}
+.seg2.fseg button{min-height:44px}
+.fpair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.fpair input{min-width:0}
+/* A switch row: the words on the left, the switch on the right, the whole
+   row the target. */
+.swrow{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;margin:0;font-size:16px;color:var(--ink)}
+/* A split point as a chip: the box is still a checkbox, drawn as a pill. */
+.chip{position:relative;display:inline-flex;align-items:center;min-height:40px;padding:8px 14px;margin:0;border-radius:999px;border:1px solid var(--rule);background:var(--chalk);color:var(--ink-soft);font-size:14px;font-weight:500}
+.chip input{position:absolute;opacity:0;width:1px;height:1px;margin:0}
+.chip:has(input:checked){border-color:var(--tape);color:var(--ink);background:var(--home-wash)}
+.chip:has(input:focus-visible){outline:2px solid var(--tape);outline-offset:2px}
+.primary:disabled{cursor:default}
 .syncnote{font-size:12px;color:var(--ink-soft);text-align:center;padding:0 16px 8px}
 .syncnote:empty{display:none}
 /* On results the save line sits over the copy buttons, the place you look
@@ -727,73 +745,83 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 <!-- MEET -->
 <section class="screen" id="meet">
   <div class="bar nav"><button class="linkbtn icon" id="meetBack" aria-label="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7"/><path d="M6.5 9.5V20h4v-5.5h3V20h4V9.5"/></svg></button><h1 class="navmid nt" id="meetTitle">New event</h1><button class="linkbtn icon danger" id="meetDelete" aria-label="Delete event"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4.5" y1="7" x2="19.5" y2="7"/><path d="M9.5 7V4.5h5V7"/><path d="M6.5 7l1 12.5h9l1-12.5"/><line x1="10.5" y1="11" x2="10.5" y2="16"/><line x1="13.5" y1="11" x2="13.5" y2="16"/></svg></button></div>
-  <div class="scroll pad">
-    <div class="field" id="mtypeField">
-      <label>Type</label>
-      <div class="seg2">
-        <button type="button" id="mtypeMeet" aria-pressed="true">Meet</button>
-        <button type="button" id="mtypeTT" aria-pressed="false">Time trial</button>
+  <div class="scroll mform">
+    <!-- 4.45: grouped. The event, then the race, then whether it counts. -->
+    <div class="fgrp">
+      <div class="field" id="mtypeField">
+        <div class="seg2 fseg">
+          <button type="button" id="mtypeMeet" aria-pressed="true">Meet</button>
+          <button type="button" id="mtypeTT" aria-pressed="false">Time trial</button>
+        </div>
+        <div class="hint" id="mshapeHint"></div>
+      </div>
+      <div class="field">
+        <label for="mname" id="mnameLabel">Meet</label>
+        <input type="text" id="mname" placeholder="Chamblee Invitational" autocomplete="off">
+      </div>
+      <div class="field fpair">
+        <div><label for="mdate">Date</label><input type="date" id="mdate"></div>
+        <div><label for="mvenue">Venue</label><input type="text" id="mvenue" placeholder="Murphey Candler Park" autocomplete="off"></div>
       </div>
     </div>
-    <div class="field">
-      <label for="mname" id="mnameLabel">Meet</label>
-      <input type="text" id="mname" placeholder="Chamblee Invitational" autocomplete="off">
-    </div>
-    <div class="field">
-      <label for="mdate">Date</label>
-      <input type="date" id="mdate">
-    </div>
-    <div class="field">
-      <label for="mdist">Distance</label>
-      <select id="mdist">
-        <option value="">Not set</option>
-        <optgroup label="Cross country">
-          <option>1 mile</option>
-          <option>1.5 miles</option>
-          <option>2 miles</option>
-          <option>2.5 miles</option>
-          <option>3 miles</option>
-          <option>2K</option>
-          <option>3K</option>
-          <option>4K</option>
-          <option>5K</option>
-        </optgroup>
-        <optgroup label="Track">
-          <option>400m</option>
-          <option>800m</option>
-          <option>1200m</option>
-          <option>1600m</option>
-          <option>3200m</option>
-        </optgroup>
-      </select>
-    </div>
-    <div class="field" id="mdist2Row">
-      <label class="check"><input type="checkbox" id="mtwo"> More than one distance</label>
-      <div id="mdist2Wrap">
-        <label for="mdist2">Second distance</label>
-        <select id="mdist2"></select>
+    <div class="fgrp">
+      <div class="field">
+        <label for="mdist">Distance</label>
+        <select id="mdist">
+          <option value="">Not set</option>
+          <optgroup label="Cross country">
+            <option>1 mile</option>
+            <option>1.5 miles</option>
+            <option>2 miles</option>
+            <option>2.5 miles</option>
+            <option>3 miles</option>
+            <option>2K</option>
+            <option>3K</option>
+            <option>4K</option>
+            <option>5K</option>
+          </optgroup>
+          <optgroup label="Track">
+            <option>400m</option>
+            <option>800m</option>
+            <option>1200m</option>
+            <option>1600m</option>
+            <option>3200m</option>
+          </optgroup>
+        </select>
       </div>
-      <div class="hint" id="mdist2Hint"></div>
+      <div class="field" id="mdist2Row">
+        <label class="swrow"><span>More than one distance</span><input type="checkbox" class="sw" id="mtwo"></label>
+        <div id="mdist2Wrap">
+          <label for="mdist2">Second distance</label>
+          <select id="mdist2"></select>
+        </div>
+        <div class="hint" id="mdist2Hint"></div>
+      </div>
+      <div class="field" id="mtimeRow">
+        <label>Timing</label>
+        <div class="seg2 fseg" id="mtimeSeg">
+          <button type="button" id="mtField" data-mode="field" aria-pressed="false">Field</button>
+          <button type="button" id="mtTeam" data-mode="team" aria-pressed="false">Team</button>
+          <button type="button" id="mtBoth" data-mode="both" aria-pressed="true">Both</button>
+        </div>
+        <div class="hint" id="mtimeHint"></div>
+      </div>
+      <div class="field" id="msplitRow">
+        <label class="swrow"><span>Record splits</span><input type="checkbox" class="sw" id="msplit"></label>
+        <div class="splitpts" id="msplitPts"></div>
+        <div class="hint" id="msplitHint"></div>
+      </div>
     </div>
-    <div class="field">
-      <div class="lblrow"><label for="mcoach">Coaches at the finish</label>
-        <button type="button" class="info" id="coachInfo" aria-label="About coaches at the finish">i</button></div>
-      <select id="mcoach"><option value="one">One</option><option value="multi">Two or more</option></select>
+    <div class="fgrp">
+      <div class="field" id="mmodeRow">
+        <label>Results</label>
+        <div class="seg2 fseg">
+          <button type="button" id="mlive" aria-pressed="false">Live</button>
+          <button type="button" id="mtest" aria-pressed="false">Test</button>
+        </div>
+        <div class="hint" id="mtestHint"></div>
+      </div>
     </div>
-    <div class="field" id="msplitRow">
-      <label class="check"><input type="checkbox" id="msplit"> Record splits</label>
-      <div class="splitpts" id="msplitPts"></div>
-      <div class="hint" id="msplitHint"></div>
-    </div>
-    <div class="field">
-      <label for="mvenue">Venue</label>
-      <input type="text" id="mvenue" placeholder="Murphey Candler Park" autocomplete="off">
-    </div>
-    <div class="field">
-      <label class="check" id="mtestRow"><input type="checkbox" id="mtest"> Test event</label>
-      <div class="hint" id="mtestHint"></div>
-    </div>
-    <div class="hint" id="mshapeHint"></div>
   </div>
   <div class="foot"><button class="primary" id="meetSave">Save event</button></div>
 </section>
@@ -1066,7 +1094,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.44';
+var BUILD='v4.45';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1089,6 +1117,11 @@ function loadSeason(){
   try{ SEASON=JSON.parse(localStorage.getItem(SKEY)||'null'); }catch(e){ SEASON=null; }
   if(!SEASON || typeof SEASON!=='object') SEASON={meets:[]};
   if(!Array.isArray(SEASON.meets)) SEASON.meets=[];
+  /* 4.45: an event saved before Timing carried coaches, 'one' or 'multi'.
+     Read once into timing here, so nothing after this sees the old field. */
+  SEASON.meets.forEach(function(m){
+    if(m && m.coaches!==undefined){ if(TIMINGS.indexOf(m.timing)<0) m.timing=timingOf(m); delete m.coaches; }
+  });
   return SEASON;
 }
 function saveSeason(){ try{ localStorage.setItem(SKEY,JSON.stringify(SEASON)); }catch(e){} }
@@ -1270,9 +1303,10 @@ var HOW=[
   'Tap an event to open it and see its races.']},
  {t:'Timing a race', p:[
   'Open the race and tap <b>Start</b> when the gun goes. The clock runs on the phone, so no signal is needed.',
-  'Tap once for every runner who crosses the line. How you tap depends on who is working the finish.',
-  '<b>One coach, timing and naming alone.</b> Tap <b>{TEAM} Finisher</b> for our runners and <b>Field Finisher</b> for everyone else. Without popsicle sticks or a second coach, this is how you know which places were ours when you name them afterward.',
-  '<b>Two coaches.</b> The timing coach starts the race and taps <b>Field Finisher</b> for every runner, never looking away from the line. The second coach names our runners from their own phone; see Naming finishers.',
+  'Tap once for every runner you time. What the buttons are depends on <b>Timing</b>, set on the event.',
+  '<b>Both.</b> Tap <b>{TEAM} Finisher</b> for our runners and <b>Field Finisher</b> for everyone else, so the score builds as you go. Without popsicle sticks or a second coach, this is how you know which places were ours when you name them afterward.',
+  '<b>Field.</b> One big <b>Finisher</b> button for every runner, never looking away from the line. Our runners get their names afterward, from the finish sticks or from a second coach naming on their own phone; see Naming finishers.',
+  '<b>Team.</b> One big <b>{TEAM} Finisher</b> button, tapped for our runners only. Useful when the field is too big to tap. With nobody else timed, places are team places and there is no score; Results says <b>Team only</b>.',
   'The count at the top shows how many runners are in, so you can check it against the chute. <b>Undo last</b> takes back a mis-tap. <b>End race</b> needs two taps, so a stray thumb can\u2019t stop the clock.',
   '<b>Leave clock</b> takes you home while the race keeps running, for when a second race starts before the first one ends. Start the second race from home, and both clocks keep going. A phone can only tap the race on its screen, though, so one coach timing both means switching back and forth. When races overlap, a phone for each is easier. A strip on home shows what is running and allows for easy navigation.']},
  {t:'Naming finishers', p:[
@@ -1290,9 +1324,10 @@ var HOW=[
   'While a race is running, a naming phone shows how current it is, like <b>Updated 4s ago</b>. If it falls behind, names still save and catch up when the signal returns.',
   'Every phone needs the roster before race day, or it has no names to pick from. If it wasn\u2019t loaded when you first signed in, go to <b>Settings &gt; Roster &gt; Load roster from database</b>. A phone without one also gets a reminder with a <b>Load roster</b> button when it opens a race to name.',
   'A meet\u2019s girls and boys races each have their own clock, so two coaches can time overlapping races, one phone each.',
-  'Set <b>Coaches at the finish</b> to <b>Two or more</b> on the event and each phone picks its job on the event card before the gun: <b>Start clock</b> or <b>Name runners</b>. The timer gets one big <b>Finisher</b> button for everyone, and the namer\u2019s names mark our runners. Edit race opens on <b>All</b>, since places are unnamed until the namer gets to them.']},
+  'With <b>Timing</b> set to <b>Field</b> or <b>Team</b>, each phone picks its job on the event card before the gun: <b>Start clock</b> or <b>Name runners</b>. With Field, the namer\u2019s names mark our runners, and Edit race opens on <b>All</b>, since places are unnamed until the namer gets to them.']},
  {t:'Mile splits', p:[
-  'A coach out on the course can take splits. On the event, turn on <b>Record splits</b> and tick where they are taken. On the day, open the meet on home and tap <b>Record splits</b> on the race. It runs on its own phone, beside the timer and the namer, and changes nothing they do.',
+  'A coach out on the course can take splits. On the event, turn on <b>Record splits</b>, and on a race with more than one mile, pick which. On the day, open the meet on home and tap <b>Record splits</b> on the race. It runs on its own phone, beside the timer and the namer, and changes nothing they do.',
+  'The timer can take splits too, when the split point is beside the finish. <b>Splits</b> on the clock screen opens them, and the strip at the bottom goes back to the clock in one tap. It turns coral when the leaders are due, a minute before our fastest runner\u2019s best less a minute.',
   'Our runners are listed in the order they\u2019re likely to come by. Tap each one as they pass. The row stays put and shows the split, so the next runner is still under your thumb. In the next gap, split runners move down to <b>Split</b> in the order they passed. Tapped the wrong one? Tap it twice to take it back.',
   'A missed split is just missing. Splits show on Results beside the runner and in Copy CSV, once that runner has a name at the finish.']},
  {t:'Meets and scoring', p:[
@@ -1975,8 +2010,39 @@ function renderMeetType(m){
   $('mname').placeholder = tt ? 'Tuesday time trial' : 'Chamblee Invitational';
   $('mshapeHint').textContent = tt ? SHAPE_TT : SHAPE_MEET;
   $('mdist2Row').style.display = tt ? '' : 'none';
+  /* A time trial has one button whatever you pick, so there is nothing to
+     pick. */
+  $('mtimeRow').style.display = tt ? 'none' : '';
   renderDist2();
   renderSplitCfg();
+}
+/* 4.45: Timing on the form. formTiming holds the pick while the form is
+   open; the line under it says what each one puts on the clock screen. */
+var formTiming='both';
+var TIMING_HINT={
+  field:'Tap every finisher with one button. Our runners get their names afterward, from the finish sticks or from a coach naming on a second phone.',
+  team:'Our runners only, one button. Name them as they come in or afterward. Team places, no score.',
+  both:'Two buttons, ours and the field, so the score builds as you go. Name ours during the race or after.'
+};
+function renderTiming(){
+  TIMINGS.forEach(function(t){
+    var b=document.querySelector('#mtimeSeg [data-mode="'+t+'"]');
+    b.setAttribute('aria-pressed', t===formTiming ? 'true' : 'false');
+  });
+  $('mtimeHint').textContent=TIMING_HINT[formTiming];
+}
+/* 4.45: Live or Test, picked every time, never defaulted. A real event in
+   the database can never become a test, so a default of Live would be the one
+   choice that cannot be undone, made by not looking. formTest is null until
+   one is picked, and Save waits for it. */
+var formTest=null, formTestLocked=false;
+function renderTestPick(){
+  $('mlive').setAttribute('aria-pressed', formTest===false ? 'true' : 'false');
+  $('mtest').setAttribute('aria-pressed', formTest===true ? 'true' : 'false');
+  $('mtest').disabled=formTestLocked;
+  $('mtestHint').textContent = formTestLocked ? LOCKED_HINT
+    : formTest===null ? PICK_HINT : formTest ? TEST_HINT : LIVE_HINT;
+  $('meetSave').disabled = formTest===null;
 }
 var DIST2_HINT='Naming asks which one each runner ran.';
 /* Most time trials are one distance, so the second picker stays out of the
@@ -2016,25 +2082,29 @@ function splitCfgShown(){
 function renderSplitCfg(){
   var row=$('msplitRow'), box=$('msplitPts'), shown=splitCfgShown(), on=shown && $('msplit').checked;
   row.style.display = shown ? '' : 'none';
-  box.style.display = on ? '' : 'none';
   box.innerHTML='';
   var dist=$('mdist').value, cands=splitCands(dist), pick=splitPick||splitDefault(dist);
-  if(on) cands.forEach(function(mk){
-    var l=document.createElement('label'); l.className='check';
+  /* 4.45: one point has nothing to choose, so it is a line under the switch,
+     not a chip that could only ever be on. */
+  if(on && cands.length>1) cands.forEach(function(mk){
+    var l=document.createElement('label'); l.className='chip';
     var c=document.createElement('input'); c.type='checkbox'; c.value=String(mk); c.checked=pick.indexOf(mk)>=0;
     c.addEventListener('change',function(){
       splitPick=[].slice.call(box.querySelectorAll('input')).filter(function(x){ return x.checked; }).map(function(x){ return +x.value; });
       renderSplitHint();
     });
-    l.appendChild(c); l.appendChild(document.createTextNode(' '+markLabel(mk)));
+    l.appendChild(c); l.appendChild(document.createTextNode(markLabel(mk)));
     box.appendChild(l);
   });
+  box.style.display = box.childNodes.length ? '' : 'none';
   renderSplitHint();
 }
 function renderSplitHint(){
   var on=splitCfgShown() && $('msplit').checked, n=on ? formSplits() : null;
-  $('msplitHint').textContent = !on ? 'A coach at a split point taps runners as they pass, on their own phone.'
-    : n ? 'The splitter picks which point they are at.' : 'Tick at least one, or splits stay off.';
+  var c=on ? splitCands($('mdist').value) : [];
+  $('msplitHint').textContent = !on ? 'A coach at a split point taps runners as they pass, on their own phone or the timer\u2019s.'
+    : c.length===1 ? 'At '+markLabel(c[0]).toLowerCase()+'.'
+    : n ? 'The splitter picks which point they are at.' : 'Pick at least one, or splits stay off.';
 }
 /* What the form would save: the ticked points, or null for no splits. */
 function formSplits(){
@@ -2056,27 +2126,28 @@ function editMeet(id){
   if(!$('mdist2').options.length) renderDist2();
   $('mdist2').value=(m && isTT(m) && m.dist2) || '';
   $('mtwo').checked=!!(m && isTT(m) && m.dist2);
-  /* Never inherited from the last meet, unlike distance. One test race the
-     night before must not turn the real meet into a test. */
-  $('mtest').checked=!!(m && m.test);
-  /* Never inherited either: one coach is how every event starts. */
-  $('mcoach').value=(m && m.coaches==='multi') ? 'multi' : 'one';
+  /* Never inherited from the last meet, unlike distance, and never defaulted
+     on a new one: Live or Test is picked every time (4.45). */
+  formTest = m ? !!m.test : null;
+  /* Never inherited either: Both is how every event starts. */
+  formTiming = m ? timingOf(m) : 'both';
+  renderTiming();
   /* 4.39: off unless the event has splits; an event's own points, if they
      still fit its distance, otherwise the distance's defaults. */
   var own=m ? marksOf(m.splits) : null;
   $('msplit').checked=!!own;
   splitPick = (own && own.every(function(x){ return splitCands(m.dist).indexOf(x)>=0; })) ? own : null;
   renderSplitCfg();
-  /* A real meet in the database cannot become a test, so it is not offered. */
-  var locked=!!(m && !m.test && meetUploaded(m));
-  $('mtestRow').style.display = locked ? 'none' : '';
-  $('mtestHint').textContent = locked ? LOCKED_HINT : TEST_HINT;
+  /* A real meet in the database cannot become a test, so Test is not offered. */
+  formTestLocked=!!(m && !m.test && meetUploaded(m));
+  renderTestPick();
   $('meetDelete').style.display=m?'':'none';
   $('meetTitle').textContent = m ? 'Edit event' : 'New event';
   renderDist2();
   show('meet');
 }
 function commitMeet(){
+  if(formTest===null) return;
   var tt=(!editingMeet && newType==='time_trial');
   var nm=$('mname').value.trim()||(tt?'Time trial':'Meet');
   var dt=$('mdate').value||todayStr();
@@ -2084,14 +2155,14 @@ function commitMeet(){
   var ds=$('mdist').value;
   var ds2=($('mdist2Row').style.display==='none' || !$('mtwo').checked) ? '' : $('mdist2').value;
   if(!ds || ds2===ds) ds2='';
-  var tst=$('mtest').checked;
-  var cm=$('mcoach').value==='multi' ? 'multi' : 'one';
+  var tst=formTest===true;
+  var cm=formTiming;
   var sp=formSplits();
   if(editingMeet){
     var m=findMeet(editingMeet);
     if(m){
-      if(m.name!==nm || m.date!==dt || m.venue!==vn || (m.coaches||'one')!==cm || !sameMarks(m.splits,sp)) touch(m);
-      m.coaches=cm; m.splits=sp;
+      if(m.name!==nm || m.date!==dt || m.venue!==vn || timingOf(m)!==cm || !sameMarks(m.splits,sp)) touch(m);
+      m.timing=cm; delete m.coaches; m.splits=sp;
       if(m.dist!==ds) m.races.forEach(touch);
       m.name=nm; m.date=dt; m.venue=vn; m.dist=ds;
       setDist2(m,ds2);
@@ -2100,7 +2171,7 @@ function commitMeet(){
     }
   } else {
     var nm2=addEvent(nm,dt,vn,ds,tst,tt?'time_trial':'meet');
-    nm2.coaches=cm; nm2.splits=sp; saveSeason();
+    nm2.timing=cm; nm2.splits=sp; saveSeason();
     /* Straight onto the event: the race insert carries it, so nothing to patch. */
     if(tt && ds2){ nm2.dist2=ds2; saveSeason(); }
     openMeet=nm2.id; openByHand=true; revealOpen=true;
@@ -2120,9 +2191,9 @@ function resetViews(){
 function openRace(mid,rid){
   var f=findRace(mid,rid); if(!f) return;
   resetViews();
-  /* With a namer, every tap starts as a field finisher, so Team is empty until
-     names go on. Edit race opens where the places are. */
-  if(coachMode(f.meet)==='multi'){
+  /* Field timing: every tap starts as a field finisher, so Team is empty
+     until names go on. Edit race opens where the places are. */
+  if(timingOf(f.meet)==='field'){
     reconAll=true;
     $('segOurs').setAttribute('aria-pressed','false');
     $('segAll').setAttribute('aria-pressed','true');
@@ -2313,8 +2384,10 @@ function ensureFresh(){
    phones can practice on one. */
 var BAD_RETRY_MS=60000, SYNC_MS=2500, SYNC_INIT='chute.sync.init.v1', HOME_KEY='chute.team.home.v1';
 var UUID_RE=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-var TEST_HINT='Saved to the database marked as a test, so two phones can practice on it. Deleting it removes it everywhere.';
-var LOCKED_HINT='Real meet \u00b7 saved to the database. It can\u2019t be made a test.';
+var TEST_HINT='Practice. It syncs like a real event, so other phones can join in to rehearse naming or splits, but it never counts toward records. Deleting it removes it everywhere.';
+var LIVE_HINT='The real thing. Counts toward records, and can\u2019t be made a test once it\u2019s saved.';
+var PICK_HINT='Pick one to save. A live event can\u2019t become a test once it\u2019s saved.';
+var LOCKED_HINT='Live, and already in the database, so it can\u2019t be made a test.';
 var syncBusy=false, syncErr='';
 
 function touch(o){ if(o){ o.d=(o.d||0)+1; delete o.bad; } }
@@ -2362,9 +2435,26 @@ function distMeters(s){
   return null;
 }
 function isoAt(ms){ return ms==null ? null : new Date(ms).toISOString(); }
-function coachMode(m){ return (m && m.coaches==='multi') ? 'multi' : 'one'; }
-function meetBody(m){ return {id:m.id, name:m.name, meet_date:m.date, venue:m.venue||null, is_test:!!m.test, event_type:eventType(m), coach_mode:coachMode(m), split_marks:splitMarks(m).length?splitMarks(m):null}; }
-function meetPatch(m){ return {name:m.name, meet_date:m.date, venue:m.venue||null, is_test:!!m.test, coach_mode:coachMode(m), split_marks:splitMarks(m).length?splitMarks(m):null}; }
+/* 4.45: how the finish is timed, one of three, on the event so every phone
+   agrees.
+     field  one button for every finisher; ours are named afterwards
+     team   one button, our runners only; Team only, no score
+     both   two buttons, ours and the field
+   Before 4.45 the event carried coaches, 'one' or 'multi', which were both
+   and field under other names. A phone that still has one reads it here. */
+var TIMINGS=['field','team','both'];
+function timingOf(m){
+  if(m && TIMINGS.indexOf(m.timing)>=0) return m.timing;
+  return (m && m.coaches==='multi') ? 'field' : 'both';
+}
+/* The same for a row from the database. 0017 renamed coach_mode to
+   timing_mode; a row read before it ran still says coach_mode. */
+function timingOfRow(sm){
+  if(sm && TIMINGS.indexOf(sm.timing_mode)>=0) return sm.timing_mode;
+  return (sm && sm.coach_mode==='multi') ? 'field' : 'both';
+}
+function meetBody(m){ return {id:m.id, name:m.name, meet_date:m.date, venue:m.venue||null, is_test:!!m.test, event_type:eventType(m), timing_mode:timingOf(m), split_marks:splitMarks(m).length?splitMarks(m):null}; }
+function meetPatch(m){ return {name:m.name, meet_date:m.date, venue:m.venue||null, is_test:!!m.test, timing_mode:timingOf(m), split_marks:splitMarks(m).length?splitMarks(m):null}; }
 function racePatch(m,r){
   return {
     started_at:isoAt(r.t0Wall),
@@ -2799,7 +2889,7 @@ function mergePulled(meets,races,upBefore){
     if(!lm){
       lm={id:sm.id, name:sm.name, date:sm.meet_date, venue:sm.venue||'', dist:distLabel(srs[0] && srs[0].distance_m),
           dist2:(sm.event_type==='time_trial' && srs[0] && srs[0].second_distance_m) ? distLabel(srs[0].second_distance_m) : undefined,
-          test:!!sm.is_test, type:(sm.event_type==='time_trial'?'time_trial':'meet'), coaches:(sm.coach_mode==='multi'?'multi':'one'), splits:marksOf(sm.split_marks), up:true, races:srs.map(function(sr){
+          test:!!sm.is_test, type:(sm.event_type==='time_trial'?'time_trial':'meet'), timing:timingOfRow(sm), splits:marksOf(sm.split_marks), up:true, races:srs.map(function(sr){
             var r={id:sr.id, division:divName(sr.division), t0Wall:null, endedMs:null, fin:[], up:true, pulled:true};
             applyRaceRow(r,sr); return r;
           })};
@@ -2808,10 +2898,10 @@ function mergePulled(meets,races,upBefore){
     }
     lm.up=true;
     if(!lm.d && (lm.name!==sm.name || lm.date!==sm.meet_date || (lm.venue||'')!==(sm.venue||'') || !!lm.test!==!!sm.is_test ||
-                 coachMode(lm)!==(sm.coach_mode==='multi'?'multi':'one') ||
+                 timingOf(lm)!==timingOfRow(sm) ||
                  (sm.split_marks!==undefined && !sameMarks(lm.splits,sm.split_marks)))){
       lm.name=sm.name; lm.date=sm.meet_date; lm.venue=sm.venue||''; lm.test=!!sm.is_test;
-      lm.coaches=(sm.coach_mode==='multi'?'multi':'one');
+      lm.timing=timingOfRow(sm); delete lm.coaches;
       if(sm.split_marks!==undefined) lm.splits=marksOf(sm.split_marks);
       changed=true;
     }
@@ -2876,7 +2966,7 @@ var RACE_COLS='id,meet_id,division,distance_m,second_distance_m,started_at,ended
 function pullMeets(){
   var year=todayStr().slice(0,4), upBefore={};
   SEASON.meets.forEach(function(m){ if(m.up) upBefore[m.id]=true; });
-  return sbFetch('/rest/v1/meets?select=id,name,meet_date,venue,is_test,event_type,coach_mode,split_marks&meet_date=gte.'+year+'-01-01',{auth:true})
+  return sbFetch('/rest/v1/meets?select=id,name,meet_date,venue,is_test,event_type,timing_mode,split_marks&meet_date=gte.'+year+'-01-01',{auth:true})
     .then(function(res){
       if(!res.ok) return false;
       var meets=res.data||[];
@@ -4248,14 +4338,15 @@ function raceRow(m,r){
   }
   if(r.lost) sub='Started on another phone first \u00b7 these taps stay here';
   row.innerHTML='<div><div class="lbl">'+esc(r.division==='Mixed'?'Everyone':r.division)+'</div><div class="st">'+esc(sub)+'</div></div>';
-  /* Two coaches: each phone picks its job here, before the gun, so a namer
+  /* Field and Team timing name runners after the tap, so a second phone may
+     be naming: each phone picks its job here, before the gun, so a namer
      never passes a Start button. Once the clock starts, the other phones
-     show Name runners, as above. */
+     show Name runners, as above. Both names as it goes, on one phone. */
   /* 4.38: Record splits is a third job, for the coach at the mile marker, on
      any race still to run or running, except on the phone timing it. It opens
      its own screen, so it never passes a Start button. */
   var spl = splitRowOk(m,r,st);
-  if(st==='new' && coachMode(m)==='multi'){
+  if(st==='new' && timingOf(m)!=='both'){
     var two=document.createElement('div'); two.className='rbtns'+(spl?' three':'');
     var tb=document.createElement('button'); tb.className='rbtn'; tb.textContent='Start clock';
     tb.addEventListener('click',function(){ openRace(m.id,r.id); });
@@ -4339,12 +4430,13 @@ function renderCount(){
 }
 /* A time trial is our runners only. The Field button would be a way to lose a
    runner's time, and the team count would restate the count beside it. */
-/* Two coaches at the finish: the timer taps one button for everyone and the
-   namer's names mark ours, since naming a place makes it ours (assign). So
-   the one button records a field finisher, not a team one. A time trial's
-   one button stays team: every runner in it is ours. */
-function multiCoach(){ return coachMode(meetOfRace(currentRace()))==='multi'; }
-function oneButton(){ return ttRace() || multiCoach(); }
+/* Field timing: the timer taps one button for everyone and names mark ours,
+   since naming a place makes it ours (assign). So the one button records a
+   field finisher. Team timing: one button, and every tap is ours. A time
+   trial's one button is ours too: every runner in it is. */
+function raceTiming(){ return timingOf(meetOfRace(currentRace())); }
+function fieldTiming(){ return raceTiming()==='field'; }
+function oneButton(){ return ttRace() || raceTiming()!=='both'; }
 /* The screen before the gun. Start is the same for one coach or two. With
    two, a phone that picked Name runners on the event card waits here instead,
    reading the race every few seconds, and moves to naming by itself once the
@@ -4391,7 +4483,9 @@ function renderDeck(){
   $('tap').style.display = one ? 'none' : '';
   $('tapHome').style.marginBottom = one ? '0' : '';
   $('deck').classList.toggle('solo', one);
-  $('tapHome').textContent = one ? 'Finisher' : (S.team+' Finisher');
+  /* One button that counts everyone says Finisher; one that counts only ours
+     says whose. */
+  $('tapHome').textContent = (tt || fieldTiming()) ? 'Finisher' : (S.team+' Finisher');
   $('ttTeam').style.display = tt ? 'none' : '';
   /* 4.43: one phone timing and splitting. Only on an event with splits on,
      so a race without them keeps the deck it always had. */
@@ -4468,7 +4562,7 @@ function nextUnnamed(){
    read "All 1 named" the whole race. The number worth watching is how many the
    timer has tapped, which the stick in your hand checks, and it sat under the
    last of 150 rows. It lives up here now; tapping the band goes to the newest. */
-function fieldBand(){ return multiCoach() && !ttRace(); }
+function fieldBand(){ return fieldTiming() && !ttRace(); }
 function renderNextBand(){
   if(fieldBand()){
     var nn=S.fin.filter(function(f){ return f.h && (nameOf(f.r)||f.n); }).length;
@@ -5568,15 +5662,8 @@ $('gun').addEventListener('click',function(){
   else startRace();
 });
 $('nameWait').addEventListener('click',function(){ stopWait(); renderArmed(); });
-$('coachInfo').addEventListener('click',function(){
-  infoOpen('Coaches at the finish',[
-    '<b>One:</b> the timer marks our runners as they cross, with a team button and a field button, then names them.',
-    '<b>Two or more:</b> the timer taps one button for every finisher, and a second coach names ours on another phone as places come in. Naming a place is what makes it ours, so that job moves off the timer.',
-    'Each phone picks its job on the event card before the gun: <b>Start clock</b> or <b>Name runners</b>.']);
-});
-
 $('tap').addEventListener('click',function(){ record(null,false); });
-$('tapHome').addEventListener('click',function(){ record(null, ttRace() || !multiCoach()); });
+$('tapHome').addEventListener('click',function(){ record(null, ttRace() || !fieldTiming()); });
 $('undo').addEventListener('click',undo);
 $('stop').addEventListener('click',function(){
   /* 4.44: End? like Delete? and Hide?. Again to end was wider than End race,
@@ -5646,14 +5733,13 @@ $('meetDelete').addEventListener('click',function(){
      is in How it works, so the button only has to ask. */
   armTwoTap(this, hideOnly ? 'Hide?' : 'Delete?', del);
 });
-$('mtest').addEventListener('change',function(){
-  var m=editingMeet?findMeet(editingMeet):null;
-  if(this.checked && m && meetUploaded(m)){
-    this.checked=false;
-    $('mtestHint').textContent='Already saved to the database, so it cannot become a test meet.';
-    return;
-  }
-  $('mtestHint').textContent=TEST_HINT;
+$('mlive').addEventListener('click',function(){ formTest=false; renderTestPick(); });
+$('mtest').addEventListener('click',function(){
+  if(formTestLocked) return;
+  formTest=true; renderTestPick();
+});
+['mtField','mtTeam','mtBoth'].forEach(function(id){
+  $(id).addEventListener('click',function(){ formTiming=this.getAttribute('data-mode'); renderTiming(); });
 });
 /* Test races seed the picker the same way real ones do, because commitHistory
    cannot tell them apart. This is the way out, and it is deliberately the only
