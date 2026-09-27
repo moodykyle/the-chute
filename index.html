@@ -765,7 +765,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 /* 4.57: the tab bar. On the four tab screens only; never on a screen that
    times, names or edits, where the bottom of the screen is the Finisher
    button's. The + is an action, not a place: it opens Add Event. */
-.tabbar{flex:0 0 auto;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:end;
+.tabbar{flex:0 0 auto;position:relative;z-index:2;background:var(--field);display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:end;
   border-top:1px solid var(--rule);padding:6px 4px max(6px, calc(env(safe-area-inset-bottom) - 16px))}
 /* 4.58: the full inset left the bar floating 40pt above the edge on an iPhone.
    The home indicator is a thin line near the bottom of that inset, so the bar
@@ -777,7 +777,15 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 .tabbar button svg{width:24px;height:24px;flex:0 0 auto;pointer-events:none}
 .tabbar button[aria-current=page]{color:var(--ink)}
 .tabbar button[aria-current=page] svg{color:var(--tape)}
-.tabbar .pc{width:46px;height:46px;border-radius:50%;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center}
+.tabbar .pc{width:60px;height:60px;border-radius:50%;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;
+  margin-top:-30px;box-shadow:0 0 0 5px var(--field),0 6px 14px rgba(0,0,0,.45)}
+/* 4.59: the + is bigger than the tabs and rises through the bar's top edge,
+   ringed in the page colour, so it reads as the one action rather than a
+   fifth place. */
+.tabbar .pc svg{width:28px;height:28px}
+/* The raised + sits over the last 36px of the list, so a tab screen's list
+   scrolls that much further and its last row always clears it. */
+#home .scroll,#runners .scroll,#season .scroll,#settings .scroll{padding-bottom:48px}
 .tabbar .tabplus:active .pc{background:var(--tape)}
 /* Runners, ranked by season best. */
 .srun{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--rule);width:100%;min-width:0}
@@ -1239,7 +1247,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.58';
+var BUILD='v4.59';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
