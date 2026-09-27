@@ -1172,7 +1172,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.54';
+var BUILD='v4.55';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1759,6 +1759,12 @@ function renderLive(){
   var stale=isStale(f.race);
   $('liveName').textContent=f.meet.name+', '+f.race.division;
   $('liveTime').textContent=fmt(Date.now()-f.race.t0Wall,0);
+  /* 4.54: the naming bar says Running with the same time as this strip, so it
+     is drawn in the same pass. Drawn a second at a time on its own, the two
+     read a second apart most of the time. */
+  if(S && onScreen('recon') && remoteRace(currentRace())) renderReconBar();
+  /* The splits screen's own clock too, when the strip is over it. */
+  if(onSplit) spRenderClock();
   var sy=f.meet.test ? '<span class="ltest">TEST</span>' : esc(syncShort(f.meet));
   /* Only on the phone timing it: anywhere else the leaders are someone
      else's to catch. */
@@ -3855,7 +3861,10 @@ function spStart(){
   spStop();
   spLastRead=0;
   spTimer=setInterval(spTick,SPLIT_POLL_MS);
-  spClock=setInterval(spRenderClock,250);
+  /* 4.54: with the strip over this screen, the strip's pass draws this clock
+     too (renderLive), so the two never read a second apart. Without it, on
+     a phone taking splits only, this timer draws it. */
+  spClock=setInterval(function(){ if(!$('liveStrip').classList.contains('on')) spRenderClock(); },250);
   spTick();
 }
 /* The roster for this race in the order they are likely to come by: best at
