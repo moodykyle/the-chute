@@ -4367,7 +4367,7 @@ function msRunners(k,res){
 function msForm(c){
   var list=knownSchools().map(function(n){ return '<option value="'+esc(n)+'">'; }).join('');
   return '<div class="msform"><div class="field"><label for="msName">School</label>'+
-    '<input type="text" id="msName" list="msNames" autocomplete="off" value="'+esc(c?c.s:'')+'"><datalist id="msNames">'+list+'</datalist></div>'+
+    '<input type="text" id="msName" list="msNames" autocomplete="off" autocapitalize="words" value="'+esc(c?c.s:'')+'"><datalist id="msNames">'+list+'</datalist></div>'+
     '<div class="field"><label for="msPlaces">Places, their top seven</label>'+
     '<input type="text" id="msPlaces" inputmode="decimal" autocomplete="off" value="'+esc(c?c.p.join(', '):'')+'">'+
     '<div class="hint">Separate places with the . key: 8.10.23 reads as 8, 10, 23.</div></div>'+
