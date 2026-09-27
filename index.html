@@ -766,7 +766,11 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
    times, names or edits, where the bottom of the screen is the Finisher
    button's. The + is an action, not a place: it opens Add Event. */
 .tabbar{flex:0 0 auto;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:end;
-  border-top:1px solid var(--rule);padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
+  border-top:1px solid var(--rule);padding:6px 4px max(6px, calc(env(safe-area-inset-bottom) - 16px))}
+/* 4.58: the full inset left the bar floating 40pt above the edge on an iPhone.
+   The home indicator is a thin line near the bottom of that inset, so the bar
+   takes all but 16px of it: labels sit clear of the line, and a phone with no
+   inset keeps 6px. */
 .tabbar button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0;min-height:48px;min-width:0;
   font-size:11px;font-weight:500;color:var(--ink-soft);background:none;border:0}
 .tabbar button span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -1235,7 +1239,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.57';
+var BUILD='v4.58';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
