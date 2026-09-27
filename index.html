@@ -377,6 +377,9 @@ select{min-height:47px}
 .msflags div+div{margin-top:4px}
 .msform{padding:14px 16px 0;border-bottom:1px solid var(--rule);background:var(--chalk)}
 .msmsg{padding:0 16px}
+.msentry{display:flex;align-items:center;gap:10px;padding:8px 16px 10px 60px;border-bottom:1px solid var(--rule)}
+.msentry .mspl{flex:1;min-width:0;margin:0}
+.msedit{flex:0 0 auto;min-height:36px;padding:0 14px;border:1px solid var(--rule);border-radius:8px;background:none;font:inherit;font-size:14px;color:var(--ink)}
 .msprev{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--rule)}
 .msprev .msn{flex:1;min-width:0}
 .msprev.ours{opacity:.55}
@@ -4266,7 +4269,7 @@ function renderMeetScores(){
          '<span class="msn"><span class="mss">'+esc(schoolLabel(t.school))+'</span>'+
          '<span class="mspl num">'+t.scorers.join('+')+(t.disp.length?' ('+t.disp.join(', ')+')':'')+'</span></span>'+
          '<span class="msc"><span class="msv num">'+t.score+'</span><span class="msr num">raw '+raw.score+'</span></span></button>';
-      if(open) h+=msRunners(t.school,res);
+      if(open) h+=msRunners(t.school,res)+msEntry(r,t.school);
     });
     if(res.small.length){
       h+='<div class="hsect rsect">No team score</div>';
@@ -4277,22 +4280,18 @@ function renderMeetScores(){
            '<span class="msn"><span class="mss">'+esc(schoolLabel(t.school))+'</span>'+
            '<span class="mspl num">'+(t.adj.length?t.adj.join(', '):'none in scoring places')+'</span></span>'+
            '<span class="msc"><span class="msr num">'+t.raw.length+(t.raw.length===1?' finisher':' finishers')+'</span></span></button>';
-        if(open) h+=msRunners(t.school,res);
+        if(open) h+=msRunners(t.school,res)+msEntry(r,t.school);
       });
     }
-    h+='<div class="note">'+res.positions+' of '+S.fin.length+' in scoring places. '+
+    var nIn=schoolsOf(r).length;
+    h+='<div class="note">'+nIn+(nIn===1?' school':' schools')+' entered besides ours. A school not entered counts as unattached, so scores move until every school is in. '+
+       res.positions+' of '+S.fin.length+' in scoring places. '+
        (res.unclaimed ? res.unclaimed+' places nobody claimed, past a school\u2019s seventh or unattached, come out.' : 'Every place is claimed.')+'</div>';
   } else {
     h+='<div class="note">Enter each school\u2019s places from the meet\u2019s sheet. Ours come from this race. The score follows the <b>MAAC rule</b>: runners past a school\u2019s seventh and runners nobody claimed come out, and a school with fewer than five keeps its places.</div>';
   }
-  h+='<div class="hsect rsect">Schools</div>';
-  h+='<div class="msschool home"><span class="msn"><span class="mss">'+esc(S.team||'Us')+'</span>'+
-     '<span class="mspl">From this race, '+ourPlaces().length+(ourPlaces().length===1?' runner':' runners')+'</span></span></div>';
-  schoolsOf(r).slice().sort(function(a,b){ return (a.p[0]||1e9)-(b.p[0]||1e9); }).forEach(function(c){
-    if(msEdit===c.cid){ h+=msForm(c); return; }
-    h+='<button type="button" class="msschool" data-e="'+esc(c.cid)+'"><span class="msn"><span class="mss">'+esc(c.s)+'</span>'+
-       '<span class="mspl num">'+c.p.join(', ')+'</span></span><span class="chev">Edit</span></button>';
-  });
+  /* 4.53: one list. A school is entered and edited from its own row in the
+     standings, so there is no second list of the same schools below. */
   if(msEdit==='new') h+=msForm(null);
   if(msMsg) h+='<div class="hint msmsg">'+msMsg+'</div>';
   h+='<div class="pad">';
@@ -4341,6 +4340,16 @@ function renderMeetScores(){
 }
 /* A school's runners, with the app's time on each: overall place, time,
    and the scoring place when it has one. Ours carry their names. */
+/* Under an opened school: its places as entered, and Edit. Ours come from
+   the race, so they have neither. */
+function msEntry(r,k){
+  if(k===OURS_KEY) return '';
+  var c=schoolsOf(r).filter(function(x){ return x.s===k; })[0];
+  if(!c) return '';
+  if(msEdit===c.cid) return msForm(c);
+  return '<div class="msentry"><span class="mspl num">Entered as '+c.p.join(', ')+'</span>'+
+         '<button type="button" class="msedit" data-e="'+esc(c.cid)+'">Edit</button></div>';
+}
 function msRunners(k,res){
   var h='<div class="msrun">';
   Object.keys(res.owner).map(Number).filter(function(p){ return res.owner[p]===k; }).sort(numAsc).forEach(function(p){
@@ -4372,7 +4381,7 @@ function msWire(r){
   Array.prototype.forEach.call(body.querySelectorAll('.msrow'),function(b){
     b.addEventListener('click',function(){ var k=b.getAttribute('data-k'); msOpen[k]=!msOpen[k]; renderMeetScores(); });
   });
-  Array.prototype.forEach.call(body.querySelectorAll('.msschool[data-e]'),function(b){
+  Array.prototype.forEach.call(body.querySelectorAll('.msedit[data-e]'),function(b){
     b.addEventListener('click',function(){ msEdit=b.getAttribute('data-e'); msPaste=false; msMsg=''; renderMeetScores(); });
   });
   if($('msAdd')) $('msAdd').addEventListener('click',function(){ msEdit='new'; msPaste=false; msMsg=''; renderMeetScores(); });
