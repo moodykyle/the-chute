@@ -798,12 +798,13 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 .srun .rt .t{font-size:17px}
 .srun .rt .l{font-size:11px;color:var(--ink-soft)}
 .mrow .mt.plain{background:var(--chalk);color:var(--ink-soft);font-weight:400}
-.mrow .chev.go{transform:rotate(-90deg)}
+.cv{flex:0 0 auto;width:9px;height:15px;color:var(--ink);opacity:.75;margin-left:2px}
+/* 4.62: a row that opens a page shows the press, as a phone's own lists do. */
+.srun:active,#seasonBody .mrow:active{background:var(--chalk)}
 .mrow .mmeta .nw{white-space:nowrap;display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;vertical-align:bottom}
 
 /* 4.61: a runner's season, from a Runners row. */
 .srun{background:none;border-left:0;border-right:0;border-top:0;text-align:left;color:inherit;font:inherit}
-.srun .chev{flex:0 0 auto;color:var(--ink-soft);font-size:18px;margin-left:-4px}
 /* A name is the one title that can be long. The back button keeps its room,
    the name takes what is left and ends in an ellipsis, instead of the centred
    title sliding over Back. */
@@ -1276,7 +1277,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.61';
+var BUILD='v4.62';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -6908,6 +6909,10 @@ document.addEventListener('keydown',function(e){
   show('home');
 })();
 
+/* 4.62: the chevron on a row that opens a page, drawn at the height of the
+   time rather than a small "›", and near-white rather than coral, which
+   means a record or the current tab. */
+var CV_SVG='<svg class="cv" viewBox="0 0 9 15" aria-hidden="true"><path d="M1.5 1.5 7.5 7.5 1.5 13.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 /* ---------- 4.57: tabs, Season and Runners ----------
    Four places and an action: Events (home), Runners, +, Season, Settings. The
    bar sits on those four screens and nowhere else. Results and the event form
@@ -6976,7 +6981,7 @@ function seasonRow(m,g){
     '<span class="mkind'+(isTT(m)?' tt':'')+'">'+(isTT(m)?'TIME TRIAL':'MEET')+'</span></span>'+
     '<span class="mbody"><span class="mn">'+esc(m.name)+'</span><span class="mmeta num">'+meta+'</span></span>'+
     (tag ? '<span class="'+tag.c+'">'+esc(tag.t)+'</span>' : '')+
-    '<svg class="chev go" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8 9.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    CV_SVG;
   row.addEventListener('click',function(){ openRace(m.id,r.id); });
   card.appendChild(row);
   return card;
@@ -7026,7 +7031,7 @@ function renderRunners(){
       '<span class="rb"><span class="rn">'+esc(x.r.name)+'</span><span class="rm">'+
         esc([gradeTag(x.r), x.n ? x.n+(x.n===1?' race':' races') : 'No races yet'].filter(Boolean).join(' \u00b7 '))+'</span></span>'+
       '<span class="rt"><span class="t num">'+(x.best?fmt(x.best.ms,1):'')+'</span>'+
-        (x.best?'<span class="l">'+esc(fmtDate(x.best.date))+'</span>':'')+'</span><span class="chev" aria-hidden="true">&#8250;</span>';
+        (x.best?'<span class="l">'+esc(fmtDate(x.best.date))+'</span>':'')+'</span>'+CV_SVG;
     el.addEventListener('click',function(){ openRunner(x.r); });
     b.appendChild(el);
   });
