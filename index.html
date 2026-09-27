@@ -800,7 +800,40 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 .mrow .mt.plain{background:var(--chalk);color:var(--ink-soft);font-weight:400}
 .cv{flex:0 0 auto;width:9px;height:15px;color:var(--ink);opacity:.75;margin-left:2px}
 /* 4.62: a row that opens a page shows the press, as a phone's own lists do. */
-.srun:active,#seasonBody .mrow:active{background:var(--chalk)}
+.srun:active,.smeet:active{background:var(--chalk)}
+/* 4.63: Season. Headline tiles, the pack chart, head to head, the meets. */
+.stiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:4px 0 6px}
+.stile{background:var(--chalk);border-radius:10px;padding:12px 8px 10px;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
+.stile .sv{font-size:26px;line-height:1;font-weight:600;color:var(--ink)}
+.stile .sk{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);text-align:center}
+.pkwrap{background:var(--chalk);border-radius:12px;padding:8px 4px 2px}
+.pk{display:block;width:100%;height:auto}
+.pk-grid{stroke:var(--rule);stroke-width:1}
+.pk-ax{fill:var(--ink-soft);font-size:10px}
+.pk-bar{fill:var(--ink-soft);opacity:.35}
+.pk-line{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;opacity:.85}
+.pk-dot{fill:var(--ink)}
+.pk-dot.last{fill:var(--red);stroke:var(--ink);stroke-width:2}
+.pk-val{fill:var(--ink);font-size:11px;font-weight:600}
+.pk-x{fill:var(--ink-soft);font-size:10.5px}
+.pk-x.tt{font-size:8.5px;letter-spacing:.06em;fill:var(--tape)}
+.pcap{font-size:12px;line-height:1.45;color:var(--ink-soft);margin:8px 2px 0}
+.h2r{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--rule)}
+.h2r .hb{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.h2r .hn{font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.h2r .hm{font-size:12px;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.h2r .hr{flex:0 0 auto;font-size:17px;font-weight:600;color:var(--ink);min-width:44px;text-align:right}
+.h2r .hr.lost{color:var(--ink-soft)}
+.h2more{display:block;width:100%;margin:10px 0 2px;padding:10px;border-radius:10px;border:1px solid var(--rule);background:none;color:var(--ink-soft);font:inherit;font-size:14px}
+.h2more:active{background:var(--chalk)}
+.smeet{display:flex;align-items:center;gap:12px;width:100%;padding:11px 0;border:0;border-bottom:1px solid var(--rule);background:none;color:inherit;font:inherit;text-align:left}
+.smeet .sd{flex:0 0 34px;display:flex;flex-direction:column;align-items:center;font-size:10px;letter-spacing:.06em;color:var(--ink-soft)}
+.smeet .sd b{font-size:18px;color:var(--ink);font-weight:600;letter-spacing:0}
+.smeet .sb{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.smeet .sn{font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.smeet .ss{font-size:12px;color:var(--ink-soft)}
+.smeet .mt{flex:0 0 auto;font-size:12px;padding:3px 9px;border-radius:999px;background:var(--chalk);color:var(--tape);font-weight:600;white-space:nowrap}
+.smeet .mt.plain{color:var(--ink-soft);font-weight:400}
 .mrow .mmeta .nw{white-space:nowrap;display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;vertical-align:bottom}
 
 /* 4.61: a runner's season, from a Runners row. */
@@ -1277,7 +1310,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.62';
+var BUILD='v4.63';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1636,7 +1669,7 @@ var HOW=[
   'Records show on results as <b>PR \u22120:07.0</b>, the time taken off, and as (PR) in Copy Text. They can be turned off in <b>Settings &gt; Results display</b>. The CSV always includes them.']},
  {t:'Season and Runners', p:[
   'The bar along the bottom has <b>Events</b>, <b>Runners</b>, <b>Season</b> and <b>Settings</b>, with + in the middle for a new event. It isn\u2019t there while you time, name or take splits, so a thumb can\u2019t leave a race by accident.',
-  '<b>Season</b> lists this season\u2019s events, newest first, for the girls or the boys: our score and place once the other schools are in, <b>Team only</b>, or how many ran a time trial. Under each, the average and spread of our first five. Tap one for its Results.',
+  '<b>Season</b> is how the season is going, for the girls or the boys. Across the top, the meets we\u2019ve been scored in, our best finish, and our record against other schools. <b>The pack</b> charts our first five at every 2 mile race: each bar runs from our 1st to our 5th, the dot is their average. <b>Head to head</b> lists every school we\u2019ve raced once their places are in <b>Meet scores</b>. Under that, the meets themselves; tap one for its Results.',
   '<b>Runners</b> ranks the team by season best at 2 miles, with how many races each has run. Like records, it counts real events the database has, hidden events included.',
   'Tap a runner for their season: their best at each distance, how much they\u2019ve dropped at 2 miles, and every race with their place on the team, overall, and each mile where a splitter was out.']},
  {t:'Fixing mistakes', p:[
@@ -6967,35 +7000,117 @@ function seasonTag(m,r,g){
   var sc=scoreOf(r);
   return sc!=null ? {t:String(sc), c:'mt scored'} : null;
 }
-function seasonRow(m,g){
-  var r=divRace(m,g);
-  if(!r || raceState(r)!=='done' || !oursIn(m,r,g).length) return null;
-  var st=packAt(m,r,g), tag=seasonTag(m,r,g), p=(m.date||'').split('-');
-  /* Each item holds together, so a narrow phone breaks between them and
-     never inside "Spread 0:17". */
-  var meta=[distsText(m)].concat(st ? [st.label+' '+fmt(st.avg,0), 'Spread '+fmt(st.spread,0)] : [])
-    .map(function(x){ return '<span class="nw">'+esc(x)+'</span>'; }).join(' \u00b7 ');
-  var card=document.createElement('div'); card.className='mcard';
-  var row=document.createElement('button'); row.className='mrow';
-  row.innerHTML='<span class="mday"><span class="mdm">'+MON[parseInt(p[1],10)-1].toUpperCase()+'</span><span class="mdd">'+parseInt(p[2],10)+'</span>'+
-    '<span class="mkind'+(isTT(m)?' tt':'')+'">'+(isTT(m)?'TIME TRIAL':'MEET')+'</span></span>'+
-    '<span class="mbody"><span class="mn">'+esc(m.name)+'</span><span class="mmeta num">'+meta+'</span></span>'+
-    (tag ? '<span class="'+tag.c+'">'+esc(tag.t)+'</span>' : '')+
-    CV_SVG;
-  row.addEventListener('click',function(){ openRace(m.id,r.id); });
-  card.appendChild(row);
-  return card;
+/* ---------- 4.63: Season answers "how are we doing?" ----------
+   Events is the calendar, for doing; Season is for judging. Three answers no
+   single event gives: the headline, the pack across the season, and our
+   record against every school we have raced. The meets sit underneath as a
+   table, each still opening its Results. */
+function seasonRaces(g){
+  var out=[];
+  seasonEvents().forEach(function(m){
+    var r=divRace(m,g);
+    if(!r || raceState(r)!=='done' || !oursIn(m,r,g).length) return;
+    out.push({m:m, r:r, pack:packAt(m,r,g), tag:seasonTag(m,r,g), mr:isTT(m) ? null : meetResult(r)});
+  });
+  return out;   /* newest first, as seasonEvents gives them */
+}
+/* The pack, oldest to newest, from every race run at two miles with five of
+   ours: our first and fifth, and the average of the five. */
+function packPoints(list){
+  return list.slice().reverse().filter(function(x){ return x.pack && distMeters(x.m.dist)===MAIN_D; }).map(function(x){
+    var at=oursIn(x.m,x.r,SEA_DIV).filter(function(f){ return finDist(f,x.m)===MAIN_D; }).map(function(f){ return f.ms; }).sort(function(a,b){ return a-b; });
+    return {m:x.m, r:x.r, first:at[0], fifth:at[4], avg:x.pack.avg};
+  });
+}
+function packSvg(pts){
+  var W=340, H=190, L=40, R=12, T=22, B=36;
+  var lo=Math.min.apply(null,pts.map(function(p){ return p.first; })), hi=Math.max.apply(null,pts.map(function(p){ return p.fifth; }));
+  lo=Math.floor(lo/60000)*60000; hi=Math.ceil(hi/60000)*60000; if(hi===lo) hi=lo+60000;
+  var y=function(ms){ return T+(ms-lo)/(hi-lo)*(H-T-B); };   /* faster is higher */
+  var n=pts.length, x=function(i){ return n===1 ? (L+W-R)/2 : L+14+i*((W-R-L-28)/(n-1)); };
+  var h='<svg class="pk" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Our first five at each two-mile race">';
+  for(var t=lo;t<=hi;t+=60000) h+='<line class="pk-grid" x1="'+L+'" x2="'+(W-R)+'" y1="'+y(t)+'" y2="'+y(t)+'"/><text class="pk-ax" x="'+(L-6)+'" y="'+(y(t)+4)+'" text-anchor="end">'+Math.round(t/60000)+':00</text>';
+  pts.forEach(function(p,i){ h+='<rect class="pk-bar" x="'+(x(i)-8)+'" y="'+y(p.first)+'" width="16" height="'+Math.max(4,y(p.fifth)-y(p.first))+'" rx="8"/>'; });
+  if(n>1) h+='<polyline class="pk-line" points="'+pts.map(function(p,i){ return x(i)+','+y(p.avg); }).join(' ')+'"/>';
+  pts.forEach(function(p,i){
+    var last=i===n-1;
+    h+='<circle class="pk-dot'+(last?' last':'')+'" cx="'+x(i)+'" cy="'+y(p.avg)+'" r="'+(last?6:5)+'"/>'+
+       '<text class="pk-val" x="'+x(i)+'" y="'+(y(p.first)-7)+'" text-anchor="middle">'+fmt(p.avg,0)+'</text>'+
+       '<text class="pk-x" x="'+x(i)+'" y="'+(H-B+16)+'" text-anchor="middle">'+esc(fmtDate(p.m.date))+'</text>'+
+       (isTT(p.m) ? '<text class="pk-x tt" x="'+x(i)+'" y="'+(H-B+29)+'" text-anchor="middle">TIME TRIAL</text>' : '');
+  });
+  return h+'</svg>';
+}
+/* One school, however it was typed: "Intown" and "Intown Community School",
+   "St. Martins" and "Saint Martin's". The longest spelling seen is shown. */
+function schoolKey(n){
+  return String(n||'').toLowerCase().replace(/\bsaint\b/g,'st').replace(/[^a-z0-9 ]/g,'')
+    .split(/\s+/).filter(function(w){ return w && ['school','academy','community','the','ms','middle'].indexOf(w)<0; }).join(' ');
+}
+function headToHead(list){
+  var by={};
+  list.forEach(function(x){
+    var mr=x.mr; if(!mr || mr.place==null) return;
+    mr.res.maac.forEach(function(t){
+      if(t.school===OURS_KEY) return;
+      var k=schoolKey(t.school); if(!k) return;
+      var e=by[k]=by[k]||{name:t.school, w:0, l:0, t:0, meets:[]};
+      if(t.school.length>e.name.length) e.name=t.school;
+      if(mr.place<t.place) e.w++; else if(mr.place>t.place) e.l++; else e.t++;
+      e.meets.push(x.m.name);
+    });
+  });
+  /* The schools that have beaten us first: they are the ones to chase. Then
+     the schools met most often, then the rest by name. */
+  return Object.keys(by).map(function(k){ return by[k]; }).sort(function(a,b){
+    return (b.l-a.l) || (b.meets.length-a.meets.length) || a.name.localeCompare(b.name); });
+}
+function wl(e){ return e.w+'\u2013'+e.l+(e.t ? '\u2013'+e.t : ''); }
+function seasonTableRow(x){
+  var p=(x.m.date||'').split('-'), el=document.createElement('button');
+  el.className='smeet';
+  el.innerHTML='<span class="sd num"><span>'+MON[parseInt(p[1],10)-1].toUpperCase()+'</span><b>'+parseInt(p[2],10)+'</b></span>'+
+    '<span class="sb"><span class="sn">'+esc(x.m.name)+'</span><span class="ss num">'+esc([isTT(x.m) ? 'Time trial' : '', x.pack ? x.pack.label+' '+fmt(x.pack.avg,0) : ''].filter(Boolean).join(' \u00b7 '))+'</span></span>'+
+    (x.tag ? '<span class="'+x.tag.c+'">'+esc(x.tag.t)+'</span>' : '')+CV_SVG;
+  el.addEventListener('click',function(){ openRace(x.m.id,x.r.id); });
+  return el;
 }
 function renderSeason(){
   $('seaG').setAttribute('aria-pressed',String(SEA_DIV==='F'));
   $('seaB').setAttribute('aria-pressed',String(SEA_DIV==='M'));
-  var b=$('seasonBody'), rows=[];
-  seasonEvents().forEach(function(m){ var c=seasonRow(m,SEA_DIV); if(c) rows.push(c); });
+  var b=$('seasonBody'), list=seasonRaces(SEA_DIV);
   b.innerHTML='';
-  if(!rows.length){ b.innerHTML='<p class="hint">No '+(SEA_DIV==='M'?'boys':'girls')+' results this season yet.</p>'; return; }
-  b.insertAdjacentHTML('beforeend','<p class="hsect">EVENTS</p>');
-  rows.forEach(function(c){ b.appendChild(c); });
+  if(!list.length){ b.innerHTML='<p class="hint">No '+(SEA_DIV==='M'?'boys':'girls')+' results this season yet.</p>'; return; }
+  var scored=list.filter(function(x){ return x.mr && x.mr.place!=null; });
+  var best=scored.reduce(function(a,x){ return (a==null || x.mr.place<a) ? x.mr.place : a; }, null);
+  var hh=headToHead(list), W=0, L=0, T=0;
+  hh.forEach(function(e){ W+=e.w; L+=e.l; T+=e.t; });
+  var tile=function(k,v){ return '<div class="stile"><span class="sv num">'+v+'</span><span class="sk">'+k+'</span></div>'; };
+  var h='<div class="stiles">'+tile('Scored meets',scored.length)+tile('Best finish',best!=null ? ordinal(best) : '\u2013')+
+    tile('Head to head',hh.length ? W+'\u2013'+L+(T ? '\u2013'+T : '') : '\u2013')+'</div>';
+  var pts=packPoints(list);
+  h+='<p class="hsect">THE PACK</p>';
+  if(pts.length>=2) h+='<div class="pkwrap">'+packSvg(pts)+'</div><p class="pcap">Our first five at every 2 mile race. Each bar runs from our 1st to our 5th, the dot is their average, and higher is faster. Heat and hills move the whole bar; a short bar is a tight pack.</p>';
+  else h+='<p class="hint">The pack draws once five of ours have run two 2 mile races.</p>';
+  h+='<p class="hsect">HEAD TO HEAD</p>';
+  if(hh.length){
+    /* Five, then the rest behind a button, so the meets below stay in reach. */
+    var shown=H2H_ALL ? hh : hh.slice(0,5);
+    h+='<div class="h2h">';
+    shown.forEach(function(e){
+      h+='<div class="h2r"><span class="hb"><span class="hn">'+esc(e.name)+'</span><span class="hm">'+esc(e.meets.join(' \u00b7 '))+'</span></span>'+
+        '<span class="hr num'+(e.l ? ' lost' : '')+'">'+wl(e)+'</span></div>';
+    });
+    h+='</div>';
+    if(hh.length>5) h+='<button type="button" class="h2more" id="h2More">'+(H2H_ALL ? 'Show fewer' : 'Show all '+hh.length+' schools')+'</button>';
+  } else h+='<p class="hint">Enter the other schools in <b>Meet scores</b> on a meet\u2019s Results, and every school we beat or lost to shows here.</p>';
+  h+='<p class="hsect">MEETS</p><div id="seaMeets"></div>';
+  b.innerHTML=h;
+  var t=$('seaMeets');
+  list.forEach(function(x){ t.appendChild(seasonTableRow(x)); });
+  if($('h2More')) $('h2More').addEventListener('click',function(){ H2H_ALL=!H2H_ALL; renderSeason(); });
 }
+var H2H_ALL=false;
 /* A runner's season: counted races this year, and their best at two miles.
    The roster, plus any walk-on who ran this season. */
 function runnerSeason(r,idx,map){
@@ -7038,8 +7153,8 @@ function renderRunners(){
   var g=parseList(txt(RKEY_G),'F').length, bo=parseList(txt(RKEY_B),'M').length;
   $('subRoster').textContent=(g+bo) ? (g+bo)+' runners' : 'Not loaded';
 }
-$('seaG').addEventListener('click',function(){ SEA_DIV='F'; renderSeason(); });
-$('seaB').addEventListener('click',function(){ SEA_DIV='M'; renderSeason(); });
+$('seaG').addEventListener('click',function(){ SEA_DIV='F'; H2H_ALL=false; renderSeason(); });
+$('seaB').addEventListener('click',function(){ SEA_DIV='M'; H2H_ALL=false; renderSeason(); });
 $('runG').addEventListener('click',function(){ RUN_DIV='F'; renderRunners(); });
 $('runB').addEventListener('click',function(){ RUN_DIV='M'; renderRunners(); });
 $('runRoster').addEventListener('click',function(){ backTo='runners'; show('rosterEdit'); });
