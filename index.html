@@ -1153,7 +1153,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.52';
+var BUILD='v4.53';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -4146,13 +4146,28 @@ function tokensOf(line){
     return NUM_WORDS[a.toLowerCase()]>=20 && NUM_WORDS[a.toLowerCase()]%10===0 ? a+'-'+b : all; })
     .split(/[\s,;:\t()+\/]+|\.(?=\s|$)/);
   var out=[];
+  /* 4.53: "one hundred two", "a hundred and ten": the hundreds joined
+     onto the number before and the one after. */
+  function hundreds(){
+    var h=out.pop(), lead=out[out.length-1], base=1;
+    if(h && h.n!=null) base=h.n; else if(h && !/^(a|one)$/i.test(h.w||'')) { if(h) out.push(h); }
+    out.push({n:base*100, hund:true});
+  }
   raw.forEach(function(w){
     w=w.replace(/^[.\-]+|[.\-]+$/g,'');
     if(!w) return;
     var n=w.match(/^(\d+)(st|nd|rd|th)?$/i), lw=w.toLowerCase();
+    var last=out[out.length-1];
+    if(lw==='hundred'){ hundreds(); return; }
+    /* Separators said aloud that dictation sometimes spells out. */
+    if(lw==='comma' || lw==='period' || lw==='dot'){ if(last) last.hund=false; return; }
+    if(lw==='and' && last && last.hund) return;
+    var v = n ? +n[1] : NUM_WORDS[lw];
+    if(v!=null && last && last.hund && v<100 && !n){ last.n+=v; last.hund=false; return; }
     if(n) out.push({n:+n[1]});
     else if(NUM_WORDS[lw]) out.push({n:NUM_WORDS[lw]});
     else out.push({w:w});
+    if(last && last.hund && out[out.length-1]!==last) last.hund=false;
   });
   return out;
 }
@@ -4345,7 +4360,8 @@ function msForm(c){
   return '<div class="msform"><div class="field"><label for="msName">School</label>'+
     '<input type="text" id="msName" list="msNames" autocomplete="off" value="'+esc(c?c.s:'')+'"><datalist id="msNames">'+list+'</datalist></div>'+
     '<div class="field"><label for="msPlaces">Places, their top seven</label>'+
-    '<input type="text" id="msPlaces" inputmode="numeric" autocomplete="off" value="'+esc(c?c.p.join(', '):'')+'"></div>'+
+    '<input type="text" id="msPlaces" inputmode="decimal" autocomplete="off" value="'+esc(c?c.p.join(', '):'')+'">'+
+    '<div class="hint">Separate places with the . key: 8.10.23 reads as 8, 10, 23.</div></div>'+
     '<div class="btnrow"><button type="button" class="go" id="msSave">Save</button>'+
     (c?'<button type="button" id="msRemove">Remove</button>':'')+
     '<button type="button" id="msCancel">Cancel</button></div></div>';
@@ -4361,6 +4377,12 @@ function msWire(r){
   });
   if($('msAdd')) $('msAdd').addEventListener('click',function(){ msEdit='new'; msPaste=false; msMsg=''; renderMeetScores(); });
   if($('msPasteBtn')) $('msPasteBtn').addEventListener('click',function(){ msPaste=!msPaste; msRead=null; msMsg=''; renderMeetScores(); });
+  /* 4.53: the phone's number pad has no comma or space, so the places box
+     takes the decimal pad and its . key as the separator. On leaving the box
+     it is rewritten as the places it read, to check against the card. */
+  if($('msPlaces')) $('msPlaces').addEventListener('blur',function(){
+    var p=placesIn(this.value); if(p.length) this.value=p.join(', ');
+  });
   if($('msCancel')) $('msCancel').addEventListener('click',function(){ msEdit=null; msMsg=''; renderMeetScores(); });
   if($('msRemove')) $('msRemove').addEventListener('click',function(){
     var cid=msEdit;
