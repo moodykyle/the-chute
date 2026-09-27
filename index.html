@@ -778,10 +778,11 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 .tabbar button[aria-current=page]{color:var(--ink)}
 .tabbar button[aria-current=page] svg{color:var(--tape)}
 .tabbar .pc{width:60px;height:60px;border-radius:50%;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;
-  margin-top:-30px;box-shadow:0 0 0 5px var(--field),0 6px 14px rgba(0,0,0,.45)}
+  margin-top:-20px;box-shadow:0 0 0 5px var(--field),0 6px 14px rgba(0,0,0,.45)}
 /* 4.59: the + is bigger than the tabs and rises through the bar's top edge,
    ringed in the page colour, so it reads as the one action rather than a
-   fifth place. */
+   fifth place. 4.60: it rises a third of itself rather than half, which also
+   keeps the bar at the height of its other buttons. */
 .tabbar .pc svg{width:28px;height:28px}
 /* The raised + sits over the last 36px of the list, so a tab screen's list
    scrolls that much further and its last row always clears it. */
@@ -1247,7 +1248,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.59';
+var BUILD='v4.60';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
