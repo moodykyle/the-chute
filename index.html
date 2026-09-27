@@ -800,6 +800,28 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 .mrow .mt.plain{background:var(--chalk);color:var(--ink-soft);font-weight:400}
 .mrow .chev.go{transform:rotate(-90deg)}
 .mrow .mmeta .nw{white-space:nowrap;display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;vertical-align:bottom}
+
+/* 4.61: a runner's season, from a Runners row. */
+.srun{background:none;border-left:0;border-right:0;border-top:0;text-align:left;color:inherit;font:inherit}
+.srun .chev{flex:0 0 auto;color:var(--ink-soft);font-size:18px;margin-left:-4px}
+/* A name is the one title that can be long. The back button keeps its room,
+   the name takes what is left and ends in an ellipsis, instead of the centred
+   title sliding over Back. */
+#runner .bar.nav{grid-template-columns:minmax(max-content,1fr) minmax(0,auto) minmax(max-content,1fr)}
+#rnName{max-width:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rnsum{font-size:14px;color:var(--ink-soft);margin:4px 0 2px}
+.rnimp{margin:12px 0 4px;padding:12px 14px;border-radius:10px;background:var(--chalk);font-size:15px;line-height:1.4}
+.rnimp b{color:var(--tape);font-weight:600}
+.rnbest{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--rule)}
+.rnbest .d{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.rnbest .d .k{font-size:15px}
+.rnbest .d .w{font-size:12px;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rnbest .t{flex:0 0 auto;font-size:19px}
+.rnrace .mbody .mmeta{white-space:normal}
+.rnrace .mmeta .nw{white-space:nowrap;display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;vertical-align:bottom}
+.rnrace .rtime{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.rnrace .rtime .t{font-size:17px}
+.rnrace .rtime .rec{font-size:12px}
 </style>
 </head>
 <body>
@@ -854,6 +876,12 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
     <button type="button" data-tab="season"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4,17 9,12 13,15 20,7"/><line x1="4" y1="20" x2="20" y2="20"/></svg><span>Season</span></button>
     <button type="button" data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><circle cx="15" cy="7" r="2.4"/><line x1="4" y1="12.5" x2="20" y2="12.5"/><circle cx="9" cy="12.5" r="2.4"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="16" cy="18" r="2.4"/></svg><span>Settings</span></button>
   </nav>
+</section>
+
+<!-- A RUNNER'S SEASON, 4.61 -->
+<section class="screen" id="runner">
+  <div class="bar nav"><button class="linkbtn back" id="rnBack"><span class="bc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5 8 12l7 7"/></svg></span><span class="bl">Runners</span><span class="bh" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7"/><path d="M6.5 9.5V20h4v-5.5h3V20h4V9.5"/></svg></span></button><h1 class="navmid nt" id="rnName"></h1><span aria-hidden="true"></span></div>
+  <div class="scroll pad" id="rnBody"></div>
 </section>
 
 <!-- HOME -->
@@ -1248,7 +1276,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.60';
+var BUILD='v4.61';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1608,7 +1636,8 @@ var HOW=[
  {t:'Season and Runners', p:[
   'The bar along the bottom has <b>Events</b>, <b>Runners</b>, <b>Season</b> and <b>Settings</b>, with + in the middle for a new event. It isn\u2019t there while you time, name or take splits, so a thumb can\u2019t leave a race by accident.',
   '<b>Season</b> lists this season\u2019s events, newest first, for the girls or the boys: our score and place once the other schools are in, <b>Team only</b>, or how many ran a time trial. Under each, the average and spread of our first five. Tap one for its Results.',
-  '<b>Runners</b> ranks the team by season best at 2 miles, with how many races each has run. Like records, it counts real events the database has, hidden events included.']},
+  '<b>Runners</b> ranks the team by season best at 2 miles, with how many races each has run. Like records, it counts real events the database has, hidden events included.',
+  'Tap a runner for their season: their best at each distance, how much they\u2019ve dropped at 2 miles, and every race with their place on the team, overall, and each mile where a splitter was out.']},
  {t:'Fixing mistakes', p:[
   'Tapped times are never changed. They\u2019re the record of what happened; naming only decides whose they are. The three buttons at the bottom of Edit race handle everything else:',
   {ul:['<b>Missed finish</b> adds a place nobody tapped. Everyone behind it moves down one, and its time starts halfway between its neighbors, which you can change.',
@@ -1707,7 +1736,7 @@ function $(id){ return document.getElementById(id); }
 /* 4.57: the four tab screens, and the one last shown, which Results and the
    event form go back to. Set before the first show() at boot. */
 var TAB_IDS=['home','runners','season','settings'], lastTab='home';
-var NAV_NAMES={settings:'Settings', account:'Account', rosterEdit:'Roster', home:'Home', results:'Results', runners:'Runners', season:'Season'};
+var NAV_NAMES={settings:'Settings', account:'Account', rosterEdit:'Roster', home:'Home', results:'Results', runners:'Runners', season:'Season', runner:'Runner'};
 function navBack(id){
   var b=document.querySelector('#'+id+' .bar.nav .linkbtn.back');
   if(!b || id==='recon') return;
@@ -1735,7 +1764,8 @@ function show(id){
   fillYears();
   if(id==='season') renderSeason();
   if(id==='runners') renderRunners();
-  if(S && ['rosterEdit','home','meet','backup','signin','settings','account','about','resPrefs','howto','season','runners'].indexOf(id)<0 && id!=='split' && id!=='mscore' && id!=='clockchk') { S.screen=id; save(); }
+  if(id==='runner') renderRunner();
+  if(S && ['rosterEdit','home','meet','backup','signin','settings','account','about','resPrefs','howto','season','runners','runner'].indexOf(id)<0 && id!=='split' && id!=='mscore' && id!=='clockchk') { S.screen=id; save(); }
   if(id==='home'){
     renderHome(); hintRoster();
     /* Pull as home opens, so a meet created on the other phone is there when
@@ -3342,6 +3372,7 @@ function pollTick(){
     var pr = watch ? r : fill;
     return pr ? pollRace(pr).then(function(out){
       return pullDnf(pr).then(function(ch){ if(ch) out.changed=true; return pullSchools(pr); })
+        .then(function(ch){ if(ch) out.changed=true; return (!watch && splitsWanted(pr)) ? pullSplits(pr) : false; })
         .then(function(ch){ if(ch) out.changed=true; return out; });
     }) : {changed:false, added:[]};
   }).then(function(out){
@@ -6989,13 +7020,14 @@ function renderRunners(){
   if(!list.length){ b.innerHTML='<p class="hint">No '+(RUN_DIV==='M'?'boys':'girls')+' on the roster yet.</p>'; }
   else b.insertAdjacentHTML('beforeend','<p class="hsect">BY SEASON BEST, 2 MILES</p>');
   list.forEach(function(x){
-    var el=document.createElement('div'); el.className='srun';
+    var el=document.createElement('button'); el.className='srun';
     if(x.best) rank++;
     el.innerHTML='<span class="rk num">'+(x.best?rank:'')+'</span>'+
       '<span class="rb"><span class="rn">'+esc(x.r.name)+'</span><span class="rm">'+
         esc([gradeTag(x.r), x.n ? x.n+(x.n===1?' race':' races') : 'No races yet'].filter(Boolean).join(' \u00b7 '))+'</span></span>'+
       '<span class="rt"><span class="t num">'+(x.best?fmt(x.best.ms,1):'')+'</span>'+
-        (x.best?'<span class="l">'+esc(fmtDate(x.best.date))+'</span>':'')+'</span>';
+        (x.best?'<span class="l">'+esc(fmtDate(x.best.date))+'</span>':'')+'</span><span class="chev" aria-hidden="true">&#8250;</span>';
+    el.addEventListener('click',function(){ openRunner(x.r); });
     b.appendChild(el);
   });
   var g=parseList(txt(RKEY_G),'F').length, bo=parseList(txt(RKEY_B),'M').length;
@@ -7006,6 +7038,89 @@ $('seaB').addEventListener('click',function(){ SEA_DIV='M'; renderSeason(); });
 $('runG').addEventListener('click',function(){ RUN_DIV='F'; renderRunners(); });
 $('runB').addEventListener('click',function(){ RUN_DIV='M'; renderRunners(); });
 $('runRoster').addEventListener('click',function(){ backTo='runners'; show('rosterEdit'); });
+
+/* ---------- 4.61: a runner's season ----------
+   Opened from a Runners row. The same rule as everything since 4.56: real
+   events, results the database has, hidden events counted. Newest first. */
+var RN=null;
+function openRunner(r){ RN=r; backTo='runners'; show('runner'); }
+function runnerRaces(r){
+  var map=aidMap(), idx=recordsIndex(), k=rosterKey(r,map), yr=seasonYear(), out=[];
+  SEASON.meets.forEach(function(m){
+    if(m.test || (m.date||'').slice(0,4)!==yr) return;
+    (m.races||[]).forEach(function(rc){
+      var fin=rc.fin||[], i=-1;
+      for(var j=0;j<fin.length;j++) if(counts(m,fin[j]) && recKey(fin[j],map)===k){ i=j; break; }
+      if(i<0) return;
+      var f=fin[i], d=finDist(f,m), g=f.g||r.g;
+      /* Place among ours at the same distance; in a time trial, among the
+         girls or the boys. Overall is the whole field, so a Team only race
+         and a time trial leave it out. */
+      var mates=fin.filter(function(x){ return counts(m,x) && finDist(x,m)===d && (!isTT(m) || (x.g||'')===g); });
+      var sp=splitsByRunner(rc), my=sp && sp[k], segs=[];
+      if(my){
+        var prev=0;
+        Object.keys(my).map(Number).sort(function(a,b){ return a-b; }).forEach(function(mk){
+          if(my[mk]>prev && my[mk]<f.ms){ segs.push({to:markLabel(mk), ms:my[mk]-prev}); prev=my[mk]; }
+        });
+        if(segs.length){ var n=markMiles(d); segs.push({to:n ? 'Mile '+n : 'Finish', ms:f.ms-prev}); }
+      }
+      out.push({m:m, r:rc, f:f, d:d, tp:mates.indexOf(f)+1, tn:mates.length, g:g,
+        op:(isTT(m) || teamOnlyRace(rc)) ? null : i+1, on:fin.length,
+        rec:recOf(f,{m:m, r:rc, idx:idx, map:map}), segs:segs, ord:raceOrd(m,rc)});
+    });
+  });
+  return out.sort(function(a,b){ return a.ord<b.ord ? 1 : (a.ord>b.ord ? -1 : 0); });
+}
+/* The first time at two miles against the best, when the best came later.
+   Nothing when the first was the best: that is not news worth a banner. */
+function improvement(races){
+  var at=races.filter(function(x){ return x.d===MAIN_D; }).slice().reverse();
+  if(at.length<2) return null;
+  var first=at[0], best=at.reduce(function(a,x){ return x.f.ms<a.f.ms ? x : a; }, at[0]);
+  return (best!==first && best.f.ms<first.f.ms) ? {by:first.f.ms-best.f.ms, from:first.m.date, to:best.m.date} : null;
+}
+function renderRunner(){
+  var r=RN; if(!r) return;
+  var races=runnerRaces(r), h='';
+  $('rnName').textContent=r.name;
+  h+='<p class="rnsum">'+esc([gradeTag(r) ? gradeTag(r)+' grade' : '', r.g==='M' ? 'Boys' : 'Girls',
+    races.length ? races.length+(races.length===1 ? ' race' : ' races') : 'No races yet'].filter(Boolean).join(' \u00b7 '))+'</p>';
+  var imp=improvement(races);
+  if(imp) h+='<div class="rnimp"><b>'+fmt(imp.by,1)+' faster</b> at 2 miles, '+esc(fmtDate(imp.from))+' to '+esc(fmtDate(imp.to))+'</div>';
+  var bd={};
+  races.forEach(function(x){ if(!bd[x.d] || x.f.ms<bd[x.d].f.ms) bd[x.d]=x; });
+  var ds=Object.keys(bd).map(Number).sort(function(a,b){ return b-a; });
+  if(ds.length){
+    h+='<p class="hsect">SEASON BESTS</p>';
+    ds.forEach(function(d){ var x=bd[d];
+      h+='<div class="rnbest"><span class="d"><span class="k">'+esc(distLabel(d))+'</span><span class="w">'+esc(fmtDate(x.m.date)+' \u00b7 '+x.m.name)+'</span></span><span class="t num">'+fmt(x.f.ms,1)+'</span></div>'; });
+    h+='<p class="hsect">RACES</p>';
+  }
+  races.forEach(function(x){
+    var p=(x.m.date||'').split('-');
+    var line=[distLabel(x.d), ordinal(x.tp)+' of '+x.tn+(isTT(x.m) ? (x.g==='M' ? ' boys' : ' girls') : ' on the team')]
+      .concat(x.op ? [ordinal(x.op)+' of '+x.on+' overall'] : []);
+    var sl=x.segs.map(function(sg){ return sg.to+' '+fmt(sg.ms,0); });
+    var nw=function(l){ return l.map(function(t){ return '<span class="nw">'+esc(t)+'</span>'; }).join(' \u00b7 '); };
+    h+='<div class="mcard rnrace"><div class="mrow"><span class="mday"><span class="mdm">'+MON[parseInt(p[1],10)-1].toUpperCase()+'</span><span class="mdd">'+parseInt(p[2],10)+'</span>'+
+      '<span class="mkind'+(isTT(x.m) ? ' tt' : '')+'">'+(isTT(x.m) ? 'TIME TRIAL' : 'MEET')+'</span></span>'+
+      '<span class="mbody"><span class="mn">'+esc(x.m.name)+'</span><span class="mmeta num">'+nw(line)+'</span>'+
+      (sl.length ? '<span class="mmeta num">'+nw(sl)+'</span>' : '')+'</span>'+
+      '<span class="rtime"><span class="t num">'+fmt(x.f.ms,1)+'</span>'+(x.rec ? recHtml(x.rec) : '')+'</span></div></div>';
+  });
+  if(!races.length) h+='<p class="hint">No races this season yet. Test events never count.</p>';
+  $('rnBody').innerHTML=h;
+}
+/* 4.61: the re-check reads splits too, so every phone has the same ones.
+   Before, a phone read a race's splits only when its Results was opened.
+   Only races whose event has split marks, so nothing is asked of the rest. */
+function splitsWanted(r){
+  if(!r || r.division==='Mixed') return false;
+  var m=null; SEASON.meets.forEach(function(x){ if((x.races||[]).indexOf(r)>=0) m=x; });
+  return !!m && (splitMarks(m).length>0 || splitList(r).length>0);
+}
+$('rnBack').addEventListener('click',function(){ show('runners'); });
 })();
 </script>
 </body>
