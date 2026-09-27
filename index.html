@@ -946,12 +946,6 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
     <input type="file" id="impPick" accept="application/json,.json" style="display:none">
     <div class="report" id="impReport"></div>
 
-    <p class="blk">PRIOR RESULTS</p>
-    <div class="hint" id="histSummary"></div>
-    <div class="hint" style="margin-top:6px">Prior results order the names in the picker and put a last-race line under each one. Nothing else reads them. Clearing them leaves every meet, place and time exactly where it is, and the picker falls back to roster order until the next race.</div>
-    <div class="btnrow">
-      <button type="button" id="histClear">Clear prior results</button>
-    </div>
   </div>
 </section>
 
@@ -1172,7 +1166,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.55';
+var BUILD='v4.56';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1456,8 +1450,11 @@ function quietFor(r){
   return (Date.now()-r.t0Wall)-lastMs;
 }
 function isStale(r){ return quietFor(r)>STALE_MS; }
+/* 4.56: a hidden event stays in the season, so its results keep counting
+   toward records on this phone as on every other. It is only kept off home. */
+function isHidden(m){ return !!m && (SEASON.hiddenMeets||[]).indexOf(m.id)>=0; }
 function meetsSorted(){
-  return SEASON.meets.slice().sort(function(a,b){
+  return SEASON.meets.filter(function(m){ return !isHidden(m); }).sort(function(a,b){
     return (a.date||'').localeCompare(b.date||'');
   });
 }
@@ -1490,7 +1487,7 @@ var HOW=[
  {t:'Naming finishers', p:[
   'Every finishing place for your team is populated from the same name selector, whether you do it during the race or after. Tap a place and pick the runner.',
   '<b>With a second coach.</b> Once the timing coach taps Start, the race on your home screen reads <b>Timing on another phone</b> with a <b>Name runners</b> button. That screen fills with places and times as the timer taps. As our runners come through the chute, tap the place on each runner\u2019s popsicle stick and pick their name.',
-  'The roster is listed in the order runners are most likely to finish: best previous time at today\u2019s distance. A search box is available for teams of 12 or more that matches the start of either first or last name.',
+  'The roster is listed in the order runners are most likely to finish: best previous time at today\u2019s distance, then last race for anyone without one. A search box is available for teams of 12 or more that matches the start of either first or last name.',
   'At a meet the name selector has three more choices above the roster:',
   {ul:['<b>Name later</b> marks the place as ours when you don\u2019t know who it was yet.',
        '<b>Not one of ours</b> turns it into a field runner, for a tap on the wrong button.',
@@ -1524,7 +1521,7 @@ var HOW=[
  {t:'PRs and SRs', p:[
   'A <b>PR</b> is a runner\u2019s fastest ever at one exact distance. An <b>SR</b> is their fastest this season. Only one shows at a time, and a PR wins, since it\u2019s always a season best too.',
   'Each result is judged against earlier races only, so an old result keeps the flag it earned that day. A runner\u2019s first time at a distance sets the mark but earns nothing, since there was nothing to beat, and matching a best doesn\u2019t count.',
-  'Distances never mix: an 800 only competes with other 800s, and a track mile isn\u2019t a 1600. Time trials count; test events never do.',
+  'Distances never mix: an 800 only competes with other 800s, and a track mile isn\u2019t a 1600. Time trials count; test events never do. Only results saved to the database count, so every phone shows the same records.',
   'Records show on results as <b>PR \u22120:07.0</b>, the time taken off, and as (PR) in Copy Text. They can be turned off in <b>Settings &gt; Results display</b>. The CSV always includes them.']},
  {t:'Fixing mistakes', p:[
   'Tapped times are never changed. They\u2019re the record of what happened; naming only decides whose they are. The three buttons at the bottom of Edit race handle everything else:',
@@ -1540,7 +1537,7 @@ var HOW=[
   'Everything is saved on the phone the moment it happens, so a race can be timed with no signal at all. When the phone is signed in and online, it\u2019s sent to the database, where every other phone can see it.',
   'The line above the copy buttons on results says where things stand. <b>Saved to the database</b> is what you want to see. <b>Not signed in</b> or <b>Offline</b> with a number waiting means the results are safe on this phone, but nobody else has them yet.',
   'A <b>test event</b> syncs like any other, so two phones can rehearse together, and never counts toward records. You pick Live or Test each time you make an event. Deleting a test event removes it from every phone and the database.',
-  'A real event can\u2019t be turned into a test event. A real event with no results yet deletes like a test one, from every phone. One with results can\u2019t be deleted from the app: <b>Hide</b> removes it from that phone only, and the database keeps the results. It\u2019s listed under <b>Hidden events</b> at the bottom of Settings, where <b>Show again</b> brings it back.',
+  'A real event can\u2019t be turned into a test event. A real event with no results yet deletes like a test one, from every phone. One with results can\u2019t be deleted from the app: <b>Hide</b> takes it off home on that phone only. The database keeps the results, and they still count toward PRs. It\u2019s listed under <b>Hidden events</b> at the bottom of Settings, where <b>Show again</b> brings it back.',
   'Delete is the trash can at the top of the event form, and it always asks for a second tap.']},
  {t:'Roster', p:[
   'The roster loads when you sign in, and every signed-in phone keeps it current on its own. <b>Settings &gt; Roster &gt; Load roster from database</b> reloads it by hand.',
@@ -1554,7 +1551,7 @@ var HOW=[
   '<b>Places look one off.</b> A runner was missed at the line. Go to <b>Edit race &gt; Missed finish</b> to add them at the right place.',
   '<b>Every time is off by the same amount.</b> The clock started late or early. Go to <b>Edit race &gt; Shift all times</b>.',
   '<b>The times drift from a stopwatch.</b> Open <b>Settings &gt; Clock check</b>. During a race it compares the race clock with the phone\u2019s time of day: if they agree, the clock ran true and the difference is where it was started. If the race clock paused, it says when and by how much. With no race running, start a test clock and hold it beside the stopwatch.',
-  '<b>A result isn\u2019t showing the PR I expected.</b> Records are worked out from the races this phone has loaded. Give home a few seconds after opening the app.']}
+  '<b>A result isn\u2019t showing the PR I expected.</b> Each phone works records out from the races it has loaded. Give home a few seconds after opening the app. A race timed with no signal counts once it has been sent.']}
 ];
 /* A paragraph is a string; a list is {ul:[...]}. {TEAM} is filled from the
    team name in Settings, the same name the Finisher button carries. */
@@ -1986,32 +1983,10 @@ function divCode(){ return S && S.division==='Boys' ? 'M' : 'F'; }
 /* Everyone is eligible in a mixed race, so the picker stops filtering. */
 function inDivision(r){ return ttRace() ? true : r.g===divCode(); }
 
-/* prior finishes, keyed by division and normalised name so edits do not orphan them */
-var HIST={};
-function loadHist(){
-  try{ HIST=JSON.parse(localStorage.getItem(HKEY)||'{}'); }catch(e){ HIST={}; }
-}
+/* Keyed by division and normalised name so edits do not orphan anything. The
+   per-phone last-race list that used to live beside it (chute.history.v1) is
+   gone from 4.56: last race is read from the season, like records. */
 function histKey(r){ return r.g+'|'+r.name.trim().toLowerCase().replace(/\s+/g,' '); }
-function priorOf(r){ return HIST[histKey(r)]||null; }
-/* Every entry keeps the distance it was run at, so an 800 is never taken for
-   a fast mile. In a two-distance race the place is the one within the
-   distance, and the label comes along for the picker to show. */
-function commitHistory(){
-  var h={}; for(var k in HIST) h[k]=HIST[k];
-  var m=curMeet(), two=hasTwoDists(m), cnt={};
-  S.fin.forEach(function(f,i){
-    var dm=finDist(f,m), ck=two?(dm||0):0;
-    cnt[ck]=(cnt[ck]||0)+1;
-    if(f.r==null) return;
-    var r=runnerById(f.r); if(!r) return;
-    var e={ms:Math.round(f.ms), place:two?cnt[ck]:i+1, race:S.name, date:S.date, at:Date.now()};
-    if(dm) e.m=dm;
-    if(two && dm) e.dl=distLabel(dm);
-    h[histKey(r)]=e;
-  });
-  HIST=h;
-  try{ localStorage.setItem(HKEY,JSON.stringify(h)); }catch(e){}
-}
 /* ---------- records ----------
    A PR is a runner's fastest at one exact distance across every season in
    the app, an SR the fastest this season. Both are judged as of the race:
@@ -2021,8 +1996,10 @@ function commitHistory(){
    bigger tag shows: a PR is always a season best too. A tie beats nothing.
    Test events never count; time trials and entered times do.
 
-   Built from the season on the phone, so a race another phone timed counts
-   once it has been read, which home does in the background. */
+   4.56: only results the database has count (f.up), and hidden events stay
+   in the season, so every phone that has read the season gets the same
+   answer. The phone still does the arithmetic, so race day needs no signal.
+   A race timed offline counts once it has been sent. */
 function recKey(f,map){
   var a=f.a;
   if(!a && f.n!=null && f.g) a=(map||aidMap())[histKey({g:f.g, name:f.n})];
@@ -2036,22 +2013,39 @@ function rosterKey(r,map){
 /* Races on the same day fall back to their start, so a morning time trial
    counts before an afternoon one. */
 function raceOrd(m,r){ return (m.date||'')+'|'+('000000000000000'+(r.t0Wall||0)).slice(-15); }
+/* Beside the records, keyed '@'+runner, every counted race the runner ran,
+   for last race: place is within the distance in a two-distance race, as the
+   naming sheet has always shown it. */
+function counts(m,f){ return !!(m && !m.test && f && f.h && f.up); }
 function recordsIndex(){
   var map=aidMap(), idx={};
   SEASON.meets.forEach(function(m){
     if(m.test) return;
+    var two=hasTwoDists(m);
     (m.races||[]).forEach(function(r){
-      var ord=raceOrd(m,r), yr=(m.date||'').slice(0,4);
+      var ord=raceOrd(m,r), yr=(m.date||'').slice(0,4), cnt={};
       (r.fin||[]).forEach(function(f){
-        if(!f.h) return;
-        var k=recKey(f,map), d=finDist(f,m);
+        var d=finDist(f,m), ck=two?(d||0):0;
+        cnt[ck]=(cnt[ck]||0)+1;
+        if(!counts(m,f)) return;
+        var k=recKey(f,map);
         if(!k || !d) return;
         (idx[k+'|'+d]=idx[k+'|'+d]||[]).push({ms:f.ms, ord:ord, yr:yr, date:m.date, rid:r.id});
+        var e={ms:f.ms, ord:ord, date:m.date, rid:r.id, m:d, place:cnt[ck]};
+        if(two) e.dl=distLabel(d);
+        (idx['@'+k]=idx['@'+k]||[]).push(e);
       });
     });
   });
   return idx;
 }
+/* The runner's most recent counted race other than the one open. */
+function lastOf(r,ctx){
+  var k=rosterKey(r,ctx.map), rid=ctx.r?ctx.r.id:null, b=null;
+  (ctx.idx['@'+k]||[]).forEach(function(e){ if(e.rid!==rid && (!b || e.ord>b.ord)) b=e; });
+  return b;
+}
+function lastCtx(ctx){ return ctx || {idx:recordsIndex(), map:aidMap(), r:null}; }
 /* Everything a screen needs to tag the open race, worked out once. */
 function recCtx(all){
   if(!all && !resPrefs().rec) return null;
@@ -2168,14 +2162,15 @@ function stampLegacy(){
 function byExpected(list){
   /* Best at today's distance first, the best guess at finish order. Anyone
      without one falls back to their last race, as before. */
-  var ctx=recCtx(true), d=ctx ? distMeters(ctx.m.dist) : null, bm={};
+  var ctx=recCtx(true), d=ctx ? distMeters(ctx.m.dist) : null, bm={}, lc=lastCtx(ctx), lm={};
   if(ctx && d) list.forEach(function(r){ var b=bestAt(rosterKey(r,ctx.map),d,ctx); if(b) bm[r.id]=b.ms; });
+  list.forEach(function(r){ lm[r.id]=lastOf(r,lc); });
   return list.slice().sort(function(a,b){
     var ba=bm[a.id], bb=bm[b.id];
     if(ba!=null && bb!=null) return ba-bb;
     if(ba!=null) return -1;
     if(bb!=null) return 1;
-    var pa=priorOf(a), pb=priorOf(b);
+    var pa=lm[a.id], pb=lm[b.id];
     /* Across distances a raw time says nothing, so compare pace. */
     if(pa&&pb&&pa.m&&pb.m&&pa.m!==pb.m) return pa.ms/pa.m-pb.ms/pb.m;
     if(pa&&pb) return pa.ms-pb.ms;
@@ -3049,7 +3044,7 @@ function localWork(m){
   return (m.races||[]).some(function(r){ return ownsRace(r) && (r.t0Wall!=null || (r.fin&&r.fin.length)); });
 }
 function mergePulled(meets,races,upBefore){
-  var skip=(SEASON.goneMeets||[]).concat(SEASON.hiddenMeets||[]), changed=false, byMeet={};
+  var skip=(SEASON.goneMeets||[]), changed=false, byMeet={};
   races.forEach(function(sr){ (byMeet[sr.meet_id]=byMeet[sr.meet_id]||[]).push(sr); });
   /* An event this phone got from the database and the database no longer has
      was deleted on another phone. From 4.31 that can be a real one, which the
@@ -3886,13 +3881,15 @@ function spRunners(){
 }
 function spExpected(m,r,list){
   var map=aidMap(), ctx={m:m, r:r, idx:recordsIndex(), map:map}, d=distMeters(m.dist), bm={};
+  var lm={};
   if(d) list.forEach(function(x){ var b=bestAt(rosterKey(x,map),d,ctx); if(b) bm[x.id]=b.ms; });
+  list.forEach(function(x){ lm[x.id]=lastOf(x,ctx); });
   return list.slice().sort(function(a,b){
     var ba=bm[a.id], bb=bm[b.id];
     if(ba!=null && bb!=null) return ba-bb;
     if(ba!=null) return -1;
     if(bb!=null) return 1;
-    var pa=priorOf(a), pb=priorOf(b);
+    var pa=lm[a.id], pb=lm[b.id];
     if(pa&&pb&&pa.m&&pb.m&&pa.m!==pb.m) return pa.ms/pa.m-pb.ms/pb.m;
     if(pa&&pb) return pa.ms-pb.ms;
     if(pa) return -1;
@@ -4757,7 +4754,7 @@ function buildExport(){
     app:'the-chute', schema:EXPORT_SCHEMA, version:BUILD,
     exportedAt:new Date().toISOString(),
     team:txt(TKEY), roster:{girls:txt(RKEY_G), boys:txt(RKEY_B)},
-    history:HIST, season:SEASON
+    season:SEASON
   }, null, 1);
 }
 function parseImport(text){
@@ -4814,14 +4811,8 @@ function mergeImport(d){
     else if(cur.trim()!==String(p[2]).trim()) rep.notes.push(p[3]+' roster on this device differs from the backup and was left alone');
   });
 
-  if(d.history && typeof d.history==='object'){
-    var merged=0;
-    for(var k in d.history){
-      var inc=d.history[k], cur2=HIST[k];
-      if(!cur2 || (inc && (inc.at||0)>(cur2.at||0))){ HIST[k]=inc; merged++; }
-    }
-    if(merged){ try{ localStorage.setItem(HKEY,JSON.stringify(HIST)); }catch(e){} rep.notes.push(merged+' prior results merged into the picker'); }
-  }
+  /* A backup from before 4.56 carries the old last-race list. It is ignored:
+     last race now comes from the season restored above. */
   return rep;
 }
 
@@ -4854,7 +4845,7 @@ function renderHidden(){
   $('hiddenField').style.display=ids.length?'':'none';
   c.innerHTML='';
   ids.forEach(function(id){
-    var h=info[id]||null;
+    var h=info[id]||findMeet(id)||null;
     var row=document.createElement('div'); row.className='xrow';
     var nm=document.createElement('span'); nm.className='xn';
     nm.innerHTML = h ? esc(h.name||'Event')+(h.date?'<span class="xg">'+esc(fmtDate(h.date))+'</span>':'')
@@ -4872,6 +4863,7 @@ function unhideMeet(id){
   SEASON.hiddenMeets=(SEASON.hiddenMeets||[]).filter(function(x){ return x!==id; });
   if(SEASON.hiddenInfo) delete SEASON.hiddenInfo[id];
   saveSeason(); renderHidden();
+  if(findMeet(id)){ hiddenMsg('Back on home.',false); return; }
   if(!signedIn()){ hiddenMsg('Sign in and it comes back with the next refresh.',true); return; }
   hiddenMsg('Bringing it back...',false);
   var before=lastPull;
@@ -4906,12 +4898,6 @@ function renderBackup(){
       ' timed, '+st.fin+' finishers recorded, '+st.ours+' of them ours.'
     : 'Nothing to back up yet.';
   $('expCopy').disabled=!st.meets; $('expFile').disabled=!st.meets;
-  var n=0; for(var k in HIST) if(HIST.hasOwnProperty(k)) n++;
-  $('histSummary').className = n ? 'hint good' : 'hint';
-  $('histSummary').textContent = n
-    ? n+(n===1?' runner has':' runners have')+' a prior result feeding the picker.'
-    : 'No prior results. The picker is in roster order.';
-  $('histClear').disabled=!n;
 }
 function reportHtml(rep){
   var h='';
@@ -5629,12 +5615,12 @@ function openSheet(i){
     (inDivision(r)?here:other).push(r);
   });
   here=byExpected(here); other=byExpected(other);
-  var rctx=recCtx(true), rdist=rctx ? distMeters(rctx.m.dist) : null;
+  var rctx=recCtx(true), rdist=rctx ? distMeters(rctx.m.dist) : null, lctx=lastCtx(rctx);
   function addOpt(r){
     var b=document.createElement('button');
     b.className='opt home';
     b.setAttribute('data-name', r.name.toLowerCase());
-    var p=priorOf(r), sub='';
+    var p=lastOf(r,lctx), sub='';
     var pb=(rctx && rdist) ? bestAt(rosterKey(r,rctx.map),rdist,rctx) : null;
     if(S.fin[i].r===r.id) sub='currently assigned here';
     else if(pb) sub='PR '+fmt(pb.ms,1)+(pb.date?', '+fmtDate(pb.date):'');
@@ -5820,7 +5806,6 @@ function assign(id,home,dm){
 
 var resFull=false, resNote=[];
 function renderResults(){
-  commitHistory();
   renderResSync();
   if(ttRace()) return renderTTResults();
   var ours=[];
@@ -6345,7 +6330,7 @@ function resPrefsLine(){
 
 function sideHint(list,el){
   if(!list.length){ el.className='hint'; el.textContent='Not loaded.'; return; }
-  var seeded=list.filter(function(r){ return priorOf(r); }).length;
+  var lc=lastCtx(null), seeded=list.filter(function(r){ return lastOf(r,lc); }).length;
   var by={}, nog=0;
   list.forEach(function(r){ if(r.grade) by[r.grade]=(by[r.grade]||0)+1; else nog++; });
   var g=Object.keys(by).sort().map(function(k){ return by[k]+' in '+k+'th'; });
@@ -6584,7 +6569,7 @@ $('meetDelete').addEventListener('click',function(){
         if(list.indexOf(dm.id)<0) list.push(dm.id);
         if(!dm.test) (SEASON.hiddenInfo=SEASON.hiddenInfo||{})[dm.id]={name:dm.name, date:dm.date};
       }
-      SEASON.meets=SEASON.meets.filter(function(m){ return m.id!==editingMeet; });
+      if(!hideOnly) SEASON.meets=SEASON.meets.filter(function(m){ return m.id!==editingMeet; });
       saveSeason();
       if(S && S.meetId===editingMeet){ S=null; try{localStorage.removeItem(KEY);}catch(e){} }
     }
@@ -6602,17 +6587,7 @@ $('mtest').addEventListener('click',function(){
 ['mtField','mtTeam','mtBoth'].forEach(function(id){
   $(id).addEventListener('click',function(){ formTiming=this.getAttribute('data-mode'); renderTiming(); });
 });
-/* Test races seed the picker the same way real ones do, because commitHistory
-   cannot tell them apart. This is the way out, and it is deliberately the only
-   thing in the app that deletes anything other than a meet. */
 $('splitHome').addEventListener('click',function(){ closeSplit(); show('home'); });
-$('histClear').addEventListener('click',function(){
-  armTwoTap(this,'Tap again to clear',function(){
-    HIST={};
-    try{ localStorage.removeItem(HKEY); }catch(e){}
-    renderBackup(); hintRoster();
-  });
-});
 $('extraPurge').addEventListener('click',function(){
   var b=this;
   armTwoTap(b,'Tap again to clear',function(){
@@ -6753,7 +6728,7 @@ document.addEventListener('keydown',function(e){
 
 /* ---------- restore ---------- */
 (function boot(){
-  loadHist();
+  try{ localStorage.removeItem(HKEY); }catch(e){}
   loadSeason();
   loadAuth();   /* reads localStorage only. No network on boot, ever. */
   syncInit();
