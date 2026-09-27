@@ -761,6 +761,32 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 @keyframes splHit{from{background:var(--home-wash)}to{background:transparent}}
 .spempty{padding:20px 16px;color:var(--ink-soft)}
 .hsect.rsect.spdone{padding-top:26px}
+
+/* 4.57: the tab bar. On the four tab screens only; never on a screen that
+   times, names or edits, where the bottom of the screen is the Finisher
+   button's. The + is an action, not a place: it opens Add Event. */
+.tabbar{flex:0 0 auto;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:end;
+  border-top:1px solid var(--rule);padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
+.tabbar button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0;min-height:48px;min-width:0;
+  font-size:11px;font-weight:500;color:var(--ink-soft);background:none;border:0}
+.tabbar button span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tabbar button svg{width:24px;height:24px;flex:0 0 auto;pointer-events:none}
+.tabbar button[aria-current=page]{color:var(--ink)}
+.tabbar button[aria-current=page] svg{color:var(--tape)}
+.tabbar .pc{width:46px;height:46px;border-radius:50%;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center}
+.tabbar .tabplus:active .pc{background:var(--tape)}
+/* Runners, ranked by season best. */
+.srun{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--rule);width:100%;min-width:0}
+.srun .rk{flex:0 0 26px;font-size:15px;color:var(--ink-soft);text-align:right}
+.srun .rb{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.srun .rn{font-size:15px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.srun .rm{font-size:12px;color:var(--ink-soft)}
+.srun .rt{flex:0 0 auto;text-align:right;display:flex;flex-direction:column;gap:2px}
+.srun .rt .t{font-size:17px}
+.srun .rt .l{font-size:11px;color:var(--ink-soft)}
+.mrow .mt.plain{background:var(--chalk);color:var(--ink-soft);font-weight:400}
+.mrow .chev.go{transform:rotate(-90deg)}
+.mrow .mmeta .nw{white-space:nowrap;display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;vertical-align:bottom}
 </style>
 </head>
 <body>
@@ -779,6 +805,44 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 
 <div class="app">
 
+<!-- SEASON AND RUNNERS, 4.57 -->
+<section class="screen" id="season">
+  <div class="bar homebar">
+    <svg class="mark" viewBox="0 0 258 92" aria-hidden="true"><path d="M6 26 L24 46 L6 66" fill="none" stroke="#C8102E" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><path d="M28 26 L46 46 L28 66" fill="none" stroke="#C8102E" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><line x1="40" y1="46" x2="214" y2="46" stroke="#C8102E" stroke-width="10" stroke-linecap="round"/><polygon points="212,26 252,46 212,66" fill="#C8102E"/><path d="M109.321 45.471999999999994 101.335 22.89999999999999H108.991L113.875 37.81599999999999H114.00699999999999L119.023 22.89999999999999H125.887L117.901 45.471999999999994L126.28299999999999 69.1H118.627L113.347 52.995999999999995H113.21499999999999L107.803 69.1H100.939Z M132.753 58.407999999999994V33.59199999999999Q132.753 28.179999999999993 135.492 25.209999999999994Q138.231 22.239999999999995 143.445 22.239999999999995Q148.659 22.239999999999995 151.398 25.209999999999994Q154.137 28.179999999999993 154.137 33.59199999999999V38.47599999999999H147.273V33.129999999999995Q147.273 28.83999999999999 143.64299999999997 28.83999999999999Q140.01299999999998 28.83999999999999 140.01299999999998 33.129999999999995V58.93599999999999Q140.01299999999998 63.16 143.64299999999997 63.16Q147.273 63.16 147.273 58.93599999999999V51.873999999999995H154.137V58.407999999999994Q154.137 63.81999999999999 151.398 66.78999999999999Q148.659 69.75999999999999 143.445 69.75999999999999Q138.231 69.75999999999999 135.492 66.78999999999999Q132.753 63.81999999999999 132.753 58.407999999999994Z" fill="#FFFFFF" stroke="#0C2340" stroke-width="2.6" stroke-linejoin="round" paint-order="stroke"/></svg>
+    <span class="wordmark">SEASON</span>
+    <span class="season"></span>
+  </div>
+  <div class="seg2"><button type="button" id="seaG" aria-pressed="true">Girls</button><button type="button" id="seaB" aria-pressed="false">Boys</button></div>
+  <div class="scroll pad" id="seasonBody"></div>
+  <nav class="tabbar" aria-label="Sections">
+    <button type="button" data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14.5" rx="2"/><line x1="4" y1="10" x2="20" y2="10"/><line x1="8.5" y1="3.5" x2="8.5" y2="7"/><line x1="15.5" y1="3.5" x2="15.5" y2="7"/></svg><span>Events</span></button>
+    <button type="button" data-tab="runners"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="7.5" r="3.5"/><path d="M5 20c.8-4 3.6-6 7-6s6.2 2 7 6"/></svg><span>Runners</span></button>
+    <button type="button" class="tabplus" data-tab="plus" aria-label="Add event"><span class="pc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg></span></button>
+    <button type="button" data-tab="season" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4,17 9,12 13,15 20,7"/><line x1="4" y1="20" x2="20" y2="20"/></svg><span>Season</span></button>
+    <button type="button" data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><circle cx="15" cy="7" r="2.4"/><line x1="4" y1="12.5" x2="20" y2="12.5"/><circle cx="9" cy="12.5" r="2.4"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="16" cy="18" r="2.4"/></svg><span>Settings</span></button>
+  </nav>
+</section>
+<section class="screen" id="runners">
+  <div class="bar homebar">
+    <svg class="mark" viewBox="0 0 258 92" aria-hidden="true"><path d="M6 26 L24 46 L6 66" fill="none" stroke="#C8102E" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><path d="M28 26 L46 46 L28 66" fill="none" stroke="#C8102E" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><line x1="40" y1="46" x2="214" y2="46" stroke="#C8102E" stroke-width="10" stroke-linecap="round"/><polygon points="212,26 252,46 212,66" fill="#C8102E"/><path d="M109.321 45.471999999999994 101.335 22.89999999999999H108.991L113.875 37.81599999999999H114.00699999999999L119.023 22.89999999999999H125.887L117.901 45.471999999999994L126.28299999999999 69.1H118.627L113.347 52.995999999999995H113.21499999999999L107.803 69.1H100.939Z M132.753 58.407999999999994V33.59199999999999Q132.753 28.179999999999993 135.492 25.209999999999994Q138.231 22.239999999999995 143.445 22.239999999999995Q148.659 22.239999999999995 151.398 25.209999999999994Q154.137 28.179999999999993 154.137 33.59199999999999V38.47599999999999H147.273V33.129999999999995Q147.273 28.83999999999999 143.64299999999997 28.83999999999999Q140.01299999999998 28.83999999999999 140.01299999999998 33.129999999999995V58.93599999999999Q140.01299999999998 63.16 143.64299999999997 63.16Q147.273 63.16 147.273 58.93599999999999V51.873999999999995H154.137V58.407999999999994Q154.137 63.81999999999999 151.398 66.78999999999999Q148.659 69.75999999999999 143.445 69.75999999999999Q138.231 69.75999999999999 135.492 66.78999999999999Q132.753 63.81999999999999 132.753 58.407999999999994Z" fill="#FFFFFF" stroke="#0C2340" stroke-width="2.6" stroke-linejoin="round" paint-order="stroke"/></svg>
+    <span class="wordmark">RUNNERS</span>
+    <span class="season"></span>
+  </div>
+  <div class="seg2"><button type="button" id="runG" aria-pressed="true">Girls</button><button type="button" id="runB" aria-pressed="false">Boys</button></div>
+  <div class="scroll pad">
+    <div id="runnersBody"></div>
+    <p class="hsect">ROSTER</p>
+    <button class="srow" id="runRoster"><span class="sn">Roster</span><span class="ss" id="subRoster"></span><span class="chev">&#8250;</span></button>
+  </div>
+  <nav class="tabbar" aria-label="Sections">
+    <button type="button" data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14.5" rx="2"/><line x1="4" y1="10" x2="20" y2="10"/><line x1="8.5" y1="3.5" x2="8.5" y2="7"/><line x1="15.5" y1="3.5" x2="15.5" y2="7"/></svg><span>Events</span></button>
+    <button type="button" data-tab="runners" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="7.5" r="3.5"/><path d="M5 20c.8-4 3.6-6 7-6s6.2 2 7 6"/></svg><span>Runners</span></button>
+    <button type="button" class="tabplus" data-tab="plus" aria-label="Add event"><span class="pc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg></span></button>
+    <button type="button" data-tab="season"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4,17 9,12 13,15 20,7"/><line x1="4" y1="20" x2="20" y2="20"/></svg><span>Season</span></button>
+    <button type="button" data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><circle cx="15" cy="7" r="2.4"/><line x1="4" y1="12.5" x2="20" y2="12.5"/><circle cx="9" cy="12.5" r="2.4"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="16" cy="18" r="2.4"/></svg><span>Settings</span></button>
+  </nav>
+</section>
+
 <!-- HOME -->
 <section class="screen on" id="home">
   <div class="bar homebar">
@@ -787,18 +851,13 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
     <span class="season" id="seasonLabel"></span>
   </div>
   <div class="scroll pad" id="homeBody"></div>
-  <div class="foot">
-    <div class="seg">
-      <button type="button" id="goNewMeet">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5.5" x2="12" y2="18.5"/><line x1="5.5" y1="12" x2="18.5" y2="12"/></svg>
-        <span>Add Event</span>
-      </button>
-      <button type="button" id="goSettings">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><circle cx="15" cy="7" r="2.4"/><line x1="4" y1="12.5" x2="20" y2="12.5"/><circle cx="9" cy="12.5" r="2.4"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="16" cy="18" r="2.4"/></svg>
-        <span>Settings</span>
-      </button>
-    </div>
-  </div>
+  <nav class="tabbar" aria-label="Sections">
+    <button type="button" data-tab="home" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14.5" rx="2"/><line x1="4" y1="10" x2="20" y2="10"/><line x1="8.5" y1="3.5" x2="8.5" y2="7"/><line x1="15.5" y1="3.5" x2="15.5" y2="7"/></svg><span>Events</span></button>
+    <button type="button" data-tab="runners"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="7.5" r="3.5"/><path d="M5 20c.8-4 3.6-6 7-6s6.2 2 7 6"/></svg><span>Runners</span></button>
+    <button type="button" class="tabplus" data-tab="plus" aria-label="Add event"><span class="pc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg></span></button>
+    <button type="button" data-tab="season"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4,17 9,12 13,15 20,7"/><line x1="4" y1="20" x2="20" y2="20"/></svg><span>Season</span></button>
+    <button type="button" data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><circle cx="15" cy="7" r="2.4"/><line x1="4" y1="12.5" x2="20" y2="12.5"/><circle cx="9" cy="12.5" r="2.4"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="16" cy="18" r="2.4"/></svg><span>Settings</span></button>
+  </nav>
 </section>
 
 <!-- MEET -->
@@ -951,10 +1010,13 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 
 <!-- SETTINGS -->
 <section class="screen" id="settings">
-  <div class="bar nav"><button class="linkbtn icon" id="setDone" aria-label="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7"/><path d="M6.5 9.5V20h4v-5.5h3V20h4V9.5"/></svg></button><h1 class="navmid nt">Settings</h1><span aria-hidden="true"></span></div>
+  <div class="bar homebar">
+    <svg class="mark" viewBox="0 0 258 92" aria-hidden="true"><path d="M6 26 L24 46 L6 66" fill="none" stroke="#C8102E" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><path d="M28 26 L46 46 L28 66" fill="none" stroke="#C8102E" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><line x1="40" y1="46" x2="214" y2="46" stroke="#C8102E" stroke-width="10" stroke-linecap="round"/><polygon points="212,26 252,46 212,66" fill="#C8102E"/><path d="M109.321 45.471999999999994 101.335 22.89999999999999H108.991L113.875 37.81599999999999H114.00699999999999L119.023 22.89999999999999H125.887L117.901 45.471999999999994L126.28299999999999 69.1H118.627L113.347 52.995999999999995H113.21499999999999L107.803 69.1H100.939Z M132.753 58.407999999999994V33.59199999999999Q132.753 28.179999999999993 135.492 25.209999999999994Q138.231 22.239999999999995 143.445 22.239999999999995Q148.659 22.239999999999995 151.398 25.209999999999994Q154.137 28.179999999999993 154.137 33.59199999999999V38.47599999999999H147.273V33.129999999999995Q147.273 28.83999999999999 143.64299999999997 28.83999999999999Q140.01299999999998 28.83999999999999 140.01299999999998 33.129999999999995V58.93599999999999Q140.01299999999998 63.16 143.64299999999997 63.16Q147.273 63.16 147.273 58.93599999999999V51.873999999999995H154.137V58.407999999999994Q154.137 63.81999999999999 151.398 66.78999999999999Q148.659 69.75999999999999 143.445 69.75999999999999Q138.231 69.75999999999999 135.492 66.78999999999999Q132.753 63.81999999999999 132.753 58.407999999999994Z" fill="#FFFFFF" stroke="#0C2340" stroke-width="2.6" stroke-linejoin="round" paint-order="stroke"/></svg>
+    <span class="wordmark">SETTINGS</span>
+    <span class="season"></span>
+  </div>
   <div class="scroll pad">
     <button class="srow" id="setAccount"><span class="sn">Account</span><span class="ss" id="subAccount"></span><span class="chev">&#8250;</span></button>
-    <button class="srow" id="setRoster"><span class="sn">Roster</span><span class="ss" id="subRoster"></span><span class="chev">&#8250;</span></button>
     <button class="srow" id="setResults"><span class="sn">Results display</span><span class="ss" id="subResults"></span><span class="chev">&#8250;</span></button>
     <button class="srow" id="setBackup"><span class="sn">Backup and restore</span><span class="ss" id="subBackup"></span><span class="chev">&#8250;</span></button>
     <button class="srow" id="setClock"><span class="sn">Clock check</span><span class="ss"></span><span class="chev">&#8250;</span></button>
@@ -967,6 +1029,13 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
       <div class="hint" id="hiddenMsg"></div>
     </div>
   </div>
+  <nav class="tabbar" aria-label="Sections">
+    <button type="button" data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14.5" rx="2"/><line x1="4" y1="10" x2="20" y2="10"/><line x1="8.5" y1="3.5" x2="8.5" y2="7"/><line x1="15.5" y1="3.5" x2="15.5" y2="7"/></svg><span>Events</span></button>
+    <button type="button" data-tab="runners"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="7.5" r="3.5"/><path d="M5 20c.8-4 3.6-6 7-6s6.2 2 7 6"/></svg><span>Runners</span></button>
+    <button type="button" class="tabplus" data-tab="plus" aria-label="Add event"><span class="pc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg></span></button>
+    <button type="button" data-tab="season"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4,17 9,12 13,15 20,7"/><line x1="4" y1="20" x2="20" y2="20"/></svg><span>Season</span></button>
+    <button type="button" data-tab="settings" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><circle cx="15" cy="7" r="2.4"/><line x1="4" y1="12.5" x2="20" y2="12.5"/><circle cx="9" cy="12.5" r="2.4"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="16" cy="18" r="2.4"/></svg><span>Settings</span></button>
+  </nav>
 </section>
 
 <!-- CLOCK CHECK, 4.54 -->
@@ -1166,7 +1235,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.56';
+var BUILD='v4.57';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1471,7 +1540,7 @@ var HOW=[
   'The Chute grew out of my first season as an assistant coach on my daughter\u2019s middle school cross country team. One challenge was obvious right away: tracking individual performance in a meaningful way, without pen, paper, and hours of reconciling handwritten lists.',
   'The Chute puts timing and naming on your phone. One coach can run an event alone, or several can split the job. Every event ends with a clean performance report, and the season ends with a record worth keeping.']},
  {t:'Events', p:[
-  'Everything starts with an event, added from <b>Add Event</b> on the home screen. There are two kinds, chosen once when the event is created.',
+  'Everything starts with an event, added with the + in the middle of the bar at the bottom. There are two kinds, chosen once when the event is created.',
   '<b>A meet</b> holds a girls race and a boys race, each with its own clock and its own results, and is scored.',
   '<b>A time trial</b> holds one race with everyone in it, girls and boys together, and is not scored. It can also run two distances from the same start; see Time trials.',
   'When you make an event you also pick its <b>Timing</b>, whether to <b>Record splits</b>, and <b>Live</b> or <b>Test</b>. Live or Test is never pre-picked, and Save waits until you choose, since a live event can\u2019t be made a test later. Tap an event on home to open it and see its races.']},
@@ -1497,7 +1566,7 @@ var HOW=[
  {t:'More than one phone', p:[
   'Whichever phone taps <b>Start</b> owns that race: the taps and the clock come only from it. Any number of other phones can open the same race and name runners as places come in, and names can be entered from the timer\u2019s phone too.',
   'While a race is running, a naming phone shows how current it is, like <b>Updated 4s ago</b>. If it falls behind, names still save and catch up when the signal returns.',
-  'Every phone needs the roster before race day, or it has no names to pick from. If it wasn\u2019t loaded when you first signed in, go to <b>Settings &gt; Roster &gt; Load roster from database</b>. A phone without one also gets a reminder with a <b>Load roster</b> button when it opens a race to name.',
+  'Every phone needs the roster before race day, or it has no names to pick from. If it wasn\u2019t loaded when you first signed in, go to <b>Runners &gt; Roster &gt; Load roster from database</b>. A phone without one also gets a reminder with a <b>Load roster</b> button when it opens a race to name.',
   'A meet\u2019s girls and boys races each have their own clock, so two coaches can time overlapping races, one phone each.',
   'Before the gun, each phone picks its job on the event card: <b>Start clock</b> or <b>Name runners</b>, whatever the Timing, so a second phone can always join. With Field, the namer\u2019s names mark our runners, and Edit race opens on <b>All</b>, since places are unnamed until the namer gets to them.']},
  {t:'Mile splits', p:[
@@ -1523,6 +1592,10 @@ var HOW=[
   'Each result is judged against earlier races only, so an old result keeps the flag it earned that day. A runner\u2019s first time at a distance sets the mark but earns nothing, since there was nothing to beat, and matching a best doesn\u2019t count.',
   'Distances never mix: an 800 only competes with other 800s, and a track mile isn\u2019t a 1600. Time trials count; test events never do. Only results saved to the database count, so every phone shows the same records.',
   'Records show on results as <b>PR \u22120:07.0</b>, the time taken off, and as (PR) in Copy Text. They can be turned off in <b>Settings &gt; Results display</b>. The CSV always includes them.']},
+ {t:'Season and Runners', p:[
+  'The bar along the bottom has <b>Events</b>, <b>Runners</b>, <b>Season</b> and <b>Settings</b>, with + in the middle for a new event. It isn\u2019t there while you time, name or take splits, so a thumb can\u2019t leave a race by accident.',
+  '<b>Season</b> lists this season\u2019s events, newest first, for the girls or the boys: our score and place once the other schools are in, <b>Team only</b>, or how many ran a time trial. Under each, the average and spread of our first five. Tap one for its Results.',
+  '<b>Runners</b> ranks the team by season best at 2 miles, with how many races each has run. Like records, it counts real events the database has, hidden events included.']},
  {t:'Fixing mistakes', p:[
   'Tapped times are never changed. They\u2019re the record of what happened; naming only decides whose they are. The three buttons at the bottom of Edit race handle everything else:',
   {ul:['<b>Missed finish</b> adds a place nobody tapped. Everyone behind it moves down one, and its time starts halfway between its neighbors, which you can change.',
@@ -1540,14 +1613,14 @@ var HOW=[
   'A real event can\u2019t be turned into a test event. A real event with no results yet deletes like a test one, from every phone. One with results can\u2019t be deleted from the app: <b>Hide</b> takes it off home on that phone only. The database keeps the results, and they still count toward PRs. It\u2019s listed under <b>Hidden events</b> at the bottom of Settings, where <b>Show again</b> brings it back.',
   'Delete is the trash can at the top of the event form, and it always asks for a second tap.']},
  {t:'Roster', p:[
-  'The roster loads when you sign in, and every signed-in phone keeps it current on its own. <b>Settings &gt; Roster &gt; Load roster from database</b> reloads it by hand.',
+  'The roster loads when you sign in, and every signed-in phone keeps it current on its own. <b>Runners &gt; Roster &gt; Load roster from database</b> reloads it by hand.',
   'A runner added at the finish line joins the team roster on every phone once the phone that added them has signal. One added in a test event stays on that phone only.']},
  {t:'Backup and restore', p:[
   '<b>Settings &gt; Backup and restore</b> copies the whole season as text or saves it as a file, and can read one back in. The database is the main copy of everything now, so this is a safety net rather than something to do every week.']},
  {t:'Troubleshooting', p:[
   '<b>The build on About doesn\u2019t match what was deployed.</b> The phone is running an old saved copy. Delete the home screen icon and add it again; a reload won\u2019t do it.',
   '<b>A naming phone says No update for 30s.</b> It has lost touch with the database. The timer isn\u2019t affected, and names catch up once the signal comes back.',
-  '<b>The name selector has no names.</b> The roster isn\u2019t loaded on this phone. Go to <b>Settings &gt; Roster &gt; Load roster from database</b>.',
+  '<b>The name selector has no names.</b> The roster isn\u2019t loaded on this phone. Go to <b>Runners &gt; Roster &gt; Load roster from database</b>.',
   '<b>Places look one off.</b> A runner was missed at the line. Go to <b>Edit race &gt; Missed finish</b> to add them at the right place.',
   '<b>Every time is off by the same amount.</b> The clock started late or early. Go to <b>Edit race &gt; Shift all times</b>.',
   '<b>The times drift from a stopwatch.</b> Open <b>Settings &gt; Clock check</b>. During a race it compares the race clock with the phone\u2019s time of day: if they agree, the clock ran true and the difference is where it was started. If the race clock paused, it says when and by how much. With no race running, start a test clock and hold it beside the stopwatch.',
@@ -1618,7 +1691,10 @@ function fmt(ms,prec){
 /* ---------- dom ---------- */
 function $(id){ return document.getElementById(id); }
 /* Where each page's Back goes, named on the button. Home is the house. */
-var NAV_NAMES={settings:'Settings', account:'Account', rosterEdit:'Roster', home:'Home', results:'Results'};
+/* 4.57: the four tab screens, and the one last shown, which Results and the
+   event form go back to. Set before the first show() at boot. */
+var TAB_IDS=['home','runners','season','settings'], lastTab='home';
+var NAV_NAMES={settings:'Settings', account:'Account', rosterEdit:'Roster', home:'Home', results:'Results', runners:'Runners', season:'Season'};
 function navBack(id){
   var b=document.querySelector('#'+id+' .bar.nav .linkbtn.back');
   if(!b || id==='recon') return;
@@ -1642,7 +1718,11 @@ function show(id){
     var sc=document.querySelectorAll('#'+id+' .scroll');
     for(var j=0;j<sc.length;j++) sc[j].scrollTop=0;
   }
-  if(S && ['rosterEdit','home','meet','backup','signin','settings','account','about','resPrefs','howto'].indexOf(id)<0 && id!=='split' && id!=='mscore' && id!=='clockchk') { S.screen=id; save(); }
+  if(TAB_IDS.indexOf(id)>=0) lastTab=id;
+  fillYears();
+  if(id==='season') renderSeason();
+  if(id==='runners') renderRunners();
+  if(S && ['rosterEdit','home','meet','backup','signin','settings','account','about','resPrefs','howto','season','runners'].indexOf(id)<0 && id!=='split' && id!=='mscore' && id!=='clockchk') { S.screen=id; save(); }
   if(id==='home'){
     renderHome(); hintRoster();
     /* Pull as home opens, so a meet created on the other phone is there when
@@ -3976,7 +4056,7 @@ function renderSplitList(){
   var map=aidMap(), list=spRunners(), mk=SP.mark, tid=spTidied[spTidyKey()]||{}, below=[], loose=0;
   l.innerHTML='';
   if(!list.length){
-    l.innerHTML='<p class="spempty">No roster on this phone. Settings > Roster.</p>';
+    l.innerHTML='<p class="spempty">No roster on this phone. Runners > Roster.</p>';
     $('splitTidy').style.display='none';
     return;
   }
@@ -5311,7 +5391,7 @@ function finIndexOf(id){
 function renderTeamList(){
   var c=$('chute'), keep=c.scrollTop, list=teamRunners(), shown={}, tid=tmTidied[S.raceId]||{}, loose=0;
   c.innerHTML='';
-  if(!list.length) c.insertAdjacentHTML('beforeend','<p class="spempty">No roster on this phone, so there are no names to tap. Use Name later for each of ours, or load the roster in Settings.</p>');
+  if(!list.length) c.insertAdjacentHTML('beforeend','<p class="spempty">No roster on this phone, so there are no names to tap. Use Name later for each of ours, or load it from Runners > Roster.</p>');
   list.forEach(function(x){
     var i=finIndexOf(x.id);
     /* Tidied: this name is in, and was moved to In below on purpose. */
@@ -6405,10 +6485,7 @@ var siFrom='account';
 /* A return target that points at the screen you are leaving is a dead button.
    Never possible by construction now, but the fallback costs one line. */
 function goBack(from){ show(backTo===from?'home':backTo); }
-$('goSettings').addEventListener('click',function(){ show('settings'); });
-$('setDone').addEventListener('click',function(){ show('home'); });
 $('setAccount').addEventListener('click',function(){ acctBack='settings'; show('account'); });
-$('setRoster').addEventListener('click',function(){ backTo='settings'; show('rosterEdit'); });
 $('setBackup').addEventListener('click',function(){
   backTo='settings'; $('impText').value=''; $('impReport').innerHTML=''; show('backup');
 });
@@ -6490,8 +6567,7 @@ $('impGo').addEventListener('click',function(){
   $('impText').value='';
   renderBackup(); hintRoster();
 });
-$('goNewMeet').addEventListener('click',function(){ editMeet(null); });
-$('meetBack').addEventListener('click',function(){ editingMeet=null; show('home'); });
+$('meetBack').addEventListener('click',function(){ editingMeet=null; show(lastTab); });
 $('meetSave').addEventListener('click',commitMeet);
 $('findIn').addEventListener('input',applyFind);
 $('nextBand').addEventListener('click',function(){
@@ -6605,7 +6681,7 @@ $('copyCsv').addEventListener('click',function(){ copyOut(buildCsv(), this); });
 $('rosterPull').addEventListener('click',pullRoster);
 $('rosterDone').addEventListener('click',function(){ goBack('rosterEdit'); });
 $('backSetup').addEventListener('click',function(){ show('home'); });
-$('resHome').addEventListener('click',function(){ show('home'); });
+$('resHome').addEventListener('click',function(){ show(lastTab); });
 $('liveStrip').addEventListener('click',function(){
   if(liveMid!=null) openRace(liveMid,liveRid);
 });
@@ -6787,6 +6863,136 @@ document.addEventListener('keydown',function(e){
   }catch(e){}
   show('home');
 })();
+
+/* ---------- 4.57: tabs, Season and Runners ----------
+   Four places and an action: Events (home), Runners, +, Season, Settings. The
+   bar sits on those four screens and nowhere else. Results and the event form
+   go back to the tab they were opened from. */
+function fillYears(){
+  var y=todayStr().slice(0,4), l=document.querySelectorAll('.homebar .season');
+  for(var i=0;i<l.length;i++) l[i].textContent=y;
+}
+(function(){
+  var l=document.querySelectorAll('.tabbar button');
+  for(var i=0;i<l.length;i++) l[i].addEventListener('click',function(){
+    var t=this.getAttribute('data-tab');
+    if(t==='plus') editMeet(null);
+    else if(t==='runners') show('runners');
+    else if(t==='season') show('season');
+    else if(t==='settings') show('settings');
+    else show('home');
+  });
+})();
+/* Everything here follows the 4.56 rule: real events, results the database
+   has, hidden events counted but not listed. This season is the year of the
+   event's date. The main distance is two miles, the one the season is run at. */
+var SEA_DIV='F', RUN_DIV='F', MAIN_D=3219;
+function seasonYear(){ return todayStr().slice(0,4); }
+function seasonEvents(){
+  var y=seasonYear();
+  return SEASON.meets.filter(function(m){
+    return !m.test && !isHidden(m) && (m.date||'').slice(0,4)===y &&
+      (m.races||[]).some(function(r){ return raceState(r)==='done' && (r.fin||[]).length; });
+  }).sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
+}
+function divRace(m,g){
+  if(isTT(m)) return (m.races||[])[0]||null;
+  var want=g==='M'?'Boys':'Girls';
+  return (m.races||[]).filter(function(r){ return r.division===want; })[0]||null;
+}
+function oursIn(m,r,g){ return (r.fin||[]).filter(function(f){ return counts(m,f) && (!isTT(m) || f.g===g); }); }
+/* Average and spread of our first five at the event's first distance. A time
+   trial run at two says which one they are for. Fewer than five, nothing. */
+function packAt(m,r,g){
+  var d0=distMeters(m.dist);
+  var at=oursIn(m,r,g).filter(function(f){ return finDist(f,m)===d0; }).sort(function(a,b){ return a.ms-b.ms; });
+  if(at.length<5) return null;
+  var sum=0; for(var i=0;i<5;i++) sum+=at[i].ms;
+  return {avg:sum/5, spread:at[4].ms-at[0].ms, label:hasTwoDists(m) ? distLabel(d0)+' avg' : 'Avg'};
+}
+function seasonTag(m,r,g){
+  if(isTT(m)) return {t:oursIn(m,r,g).length+' ran', c:'mt plain'};
+  var mr=meetResult(r);
+  if(mr && mr.place!=null) return {t:mr.score+' \u00b7 '+ordinal(mr.place)+' of '+mr.of, c:'mt scored'};
+  if(teamOnlyRace(r)) return {t:'Team only', c:'mt plain'};
+  var sc=scoreOf(r);
+  return sc!=null ? {t:String(sc), c:'mt scored'} : null;
+}
+function seasonRow(m,g){
+  var r=divRace(m,g);
+  if(!r || raceState(r)!=='done' || !oursIn(m,r,g).length) return null;
+  var st=packAt(m,r,g), tag=seasonTag(m,r,g), p=(m.date||'').split('-');
+  /* Each item holds together, so a narrow phone breaks between them and
+     never inside "Spread 0:17". */
+  var meta=[distsText(m)].concat(st ? [st.label+' '+fmt(st.avg,0), 'Spread '+fmt(st.spread,0)] : [])
+    .map(function(x){ return '<span class="nw">'+esc(x)+'</span>'; }).join(' \u00b7 ');
+  var card=document.createElement('div'); card.className='mcard';
+  var row=document.createElement('button'); row.className='mrow';
+  row.innerHTML='<span class="mday"><span class="mdm">'+MON[parseInt(p[1],10)-1].toUpperCase()+'</span><span class="mdd">'+parseInt(p[2],10)+'</span>'+
+    '<span class="mkind'+(isTT(m)?' tt':'')+'">'+(isTT(m)?'TIME TRIAL':'MEET')+'</span></span>'+
+    '<span class="mbody"><span class="mn">'+esc(m.name)+'</span><span class="mmeta num">'+meta+'</span></span>'+
+    (tag ? '<span class="'+tag.c+'">'+esc(tag.t)+'</span>' : '')+
+    '<svg class="chev go" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8 9.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  row.addEventListener('click',function(){ openRace(m.id,r.id); });
+  card.appendChild(row);
+  return card;
+}
+function renderSeason(){
+  $('seaG').setAttribute('aria-pressed',String(SEA_DIV==='F'));
+  $('seaB').setAttribute('aria-pressed',String(SEA_DIV==='M'));
+  var b=$('seasonBody'), rows=[];
+  seasonEvents().forEach(function(m){ var c=seasonRow(m,SEA_DIV); if(c) rows.push(c); });
+  b.innerHTML='';
+  if(!rows.length){ b.innerHTML='<p class="hint">No '+(SEA_DIV==='M'?'boys':'girls')+' results this season yet.</p>'; return; }
+  b.insertAdjacentHTML('beforeend','<p class="hsect">EVENTS</p>');
+  rows.forEach(function(c){ b.appendChild(c); });
+}
+/* A runner's season: counted races this year, and their best at two miles.
+   The roster, plus any walk-on who ran this season. */
+function runnerSeason(r,idx,map){
+  var k=rosterKey(r,map), yr=seasonYear(), best=null;
+  var n=(idx['@'+k]||[]).filter(function(e){ return (e.date||'').slice(0,4)===yr; }).length;
+  (idx[k+'|'+MAIN_D]||[]).forEach(function(e){ if(e.yr===yr && (!best || e.ms<best.ms)) best=e; });
+  return {r:r, n:n, best:best};
+}
+function runnersList(g){
+  var map=aidMap(), idx=recordsIndex(), seen={};
+  return buildRoster().filter(function(r){ return r.g===g && !r.dead; }).map(function(r){ return runnerSeason(r,idx,map); })
+    .filter(function(x){
+      var k=rosterKey(x.r,map); if(seen[k]) return false; seen[k]=1;
+      return !x.r.x || x.n>0;
+    })
+    .sort(function(a,b){
+      if(a.best && b.best) return a.best.ms-b.best.ms;
+      if(a.best) return -1; if(b.best) return 1;
+      return (b.n-a.n) || (a.r.ord||0)-(b.r.ord||0);
+    });
+}
+function renderRunners(){
+  $('runG').setAttribute('aria-pressed',String(RUN_DIV==='F'));
+  $('runB').setAttribute('aria-pressed',String(RUN_DIV==='M'));
+  var b=$('runnersBody'), list=runnersList(RUN_DIV), rank=0;
+  b.innerHTML='';
+  if(!list.length){ b.innerHTML='<p class="hint">No '+(RUN_DIV==='M'?'boys':'girls')+' on the roster yet.</p>'; }
+  else b.insertAdjacentHTML('beforeend','<p class="hsect">BY SEASON BEST, 2 MILES</p>');
+  list.forEach(function(x){
+    var el=document.createElement('div'); el.className='srun';
+    if(x.best) rank++;
+    el.innerHTML='<span class="rk num">'+(x.best?rank:'')+'</span>'+
+      '<span class="rb"><span class="rn">'+esc(x.r.name)+'</span><span class="rm">'+
+        esc([gradeTag(x.r), x.n ? x.n+(x.n===1?' race':' races') : 'No races yet'].filter(Boolean).join(' \u00b7 '))+'</span></span>'+
+      '<span class="rt"><span class="t num">'+(x.best?fmt(x.best.ms,1):'')+'</span>'+
+        (x.best?'<span class="l">'+esc(fmtDate(x.best.date))+'</span>':'')+'</span>';
+    b.appendChild(el);
+  });
+  var g=parseList(txt(RKEY_G),'F').length, bo=parseList(txt(RKEY_B),'M').length;
+  $('subRoster').textContent=(g+bo) ? (g+bo)+' runners' : 'Not loaded';
+}
+$('seaG').addEventListener('click',function(){ SEA_DIV='F'; renderSeason(); });
+$('seaB').addEventListener('click',function(){ SEA_DIV='M'; renderSeason(); });
+$('runG').addEventListener('click',function(){ RUN_DIV='F'; renderRunners(); });
+$('runB').addEventListener('click',function(){ RUN_DIV='M'; renderRunners(); });
+$('runRoster').addEventListener('click',function(){ backTo='runners'; show('rosterEdit'); });
 })();
 </script>
 </body>
