@@ -377,6 +377,15 @@ select{min-height:47px}
 .msflags div+div{margin-top:4px}
 .msform{padding:14px 16px 0;border-bottom:1px solid var(--rule);background:var(--chalk)}
 .msmsg{padding:0 16px}
+/* 4.54: the clock check. */
+.ckhead{font-size:14px;color:var(--ink-soft);margin-bottom:4px}
+.ckbig{font-size:56px;font-weight:600;line-height:1.05;letter-spacing:-.5px}
+.ckrows{margin:14px 0 12px;border-top:1px solid var(--rule)}
+.ckrow{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--rule);font-size:15px}
+.ckrow span:first-child{color:var(--ink-soft)}
+.ckverdict{padding:10px 12px;border-radius:8px;font-size:14px;line-height:1.45;margin-bottom:10px;border:1px solid var(--rule)}
+.ckverdict.warn{border-color:var(--tape)}
+.ckjumps{font-size:14px;line-height:1.5;margin-bottom:10px}
 .msentry{display:flex;align-items:center;gap:10px;padding:8px 16px 10px 60px;border-bottom:1px solid var(--rule)}
 .msentry .mspl{flex:1;min-width:0;margin:0}
 .msedit{flex:0 0 auto;min-height:36px;padding:0 14px;border:1px solid var(--rule);border-radius:8px;background:none;font:inherit;font-size:14px;color:var(--ink)}
@@ -954,6 +963,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
     <button class="srow" id="setRoster"><span class="sn">Roster</span><span class="ss" id="subRoster"></span><span class="chev">&#8250;</span></button>
     <button class="srow" id="setResults"><span class="sn">Results display</span><span class="ss" id="subResults"></span><span class="chev">&#8250;</span></button>
     <button class="srow" id="setBackup"><span class="sn">Backup and restore</span><span class="ss" id="subBackup"></span><span class="chev">&#8250;</span></button>
+    <button class="srow" id="setClock"><span class="sn">Clock check</span><span class="ss"></span><span class="chev">&#8250;</span></button>
     <button class="srow" id="setHow"><span class="sn">How it works</span><span class="ss"></span><span class="chev">&#8250;</span></button>
     <button class="srow" id="setAbout"><span class="sn">About</span><span class="ss" id="subAbout"></span><span class="chev">&#8250;</span></button>
     <div class="field" id="hiddenField" style="display:none;margin-top:22px">
@@ -963,6 +973,12 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
       <div class="hint" id="hiddenMsg"></div>
     </div>
   </div>
+</section>
+
+<!-- CLOCK CHECK, 4.54 -->
+<section class="screen" id="clockchk">
+  <div class="bar nav"><button class="linkbtn back" id="ckDone"><span class="bc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5 8 12l7 7"/></svg></span><span class="bl">Settings</span><span class="bh" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7"/><path d="M6.5 9.5V20h4v-5.5h3V20h4V9.5"/></svg></span></button><h1 class="navmid nt">Clock check</h1><span aria-hidden="true"></span></div>
+  <div class="scroll pad" id="ckBody"></div>
 </section>
 
 <!-- ACCOUNT -->
@@ -1156,7 +1172,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.53';
+var BUILD='v4.54';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1537,6 +1553,7 @@ var HOW=[
   '<b>The name selector has no names.</b> The roster isn\u2019t loaded on this phone. Go to <b>Settings &gt; Roster &gt; Load roster from database</b>.',
   '<b>Places look one off.</b> A runner was missed at the line. Go to <b>Edit race &gt; Missed finish</b> to add them at the right place.',
   '<b>Every time is off by the same amount.</b> The clock started late or early. Go to <b>Edit race &gt; Shift all times</b>.',
+  '<b>The times drift from a stopwatch.</b> Open <b>Settings &gt; Clock check</b>. During a race it compares the race clock with the phone\u2019s time of day: if they agree, the clock ran true and the difference is where it was started. If the race clock paused, it says when and by how much. With no race running, start a test clock and hold it beside the stopwatch.',
   '<b>A result isn\u2019t showing the PR I expected.</b> Records are worked out from the races this phone has loaded. Give home a few seconds after opening the app.']}
 ];
 /* A paragraph is a string; a list is {ul:[...]}. {TEAM} is filled from the
@@ -1628,7 +1645,7 @@ function show(id){
     var sc=document.querySelectorAll('#'+id+' .scroll');
     for(var j=0;j<sc.length;j++) sc[j].scrollTop=0;
   }
-  if(S && ['rosterEdit','home','meet','backup','signin','settings','account','about','resPrefs','howto'].indexOf(id)<0 && id!=='split' && id!=='mscore') { S.screen=id; save(); }
+  if(S && ['rosterEdit','home','meet','backup','signin','settings','account','about','resPrefs','howto'].indexOf(id)<0 && id!=='split' && id!=='mscore' && id!=='clockchk') { S.screen=id; save(); }
   if(id==='home'){
     renderHome(); hintRoster();
     /* Pull as home opens, so a meet created on the other phone is there when
@@ -1650,6 +1667,7 @@ function show(id){
   if(id==='split'){ renderSplit(); spStart(); keepAwake(); } else spStop();
   if(id==='results'){ pullSplitsSoon(); pullSchoolsSoon(); }
   if(id==='mscore'){ renderMeetScores(); pullSchoolsSoon(); }
+  if(id==='clockchk'){ ckSample(); renderClockCheck(); if(!ckTimer) ckTimer=setInterval(ckTick,100); }
   if(id==='recon'){
     pullDnfSoon();
     renderRecon();
@@ -2373,7 +2391,7 @@ function openRace(mid,rid){
     t0Wall:r.t0Wall, t0Mono:null, endedMs:(r.endedMs===undefined?null:r.endedMs),
     fin:r.fin||[], shift:r.shift||0, screen:'armed'
   };
-  if(S.t0Wall!=null) S.t0Mono = now() - (Date.now()-S.t0Wall);
+  if(S.t0Wall!=null){ S.t0Mono = now() - (Date.now()-S.t0Wall); ckReset('open'); }
   relinkFinishes(S.fin,S.roster);
   $('tapHome').textContent=S.team+' Finisher';
   $('timeName').textContent=S.name;
@@ -2384,7 +2402,7 @@ function openRace(mid,rid){
   else show('armed');
 }
 function startRace(){
-  S.t0Wall=Date.now(); S.t0Mono=now(); S.fin=[]; S.endedMs=null; S.shift=0;
+  S.t0Wall=Date.now(); S.t0Mono=now(); S.fin=[]; S.endedMs=null; S.shift=0; ckReset('gun');
   /* Whoever starts the clock times this race. The claim goes to the database
      with the start, and the first phone to get there keeps it. */
   var sf=findRace(S.meetId,S.raceId);
@@ -3017,6 +3035,7 @@ function applyRaceRow(r,sr){
   if(S && S.raceId===r.id){
     S.t0Wall=t0; S.endedMs=end; S.shift=sh;
     S.t0Mono = t0!=null ? now()-(Date.now()-t0) : null;
+    if(t0!=null) ckReset('open');
   }
   return ch;
 }
@@ -4535,6 +4554,94 @@ function pullSchoolsSoon(){
     if(onScreen('mscore') && msEdit==null) renderMeetScores();
   }, function(){});
 }
+
+/* ---------- 4.54: the clock check ----------
+   Finish times come off performance.now, a counter that should run steadily
+   from the gun. The phone's time of day is noted at the gun too. If the
+   counter ever stops, say the phone suspends the app while a text is read,
+   it falls behind the time of day and stays behind. So the gap between the
+   two, sampled every second, says whether the race clock can be trusted:
+   near zero is sound, a step is a pause and says when, and a slow slope is
+   drift, in parts per million.
+
+   What it cannot see: before this page loaded. Reopening the app lines the
+   counter back up with the time of day (openRace), which heals any earlier
+   pause, so the check says when it started watching.
+
+   With no race running, a test clock does the same, for holding against a
+   stopwatch. It lives in memory only and ends if the app is closed. */
+var CK={since:null, why:'', last:null, base:null, jumps:[], test:null};
+var CK_JUMP_MS=250;
+/* The two anchors being watched: the race loaded and running on this phone,
+   else the test clock, else nothing. */
+function ckSource(){
+  if(S && S.t0Mono!=null && S.t0Wall!=null && S.endedMs==null) return {kind:'race', wall:S.t0Wall, mono:S.t0Mono, name:S.name};
+  if(CK.test) return {kind:'test', wall:CK.test.wall, mono:CK.test.mono};
+  return null;
+}
+/* Called wherever the counter is (re)anchored: the gun, reopening a race,
+   starting a test. Whatever was watched before no longer applies. */
+function ckReset(why){ CK.since=Date.now(); CK.why=why; CK.last=null; CK.base=null; CK.jumps=[]; if(why==='gun') CK.test=null; }
+function ckRead(){
+  var src=ckSource(); if(!src) return null;
+  var mono=now()-src.mono, wall=Date.now()-src.wall;
+  return {src:src, mono:mono, wall:wall, gap:wall-mono};
+}
+function ckSample(){
+  var r=ckRead(); if(!r){ CK.last=null; return; }
+  if(CK.since==null) ckReset(r.src.kind==='race' ? 'open' : 'test');
+  if(CK.last!=null && r.gap-CK.last>CK_JUMP_MS) CK.jumps.push({at:Date.now(), race:r.mono, size:r.gap-CK.last});
+  if(CK.base==null) CK.base=r.gap;
+  CK.last=r.gap;
+}
+setInterval(ckSample,1000);
+document.addEventListener('visibilitychange',function(){ if(!document.hidden) ckSample(); });
+function ckSecs(ms,dp){ var v=ms/1000; return (v<0?'\u2212':'')+Math.abs(v).toFixed(dp==null?2:dp)+' s'; }
+function ckClock(t){ return new Date(t).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}); }
+function renderClockCheck(){
+  var r=ckRead(), h='';
+  if(!r){
+    h+='<p class="lede">Checks that this phone\u2019s race clock runs true. Start a test clock and hold it beside a stopwatch, or open this during a race to check that race\u2019s clock.</p>';
+  } else {
+    var watched=Date.now()-CK.since, paused=CK.jumps.reduce(function(a,j){ return a+j.size; },0);
+    var drift=(watched>=60000) ? (r.gap-paused-(CK.base||0))/watched*1e6 : null;
+    h+='<div class="ckhead">'+(r.src.kind==='race' ? 'Race clock, '+esc(r.src.name||'this race') : 'Test clock')+'</div>';
+    h+='<div class="ckbig num" id="ckBig">'+fmt(r.mono,1)+'</div>';
+    h+='<div class="ckrows">'+
+       '<div class="ckrow"><span>Time of day says</span><span class="num" id="ckWall">'+fmt(r.wall,1)+'</span></div>'+
+       '<div class="ckrow"><span>Gap</span><span class="num" id="ckGap">'+ckSecs(r.gap)+'</span></div>'+
+       '<div class="ckrow"><span>Drift</span><span class="num">'+(drift==null ? 'after a minute' : Math.round(drift)+' ppm, '+ckSecs(drift*3.6,2).replace(' s',' s an hour'))+'</span></div>'+
+       '</div>';
+    var ok = Math.abs(r.gap)<100 && !CK.jumps.length;
+    h+='<div class="ckverdict '+(ok?'good':'warn')+'">'+
+       (ok ? 'Sound. The race clock and the time of day agree within 0.1 s.'
+           : CK.jumps.length ? 'The race clock paused, so it is behind the time of day by '+ckSecs(r.gap,1)+'. Finishes after a pause read short by that much.'
+           : 'The race clock and the time of day differ by '+ckSecs(r.gap,1)+'.')+'</div>';
+    if(CK.jumps.length){
+      h+='<div class="ckjumps">'+CK.jumps.map(function(j){
+        return '<div>Paused '+ckSecs(j.size,1)+' at '+fmt(j.race,0)+' into the '+(r.src.kind==='race'?'race':'test')+', around '+ckClock(j.at)+'.</div>'; }).join('')+'</div>';
+    }
+    h+='<div class="hint">Watching since '+ckClock(CK.since)+(CK.why==='gun' ? ', the gun.' : CK.why==='test' ? ', when the test started.' : ', when the app opened. A pause before that is not seen: reopening lines the clock back up.')+'</div>';
+    if(r.src.kind==='test') h+='<div class="hint">Hold the big number beside a stopwatch started at the same moment. If they part but the gap here stays near zero, the stopwatch is the one drifting.</div>';
+  }
+  if(!r || r.src.kind==='test'){
+    h+='<div class="btnrow" style="margin-top:18px">'+(CK.test ? '<button type="button" id="ckStop">Stop test</button>' : '<button type="button" class="go" id="ckStart">Start test clock</button>')+'</div>';
+  }
+  $('ckBody').innerHTML=h;
+  if($('ckStart')) $('ckStart').addEventListener('click',function(){ CK.test={wall:Date.now(), mono:now()}; ckReset('test'); ckSample(); renderClockCheck(); });
+  if($('ckStop')) $('ckStop').addEventListener('click',function(){ CK.test=null; CK.since=null; CK.jumps=[]; CK.last=null; CK.base=null; renderClockCheck(); });
+}
+/* The big number ticks every tenth; the rest every second. */
+var ckTimer=null;
+function ckTick(){
+  if(!onScreen('clockchk')){ clearInterval(ckTimer); ckTimer=null; return; }
+  var r=ckRead();
+  /* The rows move with the big number, so the two clocks are always read at
+     the same instant and never look apart when they are not. */
+  if(r && $('ckBig')){ $('ckBig').textContent=fmt(r.mono,1); $('ckWall').textContent=fmt(r.wall,1); $('ckGap').textContent=ckSecs(r.gap); }
+  if(++ckTick.n%10===0) renderClockCheck();
+}
+ckTick.n=0;
 
 /* ---------- sign in screen ---------- */
 var siPhase='email', siEmail='', siUntil=0, siTimer=null, siBusy=false;
@@ -6313,6 +6420,8 @@ $('setBackup').addEventListener('click',function(){
 });
 $('setAbout').addEventListener('click',function(){ backTo='settings'; show('about'); });
 $('setHow').addEventListener('click',function(){ backTo='settings'; show('howto'); });
+$('setClock').addEventListener('click',function(){ backTo='settings'; show('clockchk'); });
+$('ckDone').addEventListener('click',function(){ show('settings'); });
 $('howDone').addEventListener('click',function(){ goBack('howto'); });
 $('setResults').addEventListener('click',function(){ backTo='settings'; show('resPrefs'); });
 $('resPrefsDone').addEventListener('click',function(){ goBack('resPrefs'); });
