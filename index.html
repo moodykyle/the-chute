@@ -817,7 +817,12 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 .pk-val{fill:var(--ink);font-size:11px;font-weight:600}
 .pk-x{fill:var(--ink-soft);font-size:10.5px}
 .pk-x.tt{font-size:8.5px;letter-spacing:.06em;fill:var(--tape)}
-.pcap{font-size:12px;line-height:1.45;color:var(--ink-soft);margin:8px 2px 0}
+.pkhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:6px 10px 0;font-size:13px;font-weight:600;color:var(--ink)}
+.pkhead .pkup{font-size:11px;font-weight:400;color:var(--ink-soft)}
+.pkkey{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 18px;padding:2px 8px 10px;font-size:12px;color:var(--ink-soft)}
+.pkkey span{display:inline-flex;align-items:center;gap:6px}
+.pkkey .kd{width:10px;height:10px;border-radius:50%;background:var(--ink)}
+.pkkey .kb{width:8px;height:16px;border-radius:4px;background:var(--ink-soft);opacity:.5}
 .h2r{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--rule)}
 .h2r .hb{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .h2r .hn{font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -845,7 +850,10 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 #rnName{max-width:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rnsum{font-size:14px;color:var(--ink-soft);margin:4px 0 2px}
 .rnimp{margin:12px 0 4px;padding:12px 14px;border-radius:10px;background:var(--chalk);font-size:15px;line-height:1.4}
+.rnimp{display:flex;flex-direction:column;gap:3px}
+.rnimp .ih{font-size:16px;font-weight:500}
 .rnimp b{color:var(--tape);font-weight:600}
+.rnimp .is{font-size:13px;color:var(--ink-soft)}
 .rnbest{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--rule)}
 .rnbest .d{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .rnbest .d .k{font-size:15px}
@@ -1310,7 +1318,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.64';
+var BUILD='v4.65';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1669,7 +1677,7 @@ var HOW=[
   'Records show on results as <b>PR \u22120:07.0</b>, the time taken off, and as (PR) in Copy Text. They can be turned off in <b>Settings &gt; Results display</b>. The CSV always includes them.']},
  {t:'Season and Runners', p:[
   'The bar along the bottom has <b>Events</b>, <b>Runners</b>, <b>Season</b> and <b>Settings</b>, with + in the middle for a new event. It isn\u2019t there while you time, name or take splits, so a thumb can\u2019t leave a race by accident.',
-  '<b>Season</b> is how the season is going, for the girls or the boys. Across the top, the meets we\u2019ve been scored in, our best finish, and our record against other schools. <b>The pack</b> charts our first five at every 2 mile race: each bar runs from our 1st to our 5th, the dot is their average. <b>Head to head</b> lists every school we\u2019ve raced once their places are in <b>Meet scores</b>. Under that, the meets themselves; tap one for its Results.',
+  '<b>Season</b> is how the season is going, for the girls or the boys. Across the top, the meets we\u2019ve been scored in, our best finish, and our record against other schools. <b>The pack</b> charts our top 5 runners at every 2 mile race: the dot is their average time, and the bar is the gap between them. <b>Head to head</b> lists every school we\u2019ve raced once their places are in <b>Meet scores</b>. Under that, the meets themselves; tap one for its Results.',
   '<b>Runners</b> ranks the team by season best at 2 miles, with how many races each has run. Like records, it counts real events the database has, hidden events included.',
   'Tap a runner for their season: their best at each distance, how much they\u2019ve dropped at 2 miles, and every race with their place on the team, overall, and each mile where a splitter was out.']},
  {t:'Fixing mistakes', p:[
@@ -7092,7 +7100,9 @@ function renderSeason(){
     tile('Head to head',hh.length ? W+'\u2013'+L+(T ? '\u2013'+T : '') : '\u2013')+'</div>';
   var pts=packPoints(list);
   h+='<p class="hsect">THE PACK</p>';
-  if(pts.length>=2) h+='<div class="pkwrap">'+packSvg(pts)+'</div><p class="pcap">Our first five at every 2 mile race. Each bar runs from our 1st to our 5th, the dot is their average, and higher is faster. Heat and hills move the whole bar; a short bar is a tight pack.</p>';
+  /* 4.65: a title and a legend in place of the paragraph. */
+  if(pts.length>=2) h+='<div class="pkwrap"><div class="pkhead"><span>Top 5 runners, 2 miles</span><span class="pkup">Higher is faster</span></div>'+packSvg(pts)+
+    '<div class="pkkey"><span><i class="kd"></i>Average time</span><span><i class="kb"></i>Gap between finishers</span></div></div>';
   else h+='<p class="hint">The pack draws once five of ours have run two 2 mile races.</p>';
   h+='<p class="hsect">HEAD TO HEAD</p>';
   if(hh.length){
@@ -7200,7 +7210,7 @@ function improvement(races){
   var at=races.filter(function(x){ return x.d===MAIN_D; }).slice().reverse();
   if(at.length<2) return null;
   var first=at[0], best=at.reduce(function(a,x){ return x.f.ms<a.f.ms ? x : a; }, at[0]);
-  return (best!==first && best.f.ms<first.f.ms) ? {by:first.f.ms-best.f.ms, from:first.m.date, to:best.m.date} : null;
+  return (best!==first && best.f.ms<first.f.ms) ? {by:first.f.ms-best.f.ms, from:first.m.date, to:best.m.date, a:first.f.ms, b:best.f.ms} : null;
 }
 function renderRunner(){
   var r=RN; if(!r) return;
@@ -7209,7 +7219,9 @@ function renderRunner(){
   h+='<p class="rnsum">'+esc([gradeTag(r) ? gradeTag(r)+' grade' : '', r.g==='M' ? 'Boys' : 'Girls',
     races.length ? races.length+(races.length===1 ? ' race' : ' races') : 'No races yet'].filter(Boolean).join(' \u00b7 '))+'</p>';
   var imp=improvement(races);
-  if(imp) h+='<div class="rnimp"><b>'+fmt(imp.by,1)+' faster</b> at 2 miles, '+esc(fmtDate(imp.from))+' to '+esc(fmtDate(imp.to))+'</div>';
+  /* 4.65: a headline in the coaches' word, then the two times that prove it. */
+  if(imp) h+='<div class="rnimp"><span class="ih">Dropped <b class="num">'+fmt(imp.by,1)+'</b> at 2 miles</span>'+
+    '<span class="is num">'+fmt(imp.a,1)+' on '+esc(fmtDate(imp.from))+' to '+fmt(imp.b,1)+' on '+esc(fmtDate(imp.to))+'</span></div>';
   var bd={};
   races.forEach(function(x){ if(!bd[x.d] || x.f.ms<bd[x.d].f.ms) bd[x.d]=x; });
   var ds=Object.keys(bd).map(Number).sort(function(a,b){ return b-a; });
