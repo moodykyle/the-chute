@@ -816,6 +816,21 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 .pk-dot.last{fill:var(--red);stroke:var(--ink);stroke-width:2}
 .pk-val{fill:var(--ink);font-size:11px;font-weight:600}
 .pk-x{fill:var(--ink-soft);font-size:10.5px}
+.pkcar{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;gap:0}
+.pkcar::-webkit-scrollbar{display:none}
+.pkslide{flex:0 0 100%;min-width:0;scroll-snap-align:start;scroll-snap-stop:always;padding:0 1px;box-sizing:border-box;display:flex}
+.pkslide .pkwrap{flex:1;min-width:0}
+.pkdots{display:flex;justify-content:center;gap:8px;margin:10px 0 2px}
+.pkdot{width:8px;height:8px;border-radius:50%;padding:0;border:0;background:var(--ink-soft);opacity:.35}
+.pkdot.on{opacity:1;background:var(--ink)}
+.pkwait{font-size:13px;color:var(--ink-soft);padding:48px 16px;text-align:center}
+.pl-stem{stroke:var(--ink-soft);stroke-width:2;opacity:.35}
+.pl-dot{fill:var(--ink)}
+.pl-dot.fifth{fill:var(--chalk);stroke:var(--ink);stroke-width:2}
+.pr-bar{fill:var(--ink);opacity:.85}
+.or-line{fill:none;stroke-width:2;stroke-linejoin:round;opacity:.9}
+.or-name{font-size:10.5px;font-weight:600}
+.pkkey .kd.hollow{background:none;border:2px solid var(--ink);box-sizing:border-box}
 .pkhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:6px 10px 0;font-size:13px;font-weight:600;color:var(--ink)}
 .pkhead .pkup{font-size:11px;font-weight:400;color:var(--ink-soft)}
 .pkkey{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 18px;padding:2px 8px 10px;font-size:12px;color:var(--ink-soft)}
@@ -1317,7 +1332,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.66';
+var BUILD='v4.67';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1676,7 +1691,7 @@ var HOW=[
   'Records show on results as <b>PR \u22120:07.0</b>, the time taken off, and as (PR) in Copy Text. They can be turned off in <b>Settings &gt; Results display</b>. The CSV always includes them.']},
  {t:'Season and Runners', p:[
   'The bar along the bottom has <b>Events</b>, <b>Runners</b>, <b>Season</b> and <b>Settings</b>, with + in the middle for a new event. It isn\u2019t there while you time, name or take splits, so a thumb can\u2019t leave a race by accident.',
-  '<b>Season</b> is how the season is going, for the girls or the boys. Across the top, the meets we\u2019ve been scored in, our best finish, and our record against other schools. <b>The pack</b> charts our top 5 runners at every 2 mile race: the dot is their average time, and the bar is the gap between them. <b>Head to head</b> lists every school we\u2019ve raced once their places are in <b>Meet scores</b>. Under that, the meets themselves; tap one for its Results.',
+  '<b>Season</b> is how the season is going, for the girls or the boys. Across the top, the meets we\u2019ve been scored in, our best finish, and our record against other schools. <b>Charts</b> swipe left and right: our top 5\u2019s average time and the gap between them, where they placed in each meet, how many of ours set a PR at each race, and our top 7\u2019s place on the team race by race. <b>Head to head</b> lists every school we\u2019ve raced once their places are in <b>Meet scores</b>. Under that, the meets themselves; tap one for its Results.',
   '<b>Runners</b> ranks the team by season best at 2 miles, with how many races each has run. Like records, it counts real events the database has, hidden events included.',
   'Tap a runner for their season: their best at each distance, how much they\u2019ve dropped at 2 miles, and every race with their place on the team, overall, and each mile where a splitter was out.']},
  {t:'Fixing mistakes', p:[
@@ -7084,6 +7099,145 @@ function seasonTableRow(x){
   el.addEventListener('click',function(){ openRace(x.m.id,x.r.id); });
   return el;
 }
+
+/* ---------- 4.67: the charts, a carousel ----------
+   Four cards, swiped left and right, each answering one question: how fast
+   (the pack), how we placed (scoring places), whether it was a good day
+   (PRs), and who is moving (team order). All follow the Girls and Boys
+   switch. A card with too little to draw says what it is waiting for, so the
+   carousel never changes length. */
+var CH_AT=0;
+function chartCard(title,right,body,key){
+  return '<div class="pkslide"><div class="pkwrap"><div class="pkhead"><span>'+title+'</span><span class="pkup">'+(right||'')+'</span></div>'+body+
+    (key ? '<div class="pkkey">'+key+'</div>' : '')+'</div></div>';
+}
+function chartWait(t){ return '<p class="pkwait">'+t+'</p>'; }
+function chartsHtml(list){
+  var cards=[packCard(list), placesCard(list), prCard(list), orderCard(list)];
+  var h='<div class="pkcar" id="pkCar">'+cards.join('')+'</div><div class="pkdots" id="pkDots">';
+  for(var i=0;i<cards.length;i++) h+='<button type="button" class="pkdot'+(i===CH_AT?' on':'')+'" data-i="'+i+'" aria-label="Chart '+(i+1)+' of '+cards.length+'"></button>';
+  return h+'</div>';
+}
+function wireCharts(){
+  var car=$('pkCar'); if(!car) return;
+  var dots=$('pkDots').querySelectorAll('.pkdot');
+  var mark=function(){ for(var i=0;i<dots.length;i++) dots[i].classList.toggle('on', i===CH_AT); };
+  /* The card the switch left you on stays on screen when Girls and Boys flip. */
+  car.scrollLeft=CH_AT*car.clientWidth;
+  car.addEventListener('scroll',function(){
+    var i=Math.round(car.scrollLeft/Math.max(1,car.clientWidth));
+    if(i!==CH_AT){ CH_AT=i; mark(); }
+  },{passive:true});
+  for(var i=0;i<dots.length;i++) dots[i].addEventListener('click',function(){
+    CH_AT=+this.getAttribute('data-i'); mark();
+    if(car.scrollTo) car.scrollTo({left:CH_AT*car.clientWidth, behavior:'smooth'}); else car.scrollLeft=CH_AT*car.clientWidth;
+  });
+}
+/* A frame shared by the charts: gridlines and labels down the left, dates
+   along the bottom, one column per race, oldest on the left. */
+function chartFrame(n,ticks,yOf,yLabel,right){
+  var W=340, H=180, L=40, R=right||12, T=22, B=26;
+  var x=function(i){ return n===1 ? (L+W-R)/2 : L+14+i*((W-R-L-28)/(n-1)); };
+  var g='';
+  ticks.forEach(function(v){ g+='<line class="pk-grid" x1="'+L+'" x2="'+(W-R)+'" y1="'+yOf(v)+'" y2="'+yOf(v)+'"/><text class="pk-ax" x="'+(L-6)+'" y="'+(yOf(v)+4)+'" text-anchor="end">'+yLabel(v)+'</text>'; });
+  return {W:W, H:H, L:L, R:R, T:T, B:B, x:x, grid:g};
+}
+function packCard(list){
+  var pts=packPoints(list);
+  return chartCard('Top 5 runners, 2 miles','Higher is faster',
+    pts.length>=2 ? packSvg(pts) : chartWait('Draws once five of ours have run two 2 mile races.'),
+    pts.length>=2 ? '<span><i class="kd"></i>Average time</span><span><i class="kb"></i>Gap between finishers</span>' : '');
+}
+/* Scoring places: where our top 5 finished in the whole field, meet by meet.
+   The course-proof partner to the pack. Meets with a field only. */
+function placesCard(list){
+  var pts=list.slice().reverse().filter(function(x){ return !isTT(x.m) && !teamOnlyRace(x.r); }).map(function(x){
+    var pl=[]; (x.r.fin||[]).forEach(function(f,i){ if(pl.length<5 && counts(x.m,f)) pl.push(i+1); });
+    return {m:x.m, places:pl, score:(x.mr && x.mr.place!=null) ? x.mr.score : null};
+  }).filter(function(p){ return p.places.length===5; });
+  if(pts.length<2) return chartCard('Top 5 runners, place in the race','Higher is better',chartWait('Draws once we\u2019ve run two meets with other schools.'));
+  var hi=Math.max.apply(null,pts.map(function(p){ return p.places[4]; }));
+  var step=hi>60 ? 20 : (hi>30 ? 10 : 5); hi=Math.ceil(hi/step)*step;
+  var ticks=[1]; for(var v=step;v<=hi;v+=step) ticks.push(v);
+  var F=chartFrame(pts.length,ticks,function(v){ return 22+(v-1)/(hi-1)*(180-22-26); },function(v){ return v===1 ? '1st' : ordinal(v); });
+  var y=function(v){ return F.T+(v-1)/(hi-1)*(F.H-F.T-F.B); };
+  var h='<svg class="pk" viewBox="0 0 '+F.W+' '+F.H+'" role="img" aria-label="Where our top five finished at each meet">'+F.grid;
+  pts.forEach(function(p,i){
+    var x=F.x(i);
+    h+='<line class="pl-stem" x1="'+x+'" x2="'+x+'" y1="'+y(p.places[0])+'" y2="'+y(p.places[4])+'"/>';
+    p.places.forEach(function(v,k){ h+='<circle class="pl-dot'+(k===4 ? ' fifth' : '')+'" cx="'+x+'" cy="'+y(v)+'" r="4.5"/>'; });
+    if(p.score!=null) h+='<text class="pk-val" x="'+x+'" y="'+(y(p.places[0])-8)+'" text-anchor="middle">'+p.score+'</text>';
+    h+='<text class="pk-x" x="'+x+'" y="'+(F.H-F.B+16)+'" text-anchor="middle">'+esc(fmtDate(p.m.date))+'</text>';
+  });
+  return chartCard('Top 5 runners, place in the race','Higher is better',h+'</svg>',
+    '<span><i class="kd"></i>A top 5 runner</span><span><i class="kd hollow"></i>Our 5th</span><span>Team score on top</span>');
+}
+/* PRs by race: how many of ours beat their best at that distance, out of
+   those who had a best to beat. A first race at a distance can't be a PR, so
+   races where nobody could are left out. */
+function prCard(list){
+  var idx=recordsIndex(), map=aidMap();
+  var pts=list.slice().reverse().map(function(x){
+    var could=0, did=0;
+    oursIn(x.m,x.r,SEA_DIV).forEach(function(f){
+      var ctx={m:x.m, r:x.r, idx:idx, map:map}, k=recKey(f,map), d=finDist(f,x.m);
+      var earlier=(idx[k+'|'+d]||[]).some(function(e){ return e.rid!==x.r.id && e.ord<raceOrd(x.m,x.r); });
+      if(!earlier) return;
+      could++;
+      var rc=recOf(f,ctx); if(rc && rc.tag==='PR') did++;
+    });
+    return {m:x.m, could:could, did:did};
+  }).filter(function(p){ return p.could>0; });
+  if(!pts.length) return chartCard('PRs at each race','',chartWait('Draws once runners have a second race at a distance.'));
+  var F=chartFrame(pts.length,[0,50,100],function(v){ return 22+(100-v)/100*(180-22-26); },function(v){ return v+'%'; });
+  var y=function(pc){ return F.T+(100-pc)/100*(F.H-F.T-F.B); };
+  var h='<svg class="pk" viewBox="0 0 '+F.W+' '+F.H+'" role="img" aria-label="How many of ours set a PR at each race">'+F.grid;
+  pts.forEach(function(p,i){
+    var x=F.x(i), pc=p.did/p.could*100, top=y(pc);
+    h+='<rect class="pr-bar" x="'+(x-15)+'" y="'+top+'" width="30" height="'+Math.max(2,y(0)-top)+'" rx="5"/>'+
+       '<text class="pk-val" x="'+x+'" y="'+(top-7)+'" text-anchor="middle">'+p.did+' of '+p.could+'</text>'+
+       '<text class="pk-x" x="'+x+'" y="'+(F.H-F.B+16)+'" text-anchor="middle">'+esc(fmtDate(p.m.date))+'</text>';
+  });
+  return chartCard('PRs at each race','',h+'</svg>','<span>Of the runners who had a time to beat</span>');
+}
+/* Team order: our top 7 by season best, and their place on the team at every
+   2 mile race. Lines that cross are runners moving. */
+var ORDER_COLORS=['#7FB3FF','#FFD166','#6EE7B7','#F4A3C4','#C3A6FF','#FFFFFF','#8FD3E8'];
+function orderCard(list){
+  var races=list.slice().reverse().filter(function(x){ return distMeters(x.m.dist)===MAIN_D; });
+  var top=runnersList(SEA_DIV).filter(function(x){ return x.best; }).slice(0,7), map=aidMap();
+  if(races.length<2 || top.length<2) return chartCard('Top 7, place on the team','Higher is better',chartWait('Draws once the team has run two 2 mile races.'));
+  var rows=top.map(function(x,ti){
+    var k=rosterKey(x.r,map);
+    return {name:x.r.name.split(' ')[0], c:ORDER_COLORS[ti], pl:races.map(function(rc){
+      var mates=oursIn(rc.m,rc.r,SEA_DIV).filter(function(f){ return finDist(f,rc.m)===MAIN_D; });
+      for(var j=0;j<mates.length;j++) if(recKey(mates[j],map)===k) return j+1;
+      return null; })};
+  });
+  var hi=1; rows.forEach(function(r){ r.pl.forEach(function(v){ if(v && v>hi) hi=v; }); });
+  hi=Math.max(hi,7);
+  var ticks=[1]; for(var v=5;v<=hi;v+=5) ticks.push(v);
+  var F=chartFrame(races.length,ticks,function(v){ return 22+(v-1)/(hi-1)*(180-22-26); },function(v){ return ordinal(v); },62);
+  var y=function(v){ return F.T+(v-1)/(hi-1)*(F.H-F.T-F.B); };
+  var h='<svg class="pk" viewBox="0 0 '+F.W+' '+F.H+'" role="img" aria-label="Our top seven and their place on the team at each race">'+F.grid;
+  races.forEach(function(rc,i){ h+='<text class="pk-x" x="'+F.x(i)+'" y="'+(F.H-F.B+16)+'" text-anchor="middle">'+esc(fmtDate(rc.m.date))+'</text>'; });
+  var labels=[], lines='', dots='';   /* every line under every dot */
+  rows.forEach(function(r){
+    /* A race a runner missed is skipped, not a break: the line runs on to
+       the next race they ran, so nobody is left as loose dots. */
+    var seg=[];
+    r.pl.forEach(function(v,i){ if(v){ seg.push(F.x(i)+','+y(v)); dots+='<circle cx="'+F.x(i)+'" cy="'+y(v)+'" r="3.5" style="fill:'+r.c+'"/>'; } });
+    if(seg.length>1) lines+='<polyline class="or-line" style="stroke:'+r.c+'" points="'+seg.join(' ')+'"/>';
+    var li=-1; r.pl.forEach(function(v,i){ if(v) li=i; });
+    if(li>=0) labels.push({y:y(r.pl[li]), x:F.x(li), name:r.name, c:r.c});
+  });
+  /* Names at the right, nudged apart so none sit on another. */
+  h+=lines+dots;
+  labels.sort(function(a,b){ return a.y-b.y; });
+  for(var i=1;i<labels.length;i++) if(labels[i].y-labels[i-1].y<11) labels[i].y=labels[i-1].y+11;
+  labels.forEach(function(l){ h+='<text class="or-name" x="'+(F.W-F.R+8)+'" y="'+(l.y+3.5)+'" style="fill:'+l.c+'">'+esc(l.name)+'</text>'; });
+  return chartCard('Top 7, place on the team','Higher is better',h+'</svg>','<span>By season best at 2 miles</span>');
+}
 function renderSeason(){
   $('seaG').setAttribute('aria-pressed',String(SEA_DIV==='F'));
   $('seaB').setAttribute('aria-pressed',String(SEA_DIV==='M'));
@@ -7097,12 +7251,7 @@ function renderSeason(){
   var tile=function(k,v){ return '<div class="stile"><span class="sv num">'+v+'</span><span class="sk">'+k+'</span></div>'; };
   var h='<div class="stiles">'+tile('Scored meets',scored.length)+tile('Best finish',best!=null ? ordinal(best) : '\u2013')+
     tile('Head to head',hh.length ? W+'\u2013'+L+(T ? '\u2013'+T : '') : '\u2013')+'</div>';
-  var pts=packPoints(list);
-  h+='<p class="hsect">THE PACK</p>';
-  /* 4.65: a title and a legend in place of the paragraph. */
-  if(pts.length>=2) h+='<div class="pkwrap"><div class="pkhead"><span>Top 5 runners, 2 miles</span><span class="pkup">Higher is faster</span></div>'+packSvg(pts)+
-    '<div class="pkkey"><span><i class="kd"></i>Average time</span><span><i class="kb"></i>Gap between finishers</span></div></div>';
-  else h+='<p class="hint">The pack draws once five of ours have run two 2 mile races.</p>';
+  h+='<p class="hsect">CHARTS</p>'+chartsHtml(list);
   h+='<p class="hsect">HEAD TO HEAD</p>';
   if(hh.length){
     /* Five, then the rest behind a button, so the meets below stay in reach. */
@@ -7120,6 +7269,7 @@ function renderSeason(){
   var t=$('seaMeets');
   list.forEach(function(x){ t.appendChild(seasonTableRow(x)); });
   if($('h2More')) $('h2More').addEventListener('click',function(){ H2H_ALL=!H2H_ALL; renderSeason(); });
+  wireCharts();
 }
 var H2H_ALL=false;
 /* A runner's season: counted races this year, and their best at two miles.
