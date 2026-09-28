@@ -826,9 +826,13 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 .pkwait{font-size:13px;color:var(--ink-soft);padding:48px 16px;text-align:center}
 .pl-stem{stroke:var(--ink-soft);stroke-width:2;opacity:.35}
 .pl-dot{fill:var(--ink)}
+.pl-score{fill:var(--tape)}
+.pkkey .ks{color:var(--tape);font-weight:600}
+.or-line.gap{stroke-dasharray:3 4;opacity:.45}
+.pkkey .kg{width:18px;height:0;border-top:2px dashed var(--ink-soft);opacity:.7}
 .pl-dot.fifth{fill:var(--chalk);stroke:var(--ink);stroke-width:2}
 .pr-bar{fill:var(--ink);opacity:.85}
-.or-line{fill:none;stroke-width:2;stroke-linejoin:round;opacity:.9}
+.or-line{fill:none;stroke-width:2;stroke-linecap:round;opacity:.9}
 .or-name{font-size:10.5px;font-weight:600}
 .pkkey .kd.hollow{background:none;border:2px solid var(--ink);box-sizing:border-box}
 .pkhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:6px 10px 0;font-size:13px;font-weight:600;color:var(--ink)}
@@ -1332,7 +1336,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.67';
+var BUILD='v4.69';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -7152,25 +7156,31 @@ function packCard(list){
    The course-proof partner to the pack. Meets with a field only. */
 function placesCard(list){
   var pts=list.slice().reverse().filter(function(x){ return !isTT(x.m) && !teamOnlyRace(x.r); }).map(function(x){
-    var pl=[]; (x.r.fin||[]).forEach(function(f,i){ if(pl.length<5 && counts(x.m,f)) pl.push(i+1); });
-    return {m:x.m, places:pl, score:(x.mr && x.mr.place!=null) ? x.mr.score : null};
+    var pl=[], who=[], map=aidMap();
+    (x.r.fin||[]).forEach(function(f,i){ if(pl.length<5 && counts(x.m,f)){ pl.push(i+1); who.push(recKey(f,map)); } });
+    return {m:x.m, places:pl, who:who, score:(x.mr && x.mr.place!=null) ? x.mr.score : null};
   }).filter(function(p){ return p.places.length===5; });
   if(pts.length<2) return chartCard('Top 5 runners, place in the race','Higher is better',chartWait('Draws once we\u2019ve run two meets with other schools.'));
   var hi=Math.max.apply(null,pts.map(function(p){ return p.places[4]; }));
   var step=hi>60 ? 20 : (hi>30 ? 10 : 5); hi=Math.ceil(hi/step)*step;
   var ticks=[1]; for(var v=step;v<=hi;v+=step) ticks.push(v);
   var F=chartFrame(pts.length,ticks,function(v){ return 22+(v-1)/(hi-1)*(180-22-26); },function(v){ return v===1 ? '1st' : ordinal(v); });
-  var y=function(v){ return F.T+(v-1)/(hi-1)*(F.H-F.T-F.B); };
+  var y=function(v){ return F.T+(v-1)/(hi-1)*(F.H-F.T-F.B); }, col=runnerColors();
   var h='<svg class="pk" viewBox="0 0 '+F.W+' '+F.H+'" role="img" aria-label="Where our top five finished at each meet">'+F.grid;
   pts.forEach(function(p,i){
     var x=F.x(i);
     h+='<line class="pl-stem" x1="'+x+'" x2="'+x+'" y1="'+y(p.places[0])+'" y2="'+y(p.places[4])+'"/>';
-    p.places.forEach(function(v,k){ h+='<circle class="pl-dot'+(k===4 ? ' fifth' : '')+'" cx="'+x+'" cy="'+y(v)+'" r="4.5"/>'; });
-    if(p.score!=null) h+='<text class="pk-val" x="'+x+'" y="'+(y(p.places[0])-8)+'" text-anchor="middle">'+p.score+'</text>';
+    /* Our 5th is drawn first, so the ring shows even where dots crowd. */
+    [4,3,2,1,0].forEach(function(k){
+      var c=col[p.who[k]]||'var(--ink-soft)', v=p.places[k];
+      h+=k===4 ? '<circle class="pl-dot fifth" cx="'+x+'" cy="'+y(v)+'" r="4.5" style="stroke:'+c+'"/>'
+               : '<circle class="pl-dot" cx="'+x+'" cy="'+y(v)+'" r="4.5" style="fill:'+c+'"/>';
+    });
+    if(p.score!=null) h+='<text class="pk-val pl-score" x="'+x+'" y="'+(y(p.places[0])-8)+'" text-anchor="middle">'+p.score+'</text>';
     h+='<text class="pk-x" x="'+x+'" y="'+(F.H-F.B+16)+'" text-anchor="middle">'+esc(fmtDate(p.m.date))+'</text>';
   });
   return chartCard('Top 5 runners, place in the race','Higher is better',h+'</svg>',
-    '<span><i class="kd"></i>A top 5 runner</span><span><i class="kd hollow"></i>Our 5th</span><span>Team score on top</span>');
+    '<span>Colours match Top 7</span><span><i class="kd hollow"></i>Our 5th</span><span><b class="ks">Team score</b></span>');
 }
 /* PRs by race: how many of ours beat their best at that distance, out of
    those who had a best to beat. A first race at a distance can't be a PR, so
@@ -7202,7 +7212,16 @@ function prCard(list){
 }
 /* Team order: our top 7 by season best, and their place on the team at every
    2 mile race. Lines that cross are runners moving. */
-var ORDER_COLORS=['#7FB3FF','#FFD166','#6EE7B7','#F4A3C4','#C3A6FF','#FFFFFF','#8FD3E8'];
+/* 4.69: the varsity set, saturated so the lines read like team colours, the
+   same for girls and boys. None is red or coral, which mean actions, records
+   and the team score. */
+var ORDER_COLORS=['#4DA3FF','#FFC23D','#34D399','#FF8A3D','#FFFFFF','#22D3EE','#A3E635'];
+/* 4.68: each of our top 7 by season best keeps one colour on every chart. */
+function runnerColors(){
+  var map=aidMap(), c={};
+  runnersList(SEA_DIV).filter(function(x){ return x.best; }).slice(0,7).forEach(function(x,i){ c[rosterKey(x.r,map)]=ORDER_COLORS[i]; });
+  return c;
+}
 function orderCard(list){
   var races=list.slice().reverse().filter(function(x){ return distMeters(x.m.dist)===MAIN_D; });
   var top=runnersList(SEA_DIV).filter(function(x){ return x.best; }).slice(0,7), map=aidMap();
@@ -7223,11 +7242,15 @@ function orderCard(list){
   races.forEach(function(rc,i){ h+='<text class="pk-x" x="'+F.x(i)+'" y="'+(F.H-F.B+16)+'" text-anchor="middle">'+esc(fmtDate(rc.m.date))+'</text>'; });
   var labels=[], lines='', dots='';   /* every line under every dot */
   rows.forEach(function(r){
-    /* A race a runner missed is skipped, not a break: the line runs on to
-       the next race they ran, so nobody is left as loose dots. */
-    var seg=[];
-    r.pl.forEach(function(v,i){ if(v){ seg.push(F.x(i)+','+y(v)); dots+='<circle cx="'+F.x(i)+'" cy="'+y(v)+'" r="3.5" style="fill:'+r.c+'"/>'; } });
-    if(seg.length>1) lines+='<polyline class="or-line" style="stroke:'+r.c+'" points="'+seg.join(' ')+'"/>';
+    /* 4.68: a race a runner missed gets no dot, and the line across it is
+       dashed and faint, so it never looks as if they ran it. */
+    var prev=null;
+    r.pl.forEach(function(v,i){
+      if(!v) return;
+      if(prev) lines+='<line class="or-line'+(i-prev.i>1 ? ' gap' : '')+'" style="stroke:'+r.c+'" x1="'+F.x(prev.i)+'" y1="'+y(prev.v)+'" x2="'+F.x(i)+'" y2="'+y(v)+'"/>';
+      dots+='<circle cx="'+F.x(i)+'" cy="'+y(v)+'" r="3.5" style="fill:'+r.c+'"/>';
+      prev={i:i, v:v};
+    });
     var li=-1; r.pl.forEach(function(v,i){ if(v) li=i; });
     if(li>=0) labels.push({y:y(r.pl[li]), x:F.x(li), name:r.name, c:r.c});
   });
@@ -7236,7 +7259,7 @@ function orderCard(list){
   labels.sort(function(a,b){ return a.y-b.y; });
   for(var i=1;i<labels.length;i++) if(labels[i].y-labels[i-1].y<11) labels[i].y=labels[i-1].y+11;
   labels.forEach(function(l){ h+='<text class="or-name" x="'+(F.W-F.R+8)+'" y="'+(l.y+3.5)+'" style="fill:'+l.c+'">'+esc(l.name)+'</text>'; });
-  return chartCard('Top 7, place on the team','Higher is better',h+'</svg>','<span>By season best at 2 miles</span>');
+  return chartCard('Top 7, place on the team','Higher is better',h+'</svg>','<span>By season best at 2 miles</span><span><i class="kg"></i>Missed a race</span>');
 }
 function renderSeason(){
   $('seaG').setAttribute('aria-pressed',String(SEA_DIV==='F'));
