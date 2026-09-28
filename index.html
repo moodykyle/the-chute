@@ -816,7 +816,6 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 .pk-dot.last{fill:var(--red);stroke:var(--ink);stroke-width:2}
 .pk-val{fill:var(--ink);font-size:11px;font-weight:600}
 .pk-x{fill:var(--ink-soft);font-size:10.5px}
-.pk-x.tt{font-size:8.5px;letter-spacing:.06em;fill:var(--tape)}
 .pkhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:6px 10px 0;font-size:13px;font-weight:600;color:var(--ink)}
 .pkhead .pkup{font-size:11px;font-weight:400;color:var(--ink-soft)}
 .pkkey{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 18px;padding:2px 8px 10px;font-size:12px;color:var(--ink-soft)}
@@ -1318,7 +1317,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.65';
+var BUILD='v4.66';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -7033,7 +7032,7 @@ function packPoints(list){
   });
 }
 function packSvg(pts){
-  var W=340, H=190, L=40, R=12, T=22, B=36;
+  var W=340, H=180, L=40, R=12, T=22, B=26;   /* 4.66: one line of dates below, so less room under the plot */
   var lo=Math.min.apply(null,pts.map(function(p){ return p.first; })), hi=Math.max.apply(null,pts.map(function(p){ return p.fifth; }));
   lo=Math.floor(lo/60000)*60000; hi=Math.ceil(hi/60000)*60000; if(hi===lo) hi=lo+60000;
   var y=function(ms){ return T+(ms-lo)/(hi-lo)*(H-T-B); };   /* faster is higher */
@@ -7046,8 +7045,8 @@ function packSvg(pts){
     var last=i===n-1;
     h+='<circle class="pk-dot'+(last?' last':'')+'" cx="'+x(i)+'" cy="'+y(p.avg)+'" r="'+(last?6:5)+'"/>'+
        '<text class="pk-val" x="'+x(i)+'" y="'+(y(p.first)-7)+'" text-anchor="middle">'+fmt(p.avg,0)+'</text>'+
-       '<text class="pk-x" x="'+x(i)+'" y="'+(H-B+16)+'" text-anchor="middle">'+esc(fmtDate(p.m.date))+'</text>'+
-       (isTT(p.m) ? '<text class="pk-x tt" x="'+x(i)+'" y="'+(H-B+29)+'" text-anchor="middle">TIME TRIAL</text>' : '');
+       '<text class="pk-x" x="'+x(i)+'" y="'+(H-B+16)+'" text-anchor="middle">'+esc(fmtDate(p.m.date))+'</text>';
+    /* 4.66: dates only under the chart; the meets table says which were time trials. */
   });
   return h+'</svg>';
 }
