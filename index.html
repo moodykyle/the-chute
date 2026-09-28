@@ -347,6 +347,8 @@ select{min-height:47px}
 .req{font-size:19px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;
   overflow:hidden;text-overflow:ellipsis}
 .req .op{color:var(--ink-soft);font-weight:400;margin:0 1px}
+/* 4.70: a splits-only race says what it is in a sentence, so it wraps. */
+.req.wrap{white-space:normal;font-size:17px;line-height:1.25}
 .req .disp{margin-left:7px;font-size:13px;color:var(--ink-soft);font-weight:400}
 .rstat{margin-top:3px;font-size:13px;color:var(--ink-soft)}
 /* 4.52: the way into Meet scores, under the score, with our place once the
@@ -1336,7 +1338,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.69';
+var BUILD='v4.70';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -3292,8 +3294,19 @@ function mergePulled(meets,races,upBefore){
 /* Server finishes onto a local race. The timing phone owns which rows exist
    and their times, so it only takes names. A naming phone takes everything.
    A name this phone has not sent yet always beats the database. */
+/* 4.70: a chipped race. The phone that started the clock tapped nothing, and
+   the official results are loaded into the database afterwards. The timer
+   ignores rows it did not create, which is what keeps its own taps safe, but
+   with no taps of its own there is nothing to protect: once a race it timed
+   has ended with no finishes, it takes them from the database like any other
+   phone, and keeps doing so (r.took). A race it tapped keeps the old rule. */
+function takesLoad(r){
+  if(!r) return false;
+  if(r.took) return true;
+  return r.endedMs!=null && !(r.fin||[]).length;
+}
 function mergeFinishes(r,rows){
-  var mine=ownsRace(r), fin=r.fin||(r.fin=[]), byCid={}, added=[], changed=false, rd=divOf(r);
+  var mine=ownsRace(r) && !takesLoad(r), took=ownsRace(r) && !mine, fin=r.fin||(r.fin=[]), byCid={}, added=[], changed=false, rd=divOf(r);
   /* In a girls or boys race the race supplies the division. In a mixed one it
      comes up with the name, and an older row without one leaves it unknown. */
   function gOf(x){ return rd==='X' ? (x.runner_division||null) : rd; }
@@ -3313,6 +3326,7 @@ function mergeFinishes(r,rows){
       else if(x.runner_name){ f.n=x.runner_name; f.g=gOf(x); }
       if(x.distance_m) f.dm=x.distance_m;
       fin.push(f); byCid[f.cid]=f; added.push(f.cid); changed=true;
+      if(took) r.took=true;
       return;
     }
     if(!mine && f.raw!==x.elapsed_ms){ f.raw=x.elapsed_ms; f.ms=x.elapsed_ms+(r.shift||0); f.seq=x.seq; changed=true; }
@@ -4018,6 +4032,39 @@ function splitMarksIn(r){
   return Object.keys(seen).map(Number).sort(function(a,b){ return a-b; });
 }
 function finSplitKey(f,map){ return f.h ? recKey(f,map) : null; }
+/* 4.70: a meet race with splits and no finishes, the state a chipped race is
+   in until its official results are loaded. Results lists the splits on
+   their own, and home says Splits rather than No score. */
+function splitsOnlyRace(r){
+  return !!r && r.division!=='Mixed' && r.t0Wall!=null && !(r.fin||[]).length && !!splitsByRunner(r);
+}
+/* Our runners at the split points, one row each: furthest point first, then
+   by time there. Names and grades from the roster where the runner is on it,
+   otherwise the name the split was taken with. */
+function splitRunners(r){
+  var map=aidMap(), by={}, order=[], ros={};
+  buildRoster().forEach(function(x){ if(!x.dead) ros[rosterKey(x,map)]=x; });
+  splitList(r).forEach(function(d){
+    var k=recKey(d,map), ms=splitElapsed(r,d);
+    if(!k || ms==null) return;
+    if(!by[k]){
+      var x=ros[k];
+      by[k]={key:k, name:(x && x.name) || d.n || '', grade:(x && x.grade) || null, marks:{}};
+      order.push(by[k]);
+    }
+    by[k].marks[d.m]=ms;
+  });
+  order.forEach(function(p){
+    var mk=Object.keys(p.marks).map(Number).sort(function(a,b){ return a-b; });
+    p.list=mk; p.far=mk[mk.length-1]; p.ms=p.marks[p.far];
+  });
+  order.sort(function(a,b){ return (b.far-a.far) || (a.ms-b.ms); });
+  return order;
+}
+/* Each point with its time, for a row or a line of copy. */
+function splitWords(marks,list,short){
+  return list.map(function(mk){ return (short ? markShort(mk) : markLabel(mk))+' '+fmt(marks[mk],1); });
+}
 
 function spRace(){ var f=SP ? findRace(SP.mid,SP.rid) : null; return f ? f.race : null; }
 function spMeet(){ return SP ? findMeet(SP.mid) : null; }
@@ -5316,6 +5363,8 @@ function meetRow(m,open,today){
   /* A meet nobody has started gets no pill. "Set up" said nothing a tap
      would change, and the name needs the room. */
   else if(fin && m.races.some(teamOnlyRace)) tag='Team only';
+  /* 4.70: split at the mile, finishes still to be loaded. */
+  else if(fin && m.races.some(splitsOnlyRace)) tag='Splits';
   else tag = fin ? 'No score' : (anyRun ? 'In progress' : '');
   var raceDay=(m.date===today && !fin), p=(m.date||'').split('-'), ok=(p.length===3);
   var meta=[distsText(m), m.venue].filter(Boolean).join(' \u00b7 ');
@@ -5994,6 +6043,7 @@ var resFull=false, resNote=[];
 function renderResults(){
   renderResSync();
   if(ttRace()) return renderTTResults();
+  if(splitsOnlyRace(currentRace())) return renderSplitsOnly();
   var ours=[];
   S.fin.forEach(function(f,i){
     if(!f.h) return;
@@ -6112,6 +6162,71 @@ function renderResults(){
   });
   $('resSegOurs').addEventListener('click',function(){ resFull=false; renderResults(); });
   $('resSegAll').addEventListener('click',function(){ resFull=true; renderResults(); });
+}
+
+/* 4.70: Results for a race with splits and no finishes. No score, no Team and
+   All, since there is no field: our runners in the order they went through
+   the split, with the time there. When the official results are loaded the
+   race has finishes and Results goes back to normal, each split beside its
+   runner. */
+function renderSplitsOnly(){
+  var r=currentRace(), rows=splitRunners(r), rp=resPrefs();
+  var marks=splitMarksIn(r), many=marks.length>1;
+  var h='<div class="rhead">'+
+     '<div class="rid"><span class="ridtext">'+esc(S.name)+'</span>'+
+     '<button type="button" class="info" id="splInfo" aria-label="About this race">i</button></div>'+
+     '<div class="rwhen num">'+esc([S.date?fmtDate(S.date,true):'', meetDist()].filter(Boolean).join(' \u00b7 '))+'</div>'+
+     '<div class="rgrid"><div class="rside">'+
+       '<div class="req wrap">Splits only. Official results not loaded yet.</div>'+
+       '<div class="rstat num">'+rows.length+' split at '+esc(marks.map(markLabel).join(', '))+'</div>'+
+     '</div></div></div>';
+  rows.forEach(function(p,i){
+    var tags=[];
+    if(rp.grade && p.grade) tags.push(p.grade+'th');
+    if(many) tags=tags.concat(splitWords(p.marks,p.list,true));
+    h+='<div class="rrow home"><span class="pl num">'+(i+1)+'</span>'+
+       '<span class="who'+(p.name?'':' pending')+'"><span class="wn">'+(p.name?esc(p.name):'needs a name')+'</span>'+
+       (tags.length?'<small class="wt">'+tags.join(' \u00b7 ')+'</small>':'')+'</span>'+
+       '<span class="tm num">'+fmt(p.ms,1)+'</span></div>';
+  });
+  h+=dnfBlock();
+  $('resultBody').innerHTML=h;
+  wireDnf();
+  resNote=['No finishes were timed in this race. These are our runners at the split, in the order they went through it, with the time on our clock there.',
+           'When the official results are loaded, the finishes, places and score appear here, with each split beside its runner.'];
+  $('splInfo').addEventListener('click',function(){ infoOpen('About this race',resNote); });
+  [['copyChat','Copy Text - '],['copyCsv','Copy CSV - ']].forEach(function(q){
+    var b=$(q[0]), t=q[1]+'Team';
+    b.setAttribute('data-label',t);
+    if(b.textContent!=='Copied' && b.textContent!=='Select the text below') b.textContent=t;
+  });
+}
+function splitsOnlyChat(){
+  var r=currentRace(), rows=splitRunners(r), marks=splitMarksIn(r), many=marks.length>1;
+  var out=S.name.replace(/, (Girls|Boys)$/,'')+'\n';
+  out+=[S.division, meetDist(), rows.length+' split'].filter(Boolean).join(', ')+'\n';
+  var st=startTime();
+  out+=fmtDate(S.date,true)+(st?', '+st:'')+'\n\n';
+  out+=S.team+'\n';
+  out+=marks.map(markLabel).join(', ')+' splits, official results to come\n\n';
+  var w=String(rows.length).length;
+  rows.forEach(function(p,i){
+    var who=(p.name||'needs a name')+(p.grade?', '+p.grade+'th':'');
+    out+=String(i+1).padStart(w,' ')+'  '+(many ? who+'  '+splitWords(p.marks,p.list).join(', ') : fmt(p.ms,1)+'  '+who)+'\n';
+  });
+  return out+dnfChat();
+}
+function splitsOnlyCsv(){
+  var r=currentRace(), rows=splitRunners(r), marks=splitMarksIn(r);
+  var meet=S.name.replace(/, (Girls|Boys)$/,'');
+  var out='date,meet,distance,division,team,split_runners\n'+
+    csvCell(S.date||'')+','+csvCell(meet)+','+csvCell(meetDist())+','+csvCell(S.division)+','+csvCell(S.team)+','+rows.length+'\n\n'+
+    'order,runner,team,grade'+marks.map(function(mk){ return ','+markCol(mk); }).join('')+'\n';
+  rows.forEach(function(p,i){
+    out+=(i+1)+','+csvCell(p.name||'')+','+csvCell(S.team)+','+(p.grade||'')+
+         marks.map(function(mk){ return ','+(p.marks[mk]!=null ? fmt(p.marks[mk],1) : ''); }).join('')+'\n';
+  });
+  return out;
 }
 
 /* What the nth of our finishers did for the score. The first five score. The
@@ -6291,6 +6406,7 @@ function ourPlaces(){
    because a place is a fact about the race, not about the filter. */
 function buildCsv(full){
   if(ttRace()) return buildTTCsv();
+  if(splitsOnlyRace(currentRace())) return splitsOnlyCsv();
   if(full===undefined) full=resFull;
   var meet=S.name.replace(/, (Girls|Boys)$/,'');
   var tonly=teamOnlyS(), p=ourPlaces(), top5=p.slice(0,5), scored=p.length>=5 && !tonly;
@@ -6402,6 +6518,7 @@ function csvCell(v){
    screen and the CSV still carry it. */
 function buildChat(full){
   if(ttRace()) return buildTTChat();
+  if(splitsOnlyRace(currentRace())) return splitsOnlyChat();
   if(full===undefined) full=resFull;
   var p=ourPlaces(), top5=p.slice(0,5), tonly=teamOnlyS();
 
@@ -6449,12 +6566,20 @@ function buildChat(full){
   out+='\n';
 
   var w=String(S.fin.length).length, rx=recCtx();
+  /* 4.70: each of our runners' splits on the end of their line, when a split
+     was taken. A race without them copies exactly as before. */
+  var csr=currentRace(), cspl=splitsByRunner(csr), cmap=cspl?aidMap():null;
   S.fin.forEach(function(f,i){
     if(!full && !f.h) return;
     var nm=(nameOf(f.r)||f.n||null), run=runnerById(f.r);
     var who = nm ? nm : (f.h ? 'needs a name' : ((cmr && cmr.res.owner[i+1]) || 'Field'));
     if(f.h && run && run.grade) who += ', '+run.grade+'th';
     var rec=recOf(f,rx); if(rec) who += ' ('+rec.tag+')';
+    var got=cspl && cspl[finSplitKey(f,cmap)];
+    if(got){
+      var gm=Object.keys(got).map(Number).sort(function(a,b){ return a-b; });
+      who += ', '+splitWords(got,gm).join(', ');
+    }
     out += String(i+1).padStart(w,' ')+'  '+fmt(f.ms,1)+'  '+who+'\n';
   });
   return out+dnfChat();
