@@ -1364,7 +1364,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.71';
+var BUILD='v4.72';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -3388,21 +3388,35 @@ function patchAbsent(r){
    that stays. The rest fold behind a Show button at the bottom, and once
    opened the fold stays open for the race, its rows fixed too, so a runner
    tapped from it stays under the thumb. got(x) is someone with a result
-   already, who is shown whatever the list says. */
+   already, who is shown whatever the list says.
+   4.72: fixed from the gun, not from the first draw. Before the clock starts
+   nobody is tapping, so the lists follow who's here every time they draw: a
+   runner checked back in returns to her place, one marked out goes behind
+   Show, and an open fold closes again once it is empty. 4.71 fixed them at
+   the first draw, so a list opened early never followed the checklist until
+   the app was reloaded. The first draw after the gun starts fresh too, from
+   who's here then, so a list last drawn before the start (a splitter who
+   opened Splits early and went back to Events) is not held to that picture. */
 var hereLists={};
 function hereSplit(key,r,ordered,got){
   var map=aidMap(), st=hereLists[key]||(hereLists[key]={main:null, fold:null}), byId={};
+  var pre=(!r || r.t0Wall==null), fresh=(pre || !!st.pre);
+  if(fresh){ st.open=st.open||!!st.fold; st.main=null; st.fold=null; }
+  st.pre=pre;
   ordered.forEach(function(x){ byId[x.id]=x; });
   function on(x){ return isHere(r,x,map) || (got && got(x)); }
   if(!st.main) st.main=ordered.filter(on).map(function(x){ return x.id; });
   function placed(id){ return st.main.indexOf(id)>=0 || (st.fold && st.fold.indexOf(id)>=0); }
   ordered.forEach(function(x){ if(!placed(x.id) && on(x)) st.main.push(x.id); });
   var rest=ordered.filter(function(x){ return !placed(x.id); });
+  /* Before the gun, a fold opened earlier opens again on the next draw while
+     it has anyone in it, and closes once it has nobody. */
+  if(st.open && fresh){ if(rest.length) st.fold=[]; else st.open=false; }
   if(st.fold){ rest.forEach(function(x){ st.fold.push(x.id); }); rest=[]; }
   function pick(ids){ return ids.map(function(id){ return byId[id]; }).filter(Boolean); }
   return {main:pick(st.main), fold:st.fold?pick(st.fold):[], hidden:rest.length, open:!!st.fold};
 }
-function hereOpenFold(key){ var st=hereLists[key]; if(st && !st.fold) st.fold=[]; }
+function hereOpenFold(key){ var st=hereLists[key]; if(st && !st.fold){ st.fold=[]; st.open=true; } }
 function notHereLabel(n){ return 'Show '+n+' not here today'; }
 
 /* 4.70: a chipped race. The phone that started the clock tapped nothing, and
@@ -4438,7 +4452,11 @@ function spTick(){
       if(!res.ok) return false;
       spLastRead=Date.now();
       var sr=res.data && res.data[0];
-      return !!(sr && (!ownsRace(r) || r.t0Wall==null) && !r.d && applyRaceRow(r,sr));
+      var ch=!!(sr && (!ownsRace(r) || r.t0Wall==null) && !r.d && applyRaceRow(r,sr));
+      /* 4.72: and who's here, set on another phone. The row already carried it
+         (4.71 added it to RACE_COLS); only the clock was taken from it. */
+      if(sr && pullAbsent(r,sr)) ch=true;
+      return ch;
     });
   }).then(function(ch){
     spBusy=false;
