@@ -729,6 +729,20 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
   border-radius:14px;padding-bottom:0;
 }
 .sheet-in .bar{border-bottom:1px solid var(--rule)}
+/* 4.71: who's here. The count and the two bulk buttons sit above the list,
+   so Nobody for a top-7 meet is one tap before checking seven. */
+.herehead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px;border-bottom:1px solid var(--rule)}
+.herecount{margin:0;font-size:14px;color:var(--ink-soft);min-width:0}
+.herebtns{display:flex;gap:8px;flex:0 0 auto}
+.opt.hererow{grid-template-columns:minmax(0,1fr) auto auto;align-items:center}
+.hererow .ck{width:24px;height:24px;border-radius:50%;border:2px solid var(--rule);display:flex;align-items:center;justify-content:center}
+.hererow .ck svg{width:14px;height:14px;display:none}
+.hererow.in .ck{background:var(--red);border-color:var(--red)}
+.hererow.in .ck svg{display:block}
+.hererow:not(.in) .on{color:var(--ink-soft);font-weight:500}
+.rrace .herelink{display:block;margin:0;padding:7px 12px 7px 0;min-height:32px;background:none;border:none;color:var(--ink-soft);
+  font-size:12px;text-decoration:underline;text-underline-offset:2px;text-align:left}
+.herefold{color:var(--ink-soft)}
 .opt{
   display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:baseline;
   width:100%;padding:12px 16px;border-bottom:1px solid var(--rule);text-align:left;font-size:16px;
@@ -1325,6 +1339,18 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
   </div>
 </div>
 
+<!-- WHO'S HERE, 4.71 -->
+<div class="sheet" id="hereSheet">
+  <div class="sheet-in">
+    <div class="bar"><h1 id="hereTitle">Who's here</h1><button class="linkbtn" id="hereDone">Done</button></div>
+    <div class="herehead">
+      <p class="herecount" id="hereCount"></p>
+      <div class="herebtns"><button type="button" class="linkbtn quiet" id="hereAll">Everyone</button><button type="button" class="linkbtn quiet" id="hereNone">Nobody</button></div>
+    </div>
+    <div class="scroll" id="hereList"></div>
+  </div>
+</div>
+
 <div class="sheet" id="sheet">
   <div class="sheet-in">
     <div class="bar"><h1 id="sheetTitle">Place</h1><button class="linkbtn" id="sheetClose">Close</button></div>
@@ -1338,7 +1364,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.70';
+var BUILD='v4.71';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -2841,6 +2867,7 @@ function racePatch(m,r){
 function raceBody(m,r){
   var b=racePatch(m,r); b.id=r.id; b.meet_id=m.id; b.division=divOf(r);
   b.second_distance_m=hasTwoDists(m) ? distMeters(m.dist2) : null;
+  b.absent=absentIds(r);
   return b;
 }
 /* Local times already carry the shift. The database keeps the raw tap and the
@@ -2867,7 +2894,7 @@ function finBody(r,f,i,home,m){
 }
 /* What still has to go, for one meet or the whole season. */
 function syncWork(only){
-  var w={drop:[], meets:[], races:[], d2:[], gone:[], fins:[], bad:0, total:0};
+  var w={drop:[], meets:[], races:[], d2:[], ab:[], gone:[], fins:[], bad:0, total:0};
   if(!only) w.drop=(SEASON.goneMeets||[]).slice();
   SEASON.meets.forEach(function(m){
     if(only && m!==only) return;
@@ -2884,6 +2911,8 @@ function syncWork(only){
         if(own && (!r.up || r.d)) w.races.push({m:m, r:r});
         /* The second distance goes up from whichever phone changed it. */
         if(r.up && r.d2) w.d2.push({m:m, r:r});
+        /* 4.71: who's here, likewise from whichever phone changed it. */
+        if(r.up && r.dout) w.ab.push({m:m, r:r});
       }
       if(own && r.gone && r.gone.length) w.gone.push({m:m, r:r});
       (r.fin||[]).forEach(function(f,i){
@@ -2892,11 +2921,11 @@ function syncWork(only){
       });
     });
   });
-  w.total=w.drop.length+w.meets.length+w.races.length+w.d2.length+w.gone.length+w.fins.length;
+  w.total=w.drop.length+w.meets.length+w.races.length+w.d2.length+w.ab.length+w.gone.length+w.fins.length;
   return w;
 }
 function pendingCount(w){
-  var n=w.meets.length+w.races.length+w.d2.length+w.fins.length;
+  var n=w.meets.length+w.races.length+w.d2.length+w.ab.length+w.fins.length;
   w.gone.forEach(function(g){ n+=g.r.gone.length; });
   return n;
 }
@@ -3037,6 +3066,7 @@ function syncDrain(w,home){
     /* Before any finish: 0010 refuses a finish at a distance its race does
        not run yet. */
     function(){ return seq(w.d2, function(x){ return patchDist2(x.m,x.r); }); },
+    function(){ return seq(w.ab||[], function(x){ return patchAbsent(x.r); }); },
     function(){ return seq(Object.keys(byRace).map(function(k){ return byRace[k]; }), function(g){
                   return drainRace(g.m,g.r,g.list,home); }); }
   ], function(step){ return step(); });
@@ -3208,6 +3238,8 @@ function pullDists(m,r,sr){
     var l2=sr.second_distance_m ? distLabel(sr.second_distance_m) : '';
     if(l2!==(m.dist2||'')){ if(l2) m.dist2=l2; else delete m.dist2; ch=true; }
   }
+  /* 4.71: who's here rides the same pull, from any phone, on any race. */
+  if(pullAbsent(r,sr)) ch=true;
   return ch;
 }
 /* Server race row onto a local race. Returns whether anything changed. */
@@ -3263,7 +3295,7 @@ function mergePulled(meets,races,upBefore){
           dist2:(sm.event_type==='time_trial' && srs[0] && srs[0].second_distance_m) ? distLabel(srs[0].second_distance_m) : undefined,
           test:!!sm.is_test, type:(sm.event_type==='time_trial'?'time_trial':'meet'), timing:timingOfRow(sm), splits:marksOf(sm.split_marks), up:true, races:srs.map(function(sr){
             var r={id:sr.id, division:divName(sr.division), t0Wall:null, endedMs:null, fin:[], up:true, pulled:true};
-            applyRaceRow(r,sr); return r;
+            applyRaceRow(r,sr); pullAbsent(r,sr); return r;
           })};
       SEASON.meets.push(lm); changed=true;
       return;
@@ -3294,6 +3326,85 @@ function mergePulled(meets,races,upBefore){
 /* Server finishes onto a local race. The timing phone owns which rows exist
    and their times, so it only takes names. A naming phone takes everything.
    A name this phone has not sent yet always beats the database. */
+/* ---------- 4.71: who's here today ----------
+   A coach marks, per race, who is not at the meet. Stored as the list of who
+   is out (r.out, roster keys), so nothing marked means everyone, which is how
+   every race before 4.71 reads, and a runner added to the roster later is here
+   by default. The database keeps the athlete ids (races.absent, 0019); a
+   runner with no athletes row yet (a test-event walk-on) stays on this phone.
+   r.dout counts local changes not yet sent, the way r.d2 does. */
+function outKeys(r){ return (r && r.out) || []; }
+function isHere(r,x,map){
+  var o=outKeys(r); if(!o.length || !x) return true;
+  return o.indexOf(rosterKey(x,map||aidMap()))<0;
+}
+function setHere(r,x,on,map){
+  if(!r || !x) return false;
+  var k=rosterKey(x,map||aidMap()), o=outKeys(r).slice(), i=o.indexOf(k);
+  if(on && i>=0) o.splice(i,1); else if(!on && i<0) o.push(k); else return false;
+  if(o.length) r.out=o; else delete r.out;
+  r.dout=(r.dout||0)+1;
+  return true;
+}
+/* The roster a race draws on: its division, or everyone in a time trial. */
+function hereRoster(r){
+  var g=divOf(r);
+  return buildRoster().filter(function(x){ return !x.dead && (g==='X' || x.g===g); });
+}
+function hereCount(r){
+  var map=aidMap(), all=hereRoster(r), n=all.filter(function(x){ return isHere(r,x,map); }).length;
+  return {here:n, all:all.length};
+}
+function absentIds(r){
+  var a=outKeys(r).filter(function(k){ return k.indexOf('a:')===0; }).map(function(k){ return k.slice(2); });
+  return a.length ? a : null;
+}
+/* From the database: its athlete ids, plus any name-only keys this phone
+   holds, since those were never sent. */
+function pullAbsent(r,sr){
+  if(!r || !sr || r.dout || !('absent' in sr)) return false;
+  var want=(sr.absent||[]).map(function(id){ return 'a:'+id; });
+  outKeys(r).forEach(function(k){ if(k.indexOf('a:')!==0) want.push(k); });
+  var have=outKeys(r);
+  if(want.length===have.length && want.every(function(k){ return have.indexOf(k)>=0; })) return false;
+  if(want.length) r.out=want; else delete r.out;
+  return true;
+}
+/* Any phone, not claim-gated: whoever is holding the list at the line. */
+function patchAbsent(r){
+  var snap=r.dout||0;
+  return sbFetch('/rest/v1/races?id=eq.'+r.id,{method:'PATCH', auth:true, prefer:'return=minimal',
+                 body:{absent:absentIds(r)}})
+    .then(function(res){
+      if(res.ok){ if((r.dout||0)===snap) delete r.dout; return true; }
+      if(syncFatal(res)) return false;
+      setAside(r);
+      return true;
+    });
+}
+/* The live lists (the splitter's and the Team clock's) never move a row on
+   their own (4.47). So who is on them is fixed the first time they draw for a
+   race: anyone marked here after that goes on the end, anyone marked out after
+   that stays. The rest fold behind a Show button at the bottom, and once
+   opened the fold stays open for the race, its rows fixed too, so a runner
+   tapped from it stays under the thumb. got(x) is someone with a result
+   already, who is shown whatever the list says. */
+var hereLists={};
+function hereSplit(key,r,ordered,got){
+  var map=aidMap(), st=hereLists[key]||(hereLists[key]={main:null, fold:null}), byId={};
+  ordered.forEach(function(x){ byId[x.id]=x; });
+  function on(x){ return isHere(r,x,map) || (got && got(x)); }
+  if(!st.main) st.main=ordered.filter(on).map(function(x){ return x.id; });
+  function placed(id){ return st.main.indexOf(id)>=0 || (st.fold && st.fold.indexOf(id)>=0); }
+  ordered.forEach(function(x){ if(!placed(x.id) && on(x)) st.main.push(x.id); });
+  var rest=ordered.filter(function(x){ return !placed(x.id); });
+  if(st.fold){ rest.forEach(function(x){ st.fold.push(x.id); }); rest=[]; }
+  function pick(ids){ return ids.map(function(id){ return byId[id]; }).filter(Boolean); }
+  return {main:pick(st.main), fold:st.fold?pick(st.fold):[], hidden:rest.length, open:!!st.fold};
+}
+function hereOpenFold(key){ var st=hereLists[key]; if(st && !st.fold) st.fold=[]; }
+function notHereLabel(n){ return 'Show '+n+' not here today'; }
+
 /* 4.70: a chipped race. The phone that started the clock tapped nothing, and
    the official results are loaded into the database afterwards. The timer
    ignores rows it did not create, which is what keeps its own taps safe, but
@@ -3346,7 +3457,7 @@ function mergeFinishes(r,rows){
   return {changed:changed, added:added};
 }
 
-var RACE_COLS='id,meet_id,division,distance_m,second_distance_m,started_at,ended_at,shift_ms,timed_by';
+var RACE_COLS='id,meet_id,division,distance_m,second_distance_m,started_at,ended_at,shift_ms,timed_by,absent';
 function pullMeets(){
   var year=todayStr().slice(0,4), upBefore={};
   SEASON.meets.forEach(function(m){ if(m.up) upBefore[m.id]=true; });
@@ -3795,7 +3906,9 @@ function dnfCandidates(){
   return out.sort(function(p,q){ return p.name.localeCompare(q.name); });
 }
 function dnfPick(){
-  var c=dnfCandidates();
+  /* 4.71: those here today first; the rest behind Show. */
+  var cand=dnfCandidates(), dr=dnfRace(), dmap=aidMap();
+  var c=cand.filter(function(x){ return isHere(dr,x,dmap); }), away=cand.filter(function(x){ return !isHere(dr,x,dmap); });
   askCfg=null;
   $('askTitle').textContent='Didn\u2019t finish';
   $('askF1').style.display='none'; $('askF2').style.display='none';
@@ -3806,7 +3919,7 @@ function dnfPick(){
      managed from Edit race without going to Results. */
   var have=dnfList(dnfRace()), h='';
   if(have.length) h+='<p class="hsect">Already listed</p><div class="dnfpick dnfhave"></div>';
-  h+= c.length ? '<p>Who started this race without a place? Runners with a place aren\u2019t listed.</p><div class="dnfpick dnfnew"></div>'
+  h+= cand.length ? '<p>Who started this race without a place? Runners with a place aren\u2019t listed.</p><div class="dnfpick dnfnew"></div>'
                : '<p>Everyone on the roster for this race already has a place or is listed.</p>';
   m.innerHTML=h;
   var hb=m.querySelector('.dnfhave');
@@ -3819,12 +3932,22 @@ function dnfPick(){
   });
   var box=m.querySelector('.dnfnew');
   if(!box){ $('ask').classList.add('on'); return; }
-  c.forEach(function(x){
+  function one(x){
     var b=document.createElement('button'); b.type='button'; b.className='opt';
     b.innerHTML='<span class="on">'+esc(x.name)+'</span><span class="og">'+esc((ttRace()?(x.g==='M'?'Boys':'Girls')+(x.grade?', ':''):'')+(x.grade?x.grade+'th':''))+'</span>';
-    b.addEventListener('click',function(){ dnfStatus(x); });
+    b.addEventListener('click',function(){
+      if(!isHere(dr,x,dmap)){ setHere(dr,x,true,dmap); saveSeason(); }
+      dnfStatus(x);
+    });
     box.appendChild(b);
-  });
+  }
+  c.forEach(one);
+  if(away.length){
+    var ab=document.createElement('button'); ab.type='button'; ab.className='opt herefold';
+    ab.textContent=notHereLabel(away.length);
+    ab.addEventListener('click',function(){ box.removeChild(ab); away.forEach(one); });
+    box.appendChild(ab);
+  }
   $('ask').classList.add('on');
 }
 function dnfStatus(x){
@@ -4204,11 +4327,19 @@ function spRenderClock(){
    Tidy. Held per race and split point, for as long as the phone is open. */
 var spTidied={};
 function spTidyKey(){ return SP ? SP.rid+'|'+SP.mark : ''; }
+/* 4.71: the runners marked here, fixed for the race (hereSplit), with anyone
+   already split at this mark shown whatever the list says. */
+function spHere(r){
+  var map=aidMap(), mk=SP ? SP.mark : null;
+  return hereSplit('sp:'+r.id, r, spRunners(), function(x){ return mk!=null && !!spFind(r,x,mk,map); });
+}
 function renderSplitList(){
   var r=spRace(), l=$('splitList'); if(!r) return;
-  var map=aidMap(), list=spRunners(), mk=SP.mark, tid=spTidied[spTidyKey()]||{}, below=[], loose=0;
+  var map=aidMap(), all=spRunners(), mk=SP.mark, tid=spTidied[spTidyKey()]||{}, below=[], loose=0;
+  var hs=all.length ? spHere(r) : null, fold={};
+  if(hs) hs.fold.forEach(function(x){ fold[x.id]=1; });
   l.innerHTML='';
-  if(!list.length){
+  if(!all.length){
     l.innerHTML='<p class="spempty">No roster on this phone. Runners > Roster.</p>';
     $('splitTidy').style.display='none';
     return;
@@ -4217,14 +4348,28 @@ function renderSplitList(){
     var b=document.createElement('button');
     b.type='button';
     spPaint(b,r,x,mk,map);
-    b.addEventListener('click',function(){ spTap(b,x); });
+    b.addEventListener('click',function(){
+      spTap(b,x);
+      if(fold[x.id] && !isHere(r,x,map)){ setHere(r,x,true,map); saveSeason(); }
+    });
     l.appendChild(b);
   }
-  list.forEach(function(x){
+  function place(x){
     var d=spFind(r,x,mk,map);
     if(d && tid[d.cid]) below.push({x:x, at:d.at});
     else { add(x); if(d) loose++; }
-  });
+  }
+  hs.main.forEach(place);
+  if(hs.fold.length){
+    l.insertAdjacentHTML('beforeend','<p class="hsect rsect">Not here today</p>');
+    hs.fold.forEach(place);
+  } else if(hs.hidden){
+    var fb=document.createElement('button');
+    fb.type='button'; fb.className='opt herefold';
+    fb.textContent=notHereLabel(hs.hidden);
+    fb.addEventListener('click',function(){ hereOpenFold('sp:'+r.id); renderSplitList(); });
+    l.appendChild(fb);
+  }
   if(below.length){
     below.sort(function(a,b){ return (a.at||0)-(b.at||0); });
     l.insertAdjacentHTML('beforeend','<p class="hsect rsect spdone">Split</p>');
@@ -4269,7 +4414,8 @@ function spTap(b,x){
 function spCount(){
   var r=spRace(); if(!r) return;
   var n=splitList(r).filter(function(d){ return d.m===SP.mark; }).length;
-  $('splitCount').textContent = n+' of '+spRunners().length+' split';
+  var hs=spHere(r);
+  $('splitCount').textContent = n+' of '+(hs.main.length+hs.fold.length)+' split';
 }
 function spRemove(r,cid){
   var d=splitList(r).filter(function(x){ return x.cid===cid; })[0];
@@ -5295,6 +5441,18 @@ function raceRow(m,r){
   }
   if(r.lost) sub='Started on another phone first \u00b7 these taps stay here';
   row.innerHTML='<div><div class="lbl">'+esc(r.division==='Mixed'?'Everyone':r.division)+'</div><div class="st">'+esc(sub)+'</div></div>';
+  /* 4.71: who's here, before the race and while it runs. Once it is done the
+     lists it shortens are closed, so the line goes. */
+  if(st!=='done'){
+    var hc=hereCount(r);
+    if(hc.all){
+      var hl=document.createElement('button');
+      hl.type='button'; hl.className='herelink';
+      hl.textContent = hc.here===hc.all ? 'All '+hc.all+' here' : hc.here+' of '+hc.all+' here';
+      hl.addEventListener('click',function(){ openHere(m.id,r.id); });
+      row.firstChild.appendChild(hl);
+    }
+  }
   /* Each phone picks its job here, before the gun, so a namer never passes a
      Start button. Once the clock starts, the other phones show Name runners,
      as above. 4.48: offered whatever the Timing. It used to be left off Both,
@@ -5330,6 +5488,48 @@ function raceRow(m,r){
   row.appendChild(btn);
   return row;
 }
+
+/* ---------- 4.71: the who's here checklist ----------
+   The race's roster in the order it was typed, each with a check. Everyone
+   starts checked; uncheck who is out, or Nobody and check who is running. */
+var HERE=null;
+function openHere(mid,rid){
+  HERE={mid:mid, rid:rid};
+  renderHere();
+  $('hereSheet').classList.add('on');
+  $('hereList').scrollTop=0;
+}
+function hereRace(){ var f=HERE ? findRace(HERE.mid,HERE.rid) : null; return f ? f.race : null; }
+function renderHere(){
+  var r=hereRace(); if(!r) return;
+  var map=aidMap(), all=hereRoster(r), l=$('hereList'), mixed=(divOf(r)==='X');
+  var n=all.filter(function(x){ return isHere(r,x,map); }).length;
+  $('hereTitle').textContent=(mixed?'Everyone':r.division)+': who\u2019s here';
+  $('hereCount').textContent = n===all.length ? 'All '+all.length+' here' : n+' of '+all.length+' here';
+  l.innerHTML='';
+  var lastG=null;
+  all.forEach(function(x){
+    if(mixed && x.g!==lastG){
+      lastG=x.g;
+      l.insertAdjacentHTML('beforeend','<div class="divider">'+(x.g==='M'?'Boys':'Girls')+'</div>');
+    }
+    var on=isHere(r,x,map), b=document.createElement('button');
+    b.type='button'; b.className='opt hererow'+(on?' in':'');
+    b.setAttribute('aria-pressed',on?'true':'false');
+    b.innerHTML='<span class="on">'+esc(x.name)+'</span><span class="og">'+esc(x.grade?x.grade+'th':'')+'</span>'+
+      '<span class="ck"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3 7.5 6 10.5 11 4" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
+    b.addEventListener('click',function(){ setHere(r,x,!isHere(r,x,map),map); saveSeason(); renderHere(); });
+    l.appendChild(b);
+  });
+  if(!all.length) l.innerHTML='<p class="spempty">No roster on this phone. Runners > Roster.</p>';
+}
+function hereAllTo(on){
+  var r=hereRace(); if(!r) return;
+  var map=aidMap();
+  hereRoster(r).forEach(function(x){ setHere(r,x,on,map); });
+  saveSeason(); renderHere();
+}
+function closeHere(){ HERE=null; $('hereSheet').classList.remove('on'); if(onScreen('home')) renderHome(); }
 
 function meetRow(m,open,today){
   var row=document.createElement('button');
@@ -5544,10 +5744,18 @@ function finIndexOf(id){
   return -1;
 }
 function renderTeamList(){
-  var c=$('chute'), keep=c.scrollTop, list=teamRunners(), shown={}, tid=tmTidied[S.raceId]||{}, loose=0;
+  var c=$('chute'), keep=c.scrollTop, all=teamRunners(), shown={}, tid=tmTidied[S.raceId]||{}, loose=0;
+  /* 4.71: the runners marked here, fixed for the race; anyone already in is
+     shown whatever the list says. The rest fold behind Show at the bottom of
+     the names, above Name later. */
+  var tr=currentRace(), tmap=aidMap(), hkey='tm:'+S.raceId;
+  var hs=hereSplit(hkey, tr, all, function(x){ return finIndexOf(x.id)>=0; }), fold={};
+  hs.fold.forEach(function(x){ fold[x.id]=1; });
+  var list=hs.main.concat(hs.fold);
   c.innerHTML='';
-  if(!list.length) c.insertAdjacentHTML('beforeend','<p class="spempty">No roster on this phone, so there are no names to tap. Use Name later for each of ours, or load it from Runners > Roster.</p>');
-  list.forEach(function(x){
+  if(!all.length) c.insertAdjacentHTML('beforeend','<p class="spempty">No roster on this phone, so there are no names to tap. Use Name later for each of ours, or load it from Runners > Roster.</p>');
+  list.forEach(function(x,k){
+    if(k===hs.main.length && hs.fold.length) c.insertAdjacentHTML('beforeend','<p class="hsect rsect">Not here today</p>');
     var i=finIndexOf(x.id);
     /* Tidied: this name is in, and was moved to In below on purpose. */
     if(i>=0 && tid[S.fin[i].cid]) return;
@@ -5557,9 +5765,19 @@ function renderTeamList(){
     b.className='opt home spl'+(i>=0?' done':'');
     b.innerHTML='<span class="on">'+esc(x.name)+'</span><span class="og">'+
       (i>=0 ? esc((i+1)+' \u00b7 '+fmt(S.fin[i].ms,1)) : (x.grade?esc(x.grade)+'th':''))+'</span>';
-    b.addEventListener('click',function(){ teamTap(b,x); });
+    b.addEventListener('click',function(){
+      if(fold[x.id] && !isHere(tr,x,tmap)){ setHere(tr,x,true,tmap); saveSeason(); }
+      teamTap(b,x);
+    });
     c.appendChild(b);
   });
+  if(!hs.fold.length && hs.hidden){
+    var fb=document.createElement('button');
+    fb.type='button'; fb.className='opt herefold';
+    fb.textContent=notHereLabel(hs.hidden);
+    fb.addEventListener('click',function(){ hereOpenFold(hkey); renderTeamList(); });
+    c.appendChild(fb);
+  }
   /* Every place that is not a name above: Name later taps, anyone named who
      is not on this list, and (4.50) names moved here by Tidy. Below all the
      names, in place order; a new place is always the last one, so it lands
@@ -5843,13 +6061,17 @@ function openSheet(i){
   }
 
   // only runners not already placed somewhere else, in expected finish order
-  var here=[], other=[];
+  /* 4.71: and only those marked here today. The rest fold behind Show, the
+     way the other division does, and picking one marks them here. */
+  var here=[], other=[], away=[], hr=currentRace(), hmap=aidMap();
   S.roster.forEach(function(r){
     if(r.dead && S.fin[i].r!==r.id) return;
     if(isTaken(r.id) && S.fin[i].r!==r.id) return;
-    (inDivision(r)?here:other).push(r);
+    if(!inDivision(r)) other.push(r);
+    else if(S.fin[i].r===r.id || isHere(hr,r,hmap)) here.push(r);
+    else away.push(r);
   });
-  here=byExpected(here); other=byExpected(other);
+  here=byExpected(here); other=byExpected(other); away=byExpected(away);
   var rctx=recCtx(true), rdist=rctx ? distMeters(rctx.m.dist) : null, lctx=lastCtx(rctx);
   function addOpt(r){
     var b=document.createElement('button');
@@ -5863,10 +6085,13 @@ function openSheet(i){
     b.innerHTML='<span class="on">'+esc(r.name)+'</span>'+
       '<span class="og">'+esc([ttRace()?(r.g==='M'?'Boys':'Girls'):'', gradeTag(r)].filter(Boolean).join(' \u00b7 '))+'</span>'+
       (sub?'<small>'+esc(sub)+'</small>':'');
-    b.addEventListener('click',function(){ assign(r.id,true); });
+    b.addEventListener('click',function(){
+      if(!isHere(hr,r,hmap)){ setHere(hr,r,true,hmap); saveSeason(); }
+      assign(r.id,true);
+    });
     l.appendChild(b);
   }
-  if(!here.length && !other.length){
+  if(!here.length && !other.length && !away.length){
     var d=document.createElement('div');
     d.className='divider';
     d.textContent='Every runner on the roster is already placed.';
@@ -5875,10 +6100,26 @@ function openSheet(i){
   if(here.length){
     var rd=document.createElement('div');
     rd.className='divider';
-    rd.textContent=ttRace() ? 'Everyone on the roster' : S.division+' roster';
+    rd.textContent=away.length ? (ttRace() ? 'Here today' : S.division+' here today')
+                               : (ttRace() ? 'Everyone on the roster' : S.division+' roster');
     l.appendChild(rd);
   }
   here.forEach(addOpt);
+  if(away.length){
+    var ab=document.createElement('button');
+    ab.className='opt herefold';
+    ab.textContent=notHereLabel(away.length);
+    ab.addEventListener('click',function(){
+      var d=document.createElement('div');
+      d.className='divider';
+      d.textContent='Not here today. Picking one marks them here.';
+      l.replaceChild(d,ab);
+      var at=d.nextSibling;
+      away.forEach(function(x){ addOpt(x); if(at) l.insertBefore(l.lastChild,at); });
+      applyFind();
+    });
+    l.appendChild(ab);
+  }
   /* The other division is an escape hatch for a misfiled runner, not a normal
      choice. Folded away so a girls race does not end with boys in the list,
      and so reaching for one is a deliberate act. */
@@ -6996,6 +7237,10 @@ $('shiftAll').addEventListener('click',function(){
 
 $('sheetClose').addEventListener('click',closeSheet);
 $('sheet').addEventListener('click',function(e){ if(e.target===this) closeSheet(); });
+$('hereSheet').addEventListener('click',function(e){ if(e.target===this) closeHere(); });
+$('hereDone').addEventListener('click',closeHere);
+$('hereAll').addEventListener('click',function(){ hereAllTo(true); });
+$('hereNone').addEventListener('click',function(){ hereAllTo(false); });
 
 /* keyboard for desktop testing */
 document.addEventListener('keydown',function(e){
