@@ -351,12 +351,27 @@ select{min-height:47px}
 .req.wrap{white-space:normal;font-size:17px;line-height:1.25}
 .req .disp{margin-left:7px;font-size:13px;color:var(--ink-soft);font-weight:400}
 .rstat{margin-top:3px;font-size:13px;color:var(--ink-soft)}
-/* 4.52: the way into Meet scores, under the score, with our place once the
-   schools are in. */
-.mslink{display:flex;align-items:center;gap:6px;margin-top:10px;padding:8px 0 0;background:none;border:0;
-  border-top:1px solid var(--rule);width:100%;min-height:36px;font:inherit;font-size:14px;color:var(--ink-soft);text-align:left}
-.mslink b{color:var(--ink);font-weight:600}
-.mslink .chev{margin-left:auto;font-size:18px;line-height:1}
+/* 4.73: the way into Meet scores, under the score. Score the meet when no
+   schools are in; the top of the standings once they are. Red for the button,
+   since coral is kept for records, the current tab and the team score. */
+.msbtn{display:flex;flex-direction:column;gap:3px;width:100%;margin-top:12px;padding:11px 14px;
+  border:1.5px solid var(--red);border-radius:9px;background:none;font:inherit;text-align:left;color:var(--ink)}
+.msbtn .msb-t{display:flex;align-items:center;font-size:16px;font-weight:600}
+.msbtn .msb-s{font-size:13px;color:var(--ink-soft)}
+.msbtn .chev,.mspanel .chev{margin-left:auto;font-size:20px;line-height:1;color:var(--ink-soft);padding-left:8px}
+.mspanel{display:flex;flex-direction:column;width:100%;margin-top:12px;padding:8px 14px 6px;border:0;border-radius:9px;
+  background:var(--chalk);font:inherit;text-align:left;color:var(--ink)}
+.mspanel:active,.msbtn:active{background:var(--home-wash)}
+.msp-head{display:flex;align-items:center;font-size:13px;color:var(--ink-soft);padding-bottom:4px}
+.msp-of{display:flex;align-items:center;margin-left:auto}
+.msp-row{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:8px;align-items:baseline;padding:4px 0;
+  font-size:15px;border-top:1px solid var(--rule)}
+.msp-row .msp-p{color:var(--ink-soft)}
+.msp-row .msp-n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.msp-row.us{font-weight:700}
+.msp-row.us .msp-p{color:var(--ink)}
+.msp-gap{text-align:center;color:var(--ink-soft);font-size:13px;line-height:1;padding:2px 0}
+.msp-none{padding:6px 0 4px;font-size:14px;color:var(--ink-soft);border-top:1px solid var(--rule)}
 /* 4.52: Meet scores. A standings row: place, school over its scoring places,
    then the score over the raw score. Ours on the home wash, as on Results. */
 #mscore .scroll .pad{padding:16px 16px 4px}
@@ -1364,7 +1379,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.72';
+var BUILD='v4.73';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -6344,8 +6359,7 @@ function renderResults(){
          (sst?'<div class="rstat num">Top 5 Avg '+fmt(sst.avg,0)+' \u00b7 Spread '+fmt(sst.spread,0)+'</div>':'')+
        '</div>'+
      '</div>'+
-     (meetScorable(sRaceLike()) ? '<button type="button" class="mslink" id="resMeet">'+
-        (placeLine(mr) ? '<b>'+esc(placeLine(mr))+'</b> \u00b7 ' : '')+'Meet scores<span class="chev">&#8250;</span></button>' : '')+
+     (meetScorable(sRaceLike()) ? msPanel(mr) : '')+
      '</div>';
 
   /* Same toggle as reconcile, so the two screens behave alike. The score
@@ -6486,6 +6500,33 @@ function splitsOnlyCsv(){
          marks.map(function(mk){ return ','+(p.marks[mk]!=null ? fmt(p.marks[mk],1) : ''); }).join('')+'\n';
   });
   return out;
+}
+
+/* 4.73: the way into Meet scores, made hard to miss. With no schools entered,
+   a red-outlined Score the meet with a line saying what it is for. With
+   schools in, the top of the standings in a panel: the first three, and us
+   in bold, after a gap if we are further down. The whole panel is the tap
+   into Meet scores. Where meet scores cannot apply (a time trial, Team only,
+   no finishes) the caller shows nothing. */
+function msPanel(mr){
+  var chev='<span class="chev">&#8250;</span>';
+  if(!mr){
+    return '<button type="button" class="msbtn" id="resMeet"><span class="msb-t">Score the meet'+chev+'</span>'+
+      '<span class="msb-s">Enter the other schools\u2019 places for the team standings.</span></button>';
+  }
+  var rows=mr.res.maac, me=null;
+  rows.forEach(function(t){ if(t.school===OURS_KEY) me=t; });
+  var top=rows.slice(0,3), gap=false;
+  if(me && top.indexOf(me)<0){ top=rows.slice(0,2).concat([me]); gap=true; }
+  var h='<button type="button" class="mspanel" id="resMeet"><span class="msp-head"><span>Meet scores</span>'+
+        '<span class="msp-of">'+rows.length+(rows.length===1?' team':' teams')+chev+'</span></span>';
+  if(!rows.length) h+='<span class="msp-none">No school has five finishers yet.</span>';
+  top.forEach(function(t,i){
+    if(gap && i===2) h+='<span class="msp-gap" aria-hidden="true">\u22ef</span>';
+    h+='<span class="msp-row'+(t===me?' us':'')+'"><span class="msp-p num">'+t.place+'</span>'+
+       '<span class="msp-n">'+esc(schoolLabel(t.school))+'</span><span class="msp-s num">'+t.score+'</span></span>';
+  });
+  return h+'</button>';
 }
 
 /* What the nth of our finishers did for the score. The first five score. The
