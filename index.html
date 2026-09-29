@@ -229,7 +229,6 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
 .mrow .mt{flex:0 0 auto;font-size:11px;padding:3px 9px;border-radius:20px;background:var(--chalk);
   color:var(--ink-soft);white-space:nowrap}
 .mcard.open .mt{background:var(--field)}
-.mrow .mt.scored{background:var(--home-wash);color:var(--tape);font-weight:600}
 .mrow .mt.live{background:var(--red);color:#fff;font-weight:600;letter-spacing:.05em}
 .mrow .mt.test{background:var(--test);color:var(--test-ink);font-weight:600;letter-spacing:.05em}
 .mrow .chev{flex:0 0 12px;width:12px;height:12px;color:var(--ink-soft);transition:transform .15s}
@@ -1379,7 +1378,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.73';
+var BUILD='v4.74';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -5569,36 +5568,20 @@ function meetRow(m,open,today){
   row.className='mrow';
   row.setAttribute('aria-expanded',open?'true':'false');
   var fin=meetFinished(m);
-  var scored=m.races.filter(function(r){ return scoreOf(r)!=null; });
   var anyRun=m.races.some(function(r){ return raceState(r)!=='new'; });
-  /* Scores carry their division, since two bare numbers do not say which is
-     which. A finished meet with too few finishers to score says so rather
-     than In progress. */
-  /* A race pulled from the other phone arrives without its finishes, and
-     they fill in one race a poll. Until they have, any score would be wrong,
-     so say they are on the way rather than No score. */
+  /* 4.74: the pill is status only, something still happening or still to
+     do. Scores, places, Team only and "34 ran" left home: Season and the
+     open event carry them, and the event's name needs the room.
+     A race pulled from the other phone arrives without its finishes, and
+     they fill in one race a poll. Until they have, say they are on the way. */
   var loading=m.races.some(function(r){ return r.pulled && r.up && r.t0Wall!=null && !r.read; });
-  /* A time trial is not scored, so its pill counts who ran instead. */
-  var ran=isTT(m) ? (m.races[0].fin||[]).length : 0;
-  var tag, cls='mt';
+  var tag='', cls='mt';
   if(liveNow(m)){ tag='LIVE'; cls+=' live'; }
   else if(loading){ tag='Loading'; cls+=' loading'; }
-  else if(isTT(m)){ if(fin && ran){ tag=ran+' ran'; cls+=' scored'; } else tag = fin ? 'No times' : (anyRun ? 'In progress' : ''); }
-  else if(scored.length){
-    tag=scored.map(function(r){
-      /* 4.52: with meet scores in, our place rides beside the score. */
-      var mr=meetResult(r);
-      return String(r.division||'?').charAt(0).toUpperCase()+' '+scoreOf(r)+
-             (mr && mr.place!=null ? ' ('+ordinal(mr.place)+')' : '');
-    }).join(' \u00b7 ');
-    cls+=' scored';
-  }
-  /* A meet nobody has started gets no pill. "Set up" said nothing a tap
-     would change, and the name needs the room. */
-  else if(fin && m.races.some(teamOnlyRace)) tag='Team only';
+  /* A meet nobody has started gets no pill. */
+  else if(!fin){ if(anyRun) tag='In progress'; }
   /* 4.70: split at the mile, finishes still to be loaded. */
-  else if(fin && m.races.some(splitsOnlyRace)) tag='Splits';
-  else tag = fin ? 'No score' : (anyRun ? 'In progress' : '');
+  else if(!isTT(m) && m.races.some(splitsOnlyRace)) tag='Splits';
   var raceDay=(m.date===today && !fin), p=(m.date||'').split('-'), ok=(p.length===3);
   var meta=[distsText(m), m.venue].filter(Boolean).join(' \u00b7 ');
   var mon = raceDay ? 'TODAY' : (ok ? MON[parseInt(p[1],10)-1].toUpperCase() : '');
