@@ -857,13 +857,13 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 .pkdot{width:8px;height:8px;border-radius:50%;padding:0;border:0;background:var(--ink-soft);opacity:.35}
 .pkdot.on{opacity:1;background:var(--ink)}
 .pkwait{font-size:13px;color:var(--ink-soft);padding:48px 16px;text-align:center}
-.pl-stem{stroke:var(--ink-soft);stroke-width:2;opacity:.35}
-.pl-dot{fill:var(--ink)}
 .pl-score{fill:var(--tape)}
+.sc-bar{fill:var(--ink-soft);opacity:.45}
+.sc-bar.last{opacity:.8}
+.pk-x.sc-place{fill:var(--ink);font-weight:600}
 .pkkey .ks{color:var(--tape);font-weight:600}
 .or-line.gap{stroke-dasharray:3 4;opacity:.45}
 .pkkey .kg{width:18px;height:0;border-top:2px dashed var(--ink-soft);opacity:.7}
-.pl-dot.fifth{fill:var(--chalk);stroke:var(--ink);stroke-width:2}
 .pr-bar{fill:var(--ink);opacity:.85}
 .or-line{fill:none;stroke-width:2;stroke-linecap:round;opacity:.9}
 .or-name{font-size:10.5px;font-weight:600}
@@ -1378,7 +1378,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.76';
+var BUILD='v4.77';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -7525,7 +7525,7 @@ function seasonTableRow(x){
 /* ---------- 4.67: the charts, a carousel ----------
    Four cards, swiped left and right, each answering one question: how fast
    (the pack), who is moving (team order), whether it was a good day (PRs),
-   and how we placed (scoring places). Order since 4.76. All follow the Girls and Boys
+   and how we scored (team score by meet, 4.77). Order since 4.76. All follow the Girls and Boys
    switch. A card with too little to draw says what it is waiting for, so the
    carousel never changes length. */
 var CH_AT=0;
@@ -7537,7 +7537,7 @@ function chartWait(t){ return '<p class="pkwait">'+t+'</p>'; }
 function chartsHtml(list){
   /* 4.76: how fast, who, who got better, then how we stacked up, which leads
      into Head to head below. */
-  var cards=[packCard(list), orderCard(list), prCard(list), placesCard(list)];
+  var cards=[packCard(list), orderCard(list), prCard(list), scoreCard(list)];
   var h='<div class="pkcar" id="pkCar">'+cards.join('')+'</div><div class="pkdots" id="pkDots">';
   for(var i=0;i<cards.length;i++) h+='<button type="button" class="pkdot'+(i===CH_AT?' on':'')+'" data-i="'+i+'" aria-label="Chart '+(i+1)+' of '+cards.length+'"></button>';
   return h+'</div>';
@@ -7574,37 +7574,36 @@ function packCard(list){
     pts.length>=2 ? packSvg(pts) : chartWait('Draws once five of ours have run two 2 mile races.'),
     pts.length>=2 ? '<span><i class="kd"></i>Average time</span><span><i class="kb"></i>1\u20137 split</span>'+(tt ? '<span><i class="kd hollow"></i>Time trial</span>' : '') : '');
 }
-/* Scoring places: where our top 5 finished in the whole field, meet by meet.
-   The course-proof partner to the pack. Meets with a field only. */
-function placesCard(list){
-  var pts=list.slice().reverse().filter(function(x){ return !isTT(x.m) && !teamOnlyRace(x.r); }).map(function(x){
-    var pl=[], who=[], map=aidMap();
-    (x.r.fin||[]).forEach(function(f,i){ if(pl.length<5 && counts(x.m,f)){ pl.push(i+1); who.push(recKey(f,map)); } });
-    return {m:x.m, places:pl, who:who, score:(x.mr && x.mr.place!=null) ? x.mr.score : null, place:(x.mr && x.mr.place!=null) ? x.mr.place : null};
-  }).filter(function(p){ return p.places.length===5; });
-  if(pts.length<2) return chartCard('Top 5 runners, place in the race','',chartWait('Draws once we\u2019ve run two meets with other schools.'));
-  var hi=Math.max.apply(null,pts.map(function(p){ return p.places[4]; }));
-  var step=hi>60 ? 20 : (hi>30 ? 10 : 5); hi=Math.ceil(hi/step)*step;
-  var ticks=[1]; for(var v=step;v<=hi;v+=step) ticks.push(v);
-  var F=chartFrame(pts.length,ticks,function(v){ return 22+(v-1)/(hi-1)*(180-22-26); },function(v){ return v===1 ? '1st' : ordinal(v); });
-  var y=function(v){ return F.T+(v-1)/(hi-1)*(F.H-F.T-F.B); }, col=runnerColors();
-  /* 4.76: the team score and place sit on a line of their own under each
-     date, not floating over the column, so the svg is 16 taller. */
-  var h='<svg class="pk" viewBox="0 0 '+F.W+' '+(F.H+16)+'" role="img" aria-label="Where our top five finished at each meet">'+F.grid;
-  pts.forEach(function(p,i){
-    var x=F.x(i);
-    h+='<line class="pl-stem" x1="'+x+'" x2="'+x+'" y1="'+y(p.places[0])+'" y2="'+y(p.places[4])+'"/>';
-    /* Our 5th is drawn first, so the ring shows even where dots crowd. */
-    [4,3,2,1,0].forEach(function(k){
-      var c=col[p.who[k]]||'var(--ink-soft)', v=p.places[k];
-      h+=k===4 ? '<circle class="pl-dot fifth" cx="'+x+'" cy="'+y(v)+'" r="4.5" style="stroke:'+c+'"/>'
-               : '<circle class="pl-dot" cx="'+x+'" cy="'+y(v)+'" r="4.5" style="fill:'+c+'"/>';
-    });
-    h+='<text class="pk-x" x="'+x+'" y="'+(F.H-F.B+16)+'" text-anchor="middle">'+esc(fmtDate(p.m.date))+'</text>';
-    if(p.score!=null) h+='<text class="pk-val pl-score" x="'+x+'" y="'+(F.H-F.B+32)+'" text-anchor="middle">'+p.score+(p.place!=null ? ' \u00b7 '+ordinal(p.place) : '')+'</text>';
+/* 4.77: Team score by meet, replacing where our top 5 placed (v4.67 to
+   v4.76). One bar per meet we were scored at, the meet score on top in the
+   team score's coral, and our place of the field under the date: the field
+   size is what makes a 113 at an invitational comparable with a 68 at a
+   small meet. Bars stand on zero, so shorter is better, and the key says so.
+   The latest meet's bar is the brighter one. */
+function scoreCard(list){
+  var pts=list.slice().reverse().filter(function(x){ return !isTT(x.m) && !teamOnlyRace(x.r) && x.mr && x.mr.place!=null; }).map(function(x){
+    return {m:x.m, score:x.mr.score, place:x.mr.place, of:x.mr.of};
   });
-  return chartCard('Top 5 runners, place in the race','',h+'</svg>',
-    '<span>Colours match Top 7</span><span><i class="kd hollow"></i>Our 5th</span>');
+  if(pts.length<2) return chartCard('Team score by meet','',chartWait('Draws once we\u2019ve been scored at two meets. Scores come from Meet scores.'));
+  var hi=Math.max.apply(null,pts.map(function(p){ return p.score; }));
+  var step=hi>200 ? 50 : (hi>80 ? 40 : (hi>40 ? 20 : 10)); hi=Math.max(step,Math.ceil(hi/step)*step);
+  var ticks=[]; for(var v=0;v<=hi;v+=step) ticks.push(v);
+  var F=chartFrame(pts.length,ticks,function(v){ return 22+(hi-v)/hi*(180-22-26); },function(v){ return String(v); });
+  var y=function(v){ return F.T+(hi-v)/hi*(F.H-F.T-F.B); }, n=pts.length;
+  var sp=n>1 ? (F.W-F.R-F.L-28)/(n-1) : 999, bw=Math.max(14,Math.min(40,sp*0.6));
+  /* Bars are wider than the other charts' dots, so they sit in from the
+     axis labels by half a bar. */
+  var bx=function(i){ return n===1 ? (F.L+F.W-F.R)/2 : F.L+8+bw/2+i*((F.W-F.R-F.L-16-bw)/(n-1)); };
+  var h='<svg class="pk" viewBox="0 0 '+F.W+' '+(F.H+16)+'" role="img" aria-label="Our team score at each meet">'+F.grid;
+  pts.forEach(function(p,i){
+    var x=bx(i), top=y(p.score);
+    h+='<rect class="sc-bar'+(i===n-1?' last':'')+'" x="'+(x-bw/2)+'" y="'+top+'" width="'+bw+'" height="'+Math.max(2,y(0)-top)+'" rx="'+Math.min(6,bw/5)+'"/>'+
+       '<text class="pk-val pl-score" x="'+x+'" y="'+(top-7)+'" text-anchor="middle">'+p.score+'</text>'+
+       '<text class="pk-x" x="'+x+'" y="'+(F.H-F.B+16)+'" text-anchor="middle">'+esc(fmtDate(p.m.date))+'</text>'+
+       '<text class="pk-x sc-place" x="'+x+'" y="'+(F.H-F.B+32)+'" text-anchor="middle">'+ordinal(p.place)+(p.of ? ' of '+p.of : '')+'</text>';
+  });
+  return chartCard('Team score by meet','',h+'</svg>',
+    '<span>Score on top, our place below</span><span>Shorter is better</span>');
 }
 /* PRs by race: how many of ours beat their best at that distance, out of
    those who had a best to beat. A first race at a distance can't be a PR, so
