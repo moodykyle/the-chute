@@ -845,6 +845,8 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 .pk-line{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;opacity:.85}
 .pk-dot{fill:var(--ink)}
 .pk-dot.last{fill:var(--red);stroke:var(--ink);stroke-width:2}
+.pk-dot.tt{fill:var(--chalk);stroke:var(--ink);stroke-width:2}
+.pk-dot.last.tt{fill:var(--chalk);stroke:var(--red);stroke-width:2.5}
 .pk-val{fill:var(--ink);font-size:11px;font-weight:600}
 .pk-x{fill:var(--ink-soft);font-size:10.5px}
 .pkcar{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;gap:0}
@@ -1376,7 +1378,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.75';
+var BUILD='v4.76';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -7421,14 +7423,16 @@ function divRace(m,g){
   return (m.races||[]).filter(function(r){ return r.division===want; })[0]||null;
 }
 function oursIn(m,r,g){ return (r.fin||[]).filter(function(f){ return counts(m,f) && (!isTT(m) || f.g===g); }); }
-/* Average and spread of our first five at the event's first distance. A time
-   trial run at two says which one they are for. Fewer than five, nothing. */
+/* Average and spread of our top 7 at the event's first distance (4.76; it was
+   five). A race where only five or six of ours ran uses who did. A time trial
+   run at two says which one they are for. Fewer than five, nothing. */
+var PACK_N=7;
 function packAt(m,r,g){
   var d0=distMeters(m.dist);
   var at=oursIn(m,r,g).filter(function(f){ return finDist(f,m)===d0; }).sort(function(a,b){ return a.ms-b.ms; });
   if(at.length<5) return null;
-  var sum=0; for(var i=0;i<5;i++) sum+=at[i].ms;
-  return {avg:sum/5, spread:at[4].ms-at[0].ms, label:hasTwoDists(m) ? distLabel(d0)+' avg' : 'Avg'};
+  var n=Math.min(PACK_N,at.length), sum=0; for(var i=0;i<n;i++) sum+=at[i].ms;
+  return {avg:sum/n, spread:at[n-1].ms-at[0].ms, n:n, label:hasTwoDists(m) ? distLabel(d0)+' avg' : 'Avg'};
 }
 function seasonTag(m,r,g){
   if(isTT(m)) return {t:oursIn(m,r,g).length+' ran', c:'mt plain'};
@@ -7457,23 +7461,27 @@ function seasonRaces(g){
 function packPoints(list){
   return list.slice().reverse().filter(function(x){ return x.pack && distMeters(x.m.dist)===MAIN_D; }).map(function(x){
     var at=oursIn(x.m,x.r,SEA_DIV).filter(function(f){ return finDist(f,x.m)===MAIN_D; }).map(function(f){ return f.ms; }).sort(function(a,b){ return a-b; });
-    return {m:x.m, r:x.r, first:at[0], fifth:at[4], avg:x.pack.avg};
+    return {m:x.m, r:x.r, first:at[0], last:at[Math.min(PACK_N,at.length)-1], avg:x.pack.avg, tt:isTT(x.m)};
   });
 }
 function packSvg(pts){
   var W=340, H=180, L=40, R=12, T=22, B=26;   /* 4.66: one line of dates below, so less room under the plot */
-  var lo=Math.min.apply(null,pts.map(function(p){ return p.first; })), hi=Math.max.apply(null,pts.map(function(p){ return p.fifth; }));
+  var lo=Math.min.apply(null,pts.map(function(p){ return p.first; })), hi=Math.max.apply(null,pts.map(function(p){ return p.last; }));
   lo=Math.floor(lo/60000)*60000; hi=Math.ceil(hi/60000)*60000; if(hi===lo) hi=lo+60000;
-  var y=function(ms){ return T+(ms-lo)/(hi-lo)*(H-T-B); };   /* faster is higher */
+  /* 4.76: faster is lower, as times read and as coaches say it: a team that
+     drops time drops down the chart. It was the other way up until now. */
+  var y=function(ms){ return T+(hi-ms)/(hi-lo)*(H-T-B); };
   var n=pts.length, x=function(i){ return n===1 ? (L+W-R)/2 : L+14+i*((W-R-L-28)/(n-1)); };
-  var h='<svg class="pk" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Our first five at each two-mile race">';
+  var h='<svg class="pk" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Our top seven at each two-mile race">';
   for(var t=lo;t<=hi;t+=60000) h+='<line class="pk-grid" x1="'+L+'" x2="'+(W-R)+'" y1="'+y(t)+'" y2="'+y(t)+'"/><text class="pk-ax" x="'+(L-6)+'" y="'+(y(t)+4)+'" text-anchor="end">'+Math.round(t/60000)+':00</text>';
-  pts.forEach(function(p,i){ h+='<rect class="pk-bar" x="'+(x(i)-8)+'" y="'+y(p.first)+'" width="16" height="'+Math.max(4,y(p.fifth)-y(p.first))+'" rx="8"/>'; });
+  pts.forEach(function(p,i){ h+='<rect class="pk-bar" x="'+(x(i)-8)+'" y="'+y(p.last)+'" width="16" height="'+Math.max(4,y(p.first)-y(p.last))+'" rx="8"/>'; });
   if(n>1) h+='<polyline class="pk-line" points="'+pts.map(function(p,i){ return x(i)+','+y(p.avg); }).join(' ')+'"/>';
   pts.forEach(function(p,i){
     var last=i===n-1;
-    h+='<circle class="pk-dot'+(last?' last':'')+'" cx="'+x(i)+'" cy="'+y(p.avg)+'" r="'+(last?6:5)+'"/>'+
-       '<text class="pk-val" x="'+x(i)+'" y="'+(y(p.first)-7)+'" text-anchor="middle">'+fmt(p.avg,0)+'</text>'+
+    /* 4.76: a time trial's dot is hollow, so a trial on another course
+       doesn't read as a race-day result. */
+    h+='<circle class="pk-dot'+(last?' last':'')+(p.tt?' tt':'')+'" cx="'+x(i)+'" cy="'+y(p.avg)+'" r="'+(last?6:5)+'"/>'+
+       '<text class="pk-val" x="'+x(i)+'" y="'+(y(p.last)-7)+'" text-anchor="middle">'+fmt(p.avg,0)+'</text>'+
        '<text class="pk-x" x="'+x(i)+'" y="'+(H-B+16)+'" text-anchor="middle">'+esc(fmtDate(p.m.date))+'</text>';
     /* 4.66: dates only under the chart; the meets table says which were time trials. */
   });
@@ -7516,8 +7524,8 @@ function seasonTableRow(x){
 
 /* ---------- 4.67: the charts, a carousel ----------
    Four cards, swiped left and right, each answering one question: how fast
-   (the pack), how we placed (scoring places), whether it was a good day
-   (PRs), and who is moving (team order). All follow the Girls and Boys
+   (the pack), who is moving (team order), whether it was a good day (PRs),
+   and how we placed (scoring places). Order since 4.76. All follow the Girls and Boys
    switch. A card with too little to draw says what it is waiting for, so the
    carousel never changes length. */
 var CH_AT=0;
@@ -7527,7 +7535,9 @@ function chartCard(title,right,body,key){
 }
 function chartWait(t){ return '<p class="pkwait">'+t+'</p>'; }
 function chartsHtml(list){
-  var cards=[packCard(list), placesCard(list), prCard(list), orderCard(list)];
+  /* 4.76: how fast, who, who got better, then how we stacked up, which leads
+     into Head to head below. */
+  var cards=[packCard(list), orderCard(list), prCard(list), placesCard(list)];
   var h='<div class="pkcar" id="pkCar">'+cards.join('')+'</div><div class="pkdots" id="pkDots">';
   for(var i=0;i<cards.length;i++) h+='<button type="button" class="pkdot'+(i===CH_AT?' on':'')+'" data-i="'+i+'" aria-label="Chart '+(i+1)+' of '+cards.length+'"></button>';
   return h+'</div>';
@@ -7557,10 +7567,12 @@ function chartFrame(n,ticks,yOf,yLabel,right){
   return {W:W, H:H, L:L, R:R, T:T, B:B, x:x, grid:g};
 }
 function packCard(list){
-  var pts=packPoints(list);
-  return chartCard('Top 5 runners, 2 miles','Higher is faster',
+  var pts=packPoints(list), tt=pts.some(function(p){ return p.tt; });
+  /* 4.76: top 7, faster lower, so no "Higher is faster". The bar is the 1-7
+     split, the coach's word for first to last of the scoring group. */
+  return chartCard('Top 7 runners, 2 miles','',
     pts.length>=2 ? packSvg(pts) : chartWait('Draws once five of ours have run two 2 mile races.'),
-    pts.length>=2 ? '<span><i class="kd"></i>Average time</span><span><i class="kb"></i>Gap between finishers</span>' : '');
+    pts.length>=2 ? '<span><i class="kd"></i>Average time</span><span><i class="kb"></i>1\u20137 split</span>'+(tt ? '<span><i class="kd hollow"></i>Time trial</span>' : '') : '');
 }
 /* Scoring places: where our top 5 finished in the whole field, meet by meet.
    The course-proof partner to the pack. Meets with a field only. */
@@ -7568,15 +7580,17 @@ function placesCard(list){
   var pts=list.slice().reverse().filter(function(x){ return !isTT(x.m) && !teamOnlyRace(x.r); }).map(function(x){
     var pl=[], who=[], map=aidMap();
     (x.r.fin||[]).forEach(function(f,i){ if(pl.length<5 && counts(x.m,f)){ pl.push(i+1); who.push(recKey(f,map)); } });
-    return {m:x.m, places:pl, who:who, score:(x.mr && x.mr.place!=null) ? x.mr.score : null};
+    return {m:x.m, places:pl, who:who, score:(x.mr && x.mr.place!=null) ? x.mr.score : null, place:(x.mr && x.mr.place!=null) ? x.mr.place : null};
   }).filter(function(p){ return p.places.length===5; });
-  if(pts.length<2) return chartCard('Top 5 runners, place in the race','Higher is better',chartWait('Draws once we\u2019ve run two meets with other schools.'));
+  if(pts.length<2) return chartCard('Top 5 runners, place in the race','',chartWait('Draws once we\u2019ve run two meets with other schools.'));
   var hi=Math.max.apply(null,pts.map(function(p){ return p.places[4]; }));
   var step=hi>60 ? 20 : (hi>30 ? 10 : 5); hi=Math.ceil(hi/step)*step;
   var ticks=[1]; for(var v=step;v<=hi;v+=step) ticks.push(v);
   var F=chartFrame(pts.length,ticks,function(v){ return 22+(v-1)/(hi-1)*(180-22-26); },function(v){ return v===1 ? '1st' : ordinal(v); });
   var y=function(v){ return F.T+(v-1)/(hi-1)*(F.H-F.T-F.B); }, col=runnerColors();
-  var h='<svg class="pk" viewBox="0 0 '+F.W+' '+F.H+'" role="img" aria-label="Where our top five finished at each meet">'+F.grid;
+  /* 4.76: the team score and place sit on a line of their own under each
+     date, not floating over the column, so the svg is 16 taller. */
+  var h='<svg class="pk" viewBox="0 0 '+F.W+' '+(F.H+16)+'" role="img" aria-label="Where our top five finished at each meet">'+F.grid;
   pts.forEach(function(p,i){
     var x=F.x(i);
     h+='<line class="pl-stem" x1="'+x+'" x2="'+x+'" y1="'+y(p.places[0])+'" y2="'+y(p.places[4])+'"/>';
@@ -7586,11 +7600,11 @@ function placesCard(list){
       h+=k===4 ? '<circle class="pl-dot fifth" cx="'+x+'" cy="'+y(v)+'" r="4.5" style="stroke:'+c+'"/>'
                : '<circle class="pl-dot" cx="'+x+'" cy="'+y(v)+'" r="4.5" style="fill:'+c+'"/>';
     });
-    if(p.score!=null) h+='<text class="pk-val pl-score" x="'+x+'" y="'+(y(p.places[0])-8)+'" text-anchor="middle">'+p.score+'</text>';
     h+='<text class="pk-x" x="'+x+'" y="'+(F.H-F.B+16)+'" text-anchor="middle">'+esc(fmtDate(p.m.date))+'</text>';
+    if(p.score!=null) h+='<text class="pk-val pl-score" x="'+x+'" y="'+(F.H-F.B+32)+'" text-anchor="middle">'+p.score+(p.place!=null ? ' \u00b7 '+ordinal(p.place) : '')+'</text>';
   });
-  return chartCard('Top 5 runners, place in the race','Higher is better',h+'</svg>',
-    '<span>Colours match Top 7</span><span><i class="kd hollow"></i>Our 5th</span><span><b class="ks">Team score</b></span>');
+  return chartCard('Top 5 runners, place in the race','',h+'</svg>',
+    '<span>Colours match Top 7</span><span><i class="kd hollow"></i>Our 5th</span>');
 }
 /* PRs by race: how many of ours beat their best at that distance, out of
    those who had a best to beat. A first race at a distance can't be a PR, so
@@ -7635,7 +7649,7 @@ function runnerColors(){
 function orderCard(list){
   var races=list.slice().reverse().filter(function(x){ return distMeters(x.m.dist)===MAIN_D; });
   var top=runnersList(SEA_DIV).filter(function(x){ return x.best; }).slice(0,7), map=aidMap();
-  if(races.length<2 || top.length<2) return chartCard('Top 7, place on the team','Higher is better',chartWait('Draws once the team has run two 2 mile races.'));
+  if(races.length<2 || top.length<2) return chartCard('Top 7, place on the team','',chartWait('Draws once the team has run two 2 mile races.'));
   var rows=top.map(function(x,ti){
     var k=rosterKey(x.r,map);
     return {name:x.r.name.split(' ')[0], c:ORDER_COLORS[ti], pl:races.map(function(rc){
@@ -7669,7 +7683,7 @@ function orderCard(list){
   labels.sort(function(a,b){ return a.y-b.y; });
   for(var i=1;i<labels.length;i++) if(labels[i].y-labels[i-1].y<11) labels[i].y=labels[i-1].y+11;
   labels.forEach(function(l){ h+='<text class="or-name" x="'+(F.W-F.R+8)+'" y="'+(l.y+3.5)+'" style="fill:'+l.c+'">'+esc(l.name)+'</text>'; });
-  return chartCard('Top 7, place on the team','Higher is better',h+'</svg>','<span>By season best at 2 miles</span><span><i class="kg"></i>Missed a race</span>');
+  return chartCard('Top 7, place on the team','',h+'</svg>','<span>By season best at 2 miles</span><span><i class="kg"></i>Missed a race</span>');
 }
 function renderSeason(){
   $('seaG').setAttribute('aria-pressed',String(SEA_DIV==='F'));
