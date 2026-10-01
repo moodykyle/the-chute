@@ -97,7 +97,8 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
 @keyframes splLand{from{opacity:0;transform:scale(.84)}to{opacity:1;transform:scale(1)}}
 @keyframes splFade{from{opacity:0}to{opacity:1}}
 .spl-arrow{animation:splFly .78s cubic-bezier(.16,.84,.32,1) backwards}
-.spl-xc{animation:splLand .38s ease-out .66s backwards;transform-origin:128px 46px}
+/* 4.75: the new mark, XC centred at 94,36 in its 188 by 72 box. */
+.spl-xc{animation:splLand .38s ease-out .66s backwards;transform-origin:94px 36px}
 .spl-word{animation:splFade .55s ease-out 1.08s backwards}
 @media (prefers-reduced-motion:reduce){
   .spl-arrow,.spl-xc,.spl-word{animation:none}
@@ -916,14 +917,11 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 </head>
 <body>
 <div id="splash">
-<svg class="spl-mark" viewBox="0 0 258 92" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+<svg class="spl-mark" viewBox="0 0 188 72" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
 <g class="spl-arrow">
-<path d="M6 26 L24 46 L6 66" fill="none" stroke="#C8102E" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M28 26 L46 46 L28 66" fill="none" stroke="#C8102E" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
-<line x1="40" y1="46" x2="214" y2="46" stroke="#C8102E" stroke-width="8" stroke-linecap="round"/>
-<polygon points="212,26 252,46 212,66" fill="#C8102E"/>
+<path d="M4 23 14 33M14 23 24 33M24 23 34 33M4 49 14 39M14 49 24 39M24 49 34 39M5 36H162" fill="none" stroke="#C8102E" stroke-width="3.5" stroke-linecap="round"/><polygon points="160,24 184,36 160,48" fill="#C8102E"/>
 </g>
-<path class="spl-xc" d="M109.321 45.471999999999994 101.335 22.89999999999999H108.991L113.875 37.81599999999999H114.00699999999999L119.023 22.89999999999999H125.887L117.901 45.471999999999994L126.28299999999999 69.1H118.627L113.347 52.995999999999995H113.21499999999999L107.803 69.1H100.939Z M132.753 58.407999999999994V33.59199999999999Q132.753 28.179999999999993 135.492 25.209999999999994Q138.231 22.239999999999995 143.445 22.239999999999995Q148.659 22.239999999999995 151.398 25.209999999999994Q154.137 28.179999999999993 154.137 33.59199999999999V38.47599999999999H147.273V33.129999999999995Q147.273 28.83999999999999 143.64299999999997 28.83999999999999Q140.01299999999998 28.83999999999999 140.01299999999998 33.129999999999995V58.93599999999999Q140.01299999999998 63.16 143.64299999999997 63.16Q147.273 63.16 147.273 58.93599999999999V51.873999999999995H154.137V58.407999999999994Q154.137 63.81999999999999 151.398 66.78999999999999Q148.659 69.75999999999999 143.445 69.75999999999999Q138.231 69.75999999999999 135.492 66.78999999999999Q132.753 63.81999999999999 132.753 58.407999999999994Z" fill="#FFFFFF" stroke="#0C2340" stroke-width="2.6" stroke-linejoin="round" paint-order="stroke"/>
+<path class="spl-xc" d="M42 4H60L98 68H80Z M80 4H98L60 68H42Z M146 6.3A32 32 0 1 0 146 65.7L146 48.04A17 17 0 1 1 146 23.96Z" fill="#FFFFFF" stroke="#0C2340" stroke-width="6" stroke-linejoin="round" paint-order="stroke"/>
 </svg>
   <div class="spl-word"><div class="spl-the">THE</div><div class="spl-chute">CHUTE</div></div>
 </div>
@@ -933,7 +931,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 <!-- SEASON AND RUNNERS, 4.57 -->
 <section class="screen" id="season">
   <div class="bar homebar">
-    <svg class="mark" viewBox="0 0 258 92" aria-hidden="true"><path d="M6 26 L24 46 L6 66" fill="none" stroke="#C8102E" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><path d="M28 26 L46 46 L28 66" fill="none" stroke="#C8102E" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><line x1="40" y1="46" x2="214" y2="46" stroke="#C8102E" stroke-width="10" stroke-linecap="round"/><polygon points="212,26 252,46 212,66" fill="#C8102E"/><path d="M109.321 45.471999999999994 101.335 22.89999999999999H108.991L113.875 37.81599999999999H114.00699999999999L119.023 22.89999999999999H125.887L117.901 45.471999999999994L126.28299999999999 69.1H118.627L113.347 52.995999999999995H113.21499999999999L107.803 69.1H100.939Z M132.753 58.407999999999994V33.59199999999999Q132.753 28.179999999999993 135.492 25.209999999999994Q138.231 22.239999999999995 143.445 22.239999999999995Q148.659 22.239999999999995 151.398 25.209999999999994Q154.137 28.179999999999993 154.137 33.59199999999999V38.47599999999999H147.273V33.129999999999995Q147.273 28.83999999999999 143.64299999999997 28.83999999999999Q140.01299999999998 28.83999999999999 140.01299999999998 33.129999999999995V58.93599999999999Q140.01299999999998 63.16 143.64299999999997 63.16Q147.273 63.16 147.273 58.93599999999999V51.873999999999995H154.137V58.407999999999994Q154.137 63.81999999999999 151.398 66.78999999999999Q148.659 69.75999999999999 143.445 69.75999999999999Q138.231 69.75999999999999 135.492 66.78999999999999Q132.753 63.81999999999999 132.753 58.407999999999994Z" fill="#FFFFFF" stroke="#0C2340" stroke-width="2.6" stroke-linejoin="round" paint-order="stroke"/></svg>
+    <svg class="mark" viewBox="0 0 188 72" aria-hidden="true"><path d="M4 23 14 33M14 23 24 33M24 23 34 33M4 49 14 39M14 49 24 39M24 49 34 39M5 36H162" fill="none" stroke="#C8102E" stroke-width="3.5" stroke-linecap="round"/><polygon points="160,24 184,36 160,48" fill="#C8102E"/><path d="M42 4H60L98 68H80Z M80 4H98L60 68H42Z M146 6.3A32 32 0 1 0 146 65.7L146 48.04A17 17 0 1 1 146 23.96Z" fill="#FFFFFF" stroke="#0C2340" stroke-width="6" stroke-linejoin="round" paint-order="stroke"/></svg>
     <span class="wordmark">SEASON</span>
     <span class="season"></span>
   </div>
@@ -949,7 +947,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 </section>
 <section class="screen" id="runners">
   <div class="bar homebar">
-    <svg class="mark" viewBox="0 0 258 92" aria-hidden="true"><path d="M6 26 L24 46 L6 66" fill="none" stroke="#C8102E" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><path d="M28 26 L46 46 L28 66" fill="none" stroke="#C8102E" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><line x1="40" y1="46" x2="214" y2="46" stroke="#C8102E" stroke-width="10" stroke-linecap="round"/><polygon points="212,26 252,46 212,66" fill="#C8102E"/><path d="M109.321 45.471999999999994 101.335 22.89999999999999H108.991L113.875 37.81599999999999H114.00699999999999L119.023 22.89999999999999H125.887L117.901 45.471999999999994L126.28299999999999 69.1H118.627L113.347 52.995999999999995H113.21499999999999L107.803 69.1H100.939Z M132.753 58.407999999999994V33.59199999999999Q132.753 28.179999999999993 135.492 25.209999999999994Q138.231 22.239999999999995 143.445 22.239999999999995Q148.659 22.239999999999995 151.398 25.209999999999994Q154.137 28.179999999999993 154.137 33.59199999999999V38.47599999999999H147.273V33.129999999999995Q147.273 28.83999999999999 143.64299999999997 28.83999999999999Q140.01299999999998 28.83999999999999 140.01299999999998 33.129999999999995V58.93599999999999Q140.01299999999998 63.16 143.64299999999997 63.16Q147.273 63.16 147.273 58.93599999999999V51.873999999999995H154.137V58.407999999999994Q154.137 63.81999999999999 151.398 66.78999999999999Q148.659 69.75999999999999 143.445 69.75999999999999Q138.231 69.75999999999999 135.492 66.78999999999999Q132.753 63.81999999999999 132.753 58.407999999999994Z" fill="#FFFFFF" stroke="#0C2340" stroke-width="2.6" stroke-linejoin="round" paint-order="stroke"/></svg>
+    <svg class="mark" viewBox="0 0 188 72" aria-hidden="true"><path d="M4 23 14 33M14 23 24 33M24 23 34 33M4 49 14 39M14 49 24 39M24 49 34 39M5 36H162" fill="none" stroke="#C8102E" stroke-width="3.5" stroke-linecap="round"/><polygon points="160,24 184,36 160,48" fill="#C8102E"/><path d="M42 4H60L98 68H80Z M80 4H98L60 68H42Z M146 6.3A32 32 0 1 0 146 65.7L146 48.04A17 17 0 1 1 146 23.96Z" fill="#FFFFFF" stroke="#0C2340" stroke-width="6" stroke-linejoin="round" paint-order="stroke"/></svg>
     <span class="wordmark">RUNNERS</span>
     <span class="season"></span>
   </div>
@@ -977,7 +975,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 <!-- HOME -->
 <section class="screen on" id="home">
   <div class="bar homebar">
-    <svg class="mark" viewBox="0 0 258 92" aria-hidden="true"><path d="M6 26 L24 46 L6 66" fill="none" stroke="#C8102E" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><path d="M28 26 L46 46 L28 66" fill="none" stroke="#C8102E" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><line x1="40" y1="46" x2="214" y2="46" stroke="#C8102E" stroke-width="10" stroke-linecap="round"/><polygon points="212,26 252,46 212,66" fill="#C8102E"/><path d="M109.321 45.471999999999994 101.335 22.89999999999999H108.991L113.875 37.81599999999999H114.00699999999999L119.023 22.89999999999999H125.887L117.901 45.471999999999994L126.28299999999999 69.1H118.627L113.347 52.995999999999995H113.21499999999999L107.803 69.1H100.939Z M132.753 58.407999999999994V33.59199999999999Q132.753 28.179999999999993 135.492 25.209999999999994Q138.231 22.239999999999995 143.445 22.239999999999995Q148.659 22.239999999999995 151.398 25.209999999999994Q154.137 28.179999999999993 154.137 33.59199999999999V38.47599999999999H147.273V33.129999999999995Q147.273 28.83999999999999 143.64299999999997 28.83999999999999Q140.01299999999998 28.83999999999999 140.01299999999998 33.129999999999995V58.93599999999999Q140.01299999999998 63.16 143.64299999999997 63.16Q147.273 63.16 147.273 58.93599999999999V51.873999999999995H154.137V58.407999999999994Q154.137 63.81999999999999 151.398 66.78999999999999Q148.659 69.75999999999999 143.445 69.75999999999999Q138.231 69.75999999999999 135.492 66.78999999999999Q132.753 63.81999999999999 132.753 58.407999999999994Z" fill="#FFFFFF" stroke="#0C2340" stroke-width="2.6" stroke-linejoin="round" paint-order="stroke"/></svg>
+    <svg class="mark" viewBox="0 0 188 72" aria-hidden="true"><path d="M4 23 14 33M14 23 24 33M24 23 34 33M4 49 14 39M14 49 24 39M24 49 34 39M5 36H162" fill="none" stroke="#C8102E" stroke-width="3.5" stroke-linecap="round"/><polygon points="160,24 184,36 160,48" fill="#C8102E"/><path d="M42 4H60L98 68H80Z M80 4H98L60 68H42Z M146 6.3A32 32 0 1 0 146 65.7L146 48.04A17 17 0 1 1 146 23.96Z" fill="#FFFFFF" stroke="#0C2340" stroke-width="6" stroke-linejoin="round" paint-order="stroke"/></svg>
     <span class="wordmark">THE CHUTE</span>
     <span class="season" id="seasonLabel"></span>
   </div>
@@ -1142,7 +1140,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 <!-- SETTINGS -->
 <section class="screen" id="settings">
   <div class="bar homebar">
-    <svg class="mark" viewBox="0 0 258 92" aria-hidden="true"><path d="M6 26 L24 46 L6 66" fill="none" stroke="#C8102E" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><path d="M28 26 L46 46 L28 66" fill="none" stroke="#C8102E" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><line x1="40" y1="46" x2="214" y2="46" stroke="#C8102E" stroke-width="10" stroke-linecap="round"/><polygon points="212,26 252,46 212,66" fill="#C8102E"/><path d="M109.321 45.471999999999994 101.335 22.89999999999999H108.991L113.875 37.81599999999999H114.00699999999999L119.023 22.89999999999999H125.887L117.901 45.471999999999994L126.28299999999999 69.1H118.627L113.347 52.995999999999995H113.21499999999999L107.803 69.1H100.939Z M132.753 58.407999999999994V33.59199999999999Q132.753 28.179999999999993 135.492 25.209999999999994Q138.231 22.239999999999995 143.445 22.239999999999995Q148.659 22.239999999999995 151.398 25.209999999999994Q154.137 28.179999999999993 154.137 33.59199999999999V38.47599999999999H147.273V33.129999999999995Q147.273 28.83999999999999 143.64299999999997 28.83999999999999Q140.01299999999998 28.83999999999999 140.01299999999998 33.129999999999995V58.93599999999999Q140.01299999999998 63.16 143.64299999999997 63.16Q147.273 63.16 147.273 58.93599999999999V51.873999999999995H154.137V58.407999999999994Q154.137 63.81999999999999 151.398 66.78999999999999Q148.659 69.75999999999999 143.445 69.75999999999999Q138.231 69.75999999999999 135.492 66.78999999999999Q132.753 63.81999999999999 132.753 58.407999999999994Z" fill="#FFFFFF" stroke="#0C2340" stroke-width="2.6" stroke-linejoin="round" paint-order="stroke"/></svg>
+    <svg class="mark" viewBox="0 0 188 72" aria-hidden="true"><path d="M4 23 14 33M14 23 24 33M24 23 34 33M4 49 14 39M14 49 24 39M24 49 34 39M5 36H162" fill="none" stroke="#C8102E" stroke-width="3.5" stroke-linecap="round"/><polygon points="160,24 184,36 160,48" fill="#C8102E"/><path d="M42 4H60L98 68H80Z M80 4H98L60 68H42Z M146 6.3A32 32 0 1 0 146 65.7L146 48.04A17 17 0 1 1 146 23.96Z" fill="#FFFFFF" stroke="#0C2340" stroke-width="6" stroke-linejoin="round" paint-order="stroke"/></svg>
     <span class="wordmark">SETTINGS</span>
     <span class="season"></span>
   </div>
@@ -1378,7 +1376,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.74';
+var BUILD='v4.75';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
