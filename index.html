@@ -852,7 +852,9 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 .updchk{margin:14px 0 6px}
 .updchk .hint{margin-top:8px;min-height:1.2em}
 .updchk .updgo{background:var(--red);color:#fff;border:0;border-radius:10px;padding:6px 12px;font:inherit;font-weight:600;margin-left:6px}
-#resReload{display:block;width:100%;text-align:center;margin:8px 0 0;font-size:13px}
+.synclink{background:none;border:0;padding:0;margin:0;font:inherit;font-size:inherit;color:var(--tape);font-weight:600}
+.synclink::before{content:'\00a0\00b7\00a0';color:var(--ink-soft);font-weight:400}
+.synclink:disabled{opacity:.6}
 .updchk #updCheck{display:inline-block;width:auto;background:var(--chalk);border:1px solid var(--rule);color:var(--ink);border-radius:10px;padding:9px 16px;font:inherit;font-size:14px;font-weight:600}
 .updbar .updgo{flex:0 0 auto;background:var(--red);color:#fff;border:0;border-radius:10px;padding:8px 14px;font:inherit;font-weight:600}
 .pr-could{fill:var(--ink-soft);opacity:.22}
@@ -1323,12 +1325,11 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
   </div>
   <div class="scroll" id="resultBody"></div>
   <div id="resultActions">
-    <div class="syncnote" id="resSync"></div>
+    <div class="syncnote" id="resSync"><span id="resSyncText"></span><button type="button" class="synclink" id="resReload">Reload</button></div>
     <div class="copyrow">
       <button type="button" id="copyChat">Copy Text - Team</button>
       <button type="button" id="copyCsv">Copy CSV - Team</button>
     </div>
-    <button type="button" class="morelink" id="resReload">Reload from database</button>
   </div>
 </section>
 
@@ -1405,7 +1406,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.90';
+var BUILD='v4.91';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -3008,9 +3009,11 @@ function syncLineBase(m){
 }
 function renderResSync(){
   var m=(S && S.meetId) ? findMeet(S.meetId) : null;
-  $('resSync').textContent=syncLine(m);
+  $('resSyncText').textContent=syncLine(m);
   $('resSync').classList.toggle('test',!!(m && m.test));
-  /* 4.89: only for a finished race that is in the database, on a signed-in phone. */
+  /* 4.89: only for a finished race that is in the database, on a signed-in phone.
+     4.91: on the end of this line, not a row of its own under the copy
+     buttons, which took room from the runners on every Results screen. */
   var r=currentRace();
   $('resReload').style.display=(r && r.up && UUID_RE.test(r.id) && raceState(r)==='done' && signedIn()) ? '' : 'none';
 }
@@ -3038,7 +3041,7 @@ function reloadRace(){
   function go(){
     var keep={fin:r.fin, cursor:r.cursor, read:r.read, took:r.took, splits:r.splits, dnf:r.dnf, schools:r.schools};
     btn.disabled=true; btn.textContent='Reloading\u2026';
-    function done(msg){ btn.disabled=false; btn.textContent='Reload from database'; if(msg) $('resSync').textContent=msg; }
+    function done(msg){ btn.disabled=false; btn.textContent='Reload'; if(msg) $('resSyncText').textContent=msg; }
     function undo(){ r.fin=keep.fin; r.cursor=keep.cursor; r.read=keep.read; r.took=keep.took; r.splits=keep.splits; r.dnf=keep.dnf; r.schools=keep.schools; }
     ensureFresh().then(function(ok){
       if(!ok) throw new Error('signed out');
@@ -5482,7 +5485,6 @@ function liveNow(m){
    the address, past GitHub Pages' ten minute cache. Never while a race this
    phone is timing is running: the banner waits for the race to end. */
 /* 4.88: no change but the number, the first build to arrive by Update. */
-/* 4.90: no change but the number either, to prove Update from About. */
 var NEW_BUILD=null, UPD_KEY='chute.update.checked', UPD_EVERY=3600000;
 function buildParts(v){ return String(v||'').replace(/^v/,'').split('.').map(function(x){ return parseInt(x,10)||0; }); }
 function buildNewer(a,b){
@@ -5508,7 +5510,31 @@ function checkBuild(force,done){
     else done('same');
   }).catch(function(){ done('failed'); });
 }
-function updateNow(){ location.replace(location.pathname+'?v='+NEW_BUILD.replace(/^v/,'')); }
+/* 4.91: Update loaded the new build at a fresh address, but a cold start
+   from the home screen goes back to the address the app was installed with,
+   and iOS serves its saved copy there: v4.90 on Update, v4.89 after closing
+   and reopening (2 Oct). So Update remembers the build this phone is meant to
+   be on, and a start that comes up older goes and gets it. Once the saved
+   copy catches up, the note is cleared and the extra trip stops. */
+var UPD_TARGET='chute.update.target';
+function updateNow(){
+  try{ localStorage.setItem(UPD_TARGET, NEW_BUILD); }catch(e){}
+  location.replace(location.pathname+'?v='+NEW_BUILD.replace(/^v/,''));
+}
+/* Run right after the season loads at start (it needs to know whether a race
+   is being timed here). */
+function stayUpdated(){
+  var want=null; try{ want=localStorage.getItem(UPD_TARGET); }catch(e){}
+  if(!want) return;
+  /* On it, or past it: the note has done its job. */
+  if(!buildNewer(want,BUILD)){ try{ localStorage.removeItem(UPD_TARGET); }catch(e){} return; }
+  /* Already at the fresh address and still older: the server no longer has
+     that build (a rollback). Stay here and forget it, so this never loops. */
+  if(/[?&]v=/.test(location.search)){ try{ localStorage.removeItem(UPD_TARGET); }catch(e){} return; }
+  /* Never in the middle of a race this phone is timing. */
+  if(timingHere()) return;
+  location.replace(location.pathname+'?v='+want.replace(/^v/,''));
+}
 function updateBanner(){
   if(!NEW_BUILD || !buildNewer(NEW_BUILD,BUILD) || timingHere()) return null;
   var d=document.createElement('div'); d.className='updbar';
@@ -7502,6 +7528,7 @@ document.addEventListener('keydown',function(e){
 (function boot(){
   try{ localStorage.removeItem(HKEY); }catch(e){}
   loadSeason();
+  stayUpdated();   /* 4.91 */
   loadAuth();   /* reads localStorage only. No network on boot, ever. */
   syncInit();
   try{
