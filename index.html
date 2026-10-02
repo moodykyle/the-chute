@@ -847,6 +847,9 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 .pk-line{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;opacity:.85}
 .pk-dot{fill:var(--ink)}
 .pk-dot.tt{fill:var(--chalk);stroke:var(--ink);stroke-width:2}
+.updbar{display:flex;align-items:center;gap:12px;margin:10px 0 4px;padding:10px 12px;border-radius:12px;background:var(--chalk);border:1px solid var(--rule);font-size:14px;color:var(--ink)}
+.updbar span{flex:1;min-width:0}
+.updbar .updgo{flex:0 0 auto;background:var(--red);color:#fff;border:0;border-radius:10px;padding:8px 14px;font:inherit;font-weight:600}
 .pr-could{fill:var(--ink-soft);opacity:.22}
 .pr-first{fill:none;stroke:var(--ink-soft);stroke-width:1.5}
 .pkkey .kq{width:10px;height:10px;border-radius:3px;background:var(--ink-soft)}
@@ -1396,7 +1399,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.86';
+var BUILD='v4.87';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -5389,11 +5392,53 @@ function meetFinished(m){
 function liveNow(m){
   return (m.races||[]).some(function(r){ return raceState(r)==='live' && !isStale(r); });
 }
+/* ---------- 4.87: a new build, offered on Home ----------
+   A home screen app keeps its saved copy and iOS mostly resumes it, so a new
+   build reached other coaches whenever iOS happened to start it cold. Now
+   the app asks the server for its own page, at most once an hour, when it
+   starts and when it comes back on screen, and reads the build number out of
+   it. A newer one puts a banner on Home; Update reloads onto it with ?v= on
+   the address, past GitHub Pages' ten minute cache. Never while a race this
+   phone is timing is running: the banner waits for the race to end. */
+var NEW_BUILD=null, UPD_KEY='chute.update.checked', UPD_EVERY=3600000;
+function buildParts(v){ return String(v||'').replace(/^v/,'').split('.').map(function(x){ return parseInt(x,10)||0; }); }
+function buildNewer(a,b){
+  var x=buildParts(a), y=buildParts(b);
+  for(var i=0;i<Math.max(x.length,y.length);i++){ if((x[i]||0)!==(y[i]||0)) return (x[i]||0)>(y[i]||0); }
+  return false;
+}
+function timingHere(){
+  return SEASON.meets.some(function(m){ return (m.races||[]).some(function(r){ return raceState(r)==='live' && ownsRace(r) && !isStale(r); }); });
+}
+function checkBuild(force){
+  var last=0; try{ last=+localStorage.getItem(UPD_KEY)||0; }catch(e){}
+  if(!force && Date.now()-last<UPD_EVERY) return;
+  if(typeof fetch!=='function' || navigator.onLine===false) return;
+  try{ localStorage.setItem(UPD_KEY,String(Date.now())); }catch(e){}
+  fetch(location.pathname+'?build='+Date.now(),{cache:'no-store'}).then(function(res){ return res.ok ? res.text() : ''; }).then(function(t){
+    var m=/var BUILD='(v[0-9.]+)'/.exec(t||'');
+    if(m && buildNewer(m[1],BUILD)){ NEW_BUILD=m[1]; var h=$('home'); if(h && h.classList.contains('on')) renderHome(); }
+  }).catch(function(){});
+}
+function updateNow(){ location.replace(location.pathname+'?v='+NEW_BUILD.replace(/^v/,'')); }
+function updateBanner(){
+  if(!NEW_BUILD || !buildNewer(NEW_BUILD,BUILD) || timingHere()) return null;
+  var d=document.createElement('div'); d.className='updbar';
+  d.innerHTML='<span>A new version of The Chute is ready.</span>';
+  var b=document.createElement('button'); b.type='button'; b.className='updgo'; b.textContent='Update';
+  b.addEventListener('click',updateNow);
+  d.appendChild(b);
+  return d;
+}
+document.addEventListener('visibilitychange',function(){ if(!document.hidden) checkBuild(); });
+setTimeout(function(){ checkBuild(); },3000);
+
 function renderHome(){
   var b=$('homeBody');
   /* A pull rebuilds this list. Keep the reader where they were. */
   var top=b.scrollTop;
   b.innerHTML='';
+  var ub=updateBanner(); if(ub) b.appendChild(ub);
   var today=todayStr(), ms=meetsSorted();
   $('seasonLabel').textContent=today.slice(0,4);
 
