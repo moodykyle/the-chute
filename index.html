@@ -1406,7 +1406,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.91';
+var BUILD='v4.92';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -5485,6 +5485,7 @@ function liveNow(m){
    the address, past GitHub Pages' ten minute cache. Never while a race this
    phone is timing is running: the banner waits for the race to end. */
 /* 4.88: no change but the number, the first build to arrive by Update. */
+/* 4.92: no change but the number, to prove an update survives a cold start. */
 var NEW_BUILD=null, UPD_KEY='chute.update.checked', UPD_EVERY=3600000;
 function buildParts(v){ return String(v||'').replace(/^v/,'').split('.').map(function(x){ return parseInt(x,10)||0; }); }
 function buildNewer(a,b){
