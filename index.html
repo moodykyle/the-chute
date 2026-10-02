@@ -1406,7 +1406,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.92';
+var BUILD='v4.93';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -5485,7 +5485,6 @@ function liveNow(m){
    the address, past GitHub Pages' ten minute cache. Never while a race this
    phone is timing is running: the banner waits for the race to end. */
 /* 4.88: no change but the number, the first build to arrive by Update. */
-/* 4.92: no change but the number, to prove an update survives a cold start. */
 var NEW_BUILD=null, UPD_KEY='chute.update.checked', UPD_EVERY=3600000;
 function buildParts(v){ return String(v||'').replace(/^v/,'').split('.').map(function(x){ return parseInt(x,10)||0; }); }
 function buildNewer(a,b){
@@ -5527,11 +5526,16 @@ function updateNow(){
 function stayUpdated(){
   var want=null; try{ want=localStorage.getItem(UPD_TARGET); }catch(e){}
   if(!want) return;
-  /* On it, or past it: the note has done its job. */
-  if(!buildNewer(want,BUILD)){ try{ localStorage.removeItem(UPD_TARGET); }catch(e){} return; }
+  var fresh=/[?&]v=/.test(location.search);
+  /* On it, or past it. At the fresh address that proves nothing: that is the
+     page Update just loaded, and the home screen address still has the old
+     copy. 4.91 cleared the note here, so the next cold start came up on the
+     old build with nothing to send it on (2 Oct). The note goes only once the
+     home screen address itself serves the build. */
+  if(!buildNewer(want,BUILD)){ if(!fresh){ try{ localStorage.removeItem(UPD_TARGET); }catch(e){} } return; }
   /* Already at the fresh address and still older: the server no longer has
      that build (a rollback). Stay here and forget it, so this never loops. */
-  if(/[?&]v=/.test(location.search)){ try{ localStorage.removeItem(UPD_TARGET); }catch(e){} return; }
+  if(fresh){ try{ localStorage.removeItem(UPD_TARGET); }catch(e){} return; }
   /* Never in the middle of a race this phone is timing. */
   if(timingHere()) return;
   location.replace(location.pathname+'?v='+want.replace(/^v/,''));
