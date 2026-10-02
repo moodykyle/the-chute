@@ -1378,7 +1378,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.77';
+var BUILD='v4.78';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1539,12 +1539,17 @@ function scoreOf(r){
 }
 /* ---------- 4.52: meet scoring ----------
    Every place and time in the field is on the timer's phone, and every school
-   reports its own top seven. That is all team scoring needs, because under the
-   MAAC rule every other runner comes out: runners past a school's seventh and
-   runners nobody claimed (unattached, or from a school that did not report)
-   are removed, and the places left are renumbered 1 to N. A school with fewer
-   than five keeps its places and displaces, but has no score. Ties go to the
-   sixth runner, and a school with a sixth beats one without.
+   reports its own top seven. That is all team scoring needs, because every
+   other runner comes out: runners past a school's seventh, runners nobody
+   claimed (unattached, or from a school that did not report), and since 4.78
+   every runner of a school with fewer than five, which has no score. The
+   places left are renumbered 1 to N. Ties go to the sixth runner, and a
+   school with a sixth beats one without.
+   4.78: until now a school short of five kept its places and displaced (what
+   the record called the MAAC rule). The user corrected it after St. Benedict,
+   1 Oct: short schools are named but do not count. Reproduces St. Benedict's
+   official scoring to the point: boys 22, 48, 116, 131, 132, 135, 194, 203,
+   223; girls 48, 68, 68 (Galloway on the sixth, 31 to 32), 91, 102, 112.
 
    The raw scoring beside it is the one done by hand on the night: the first
    five reported places as they stand. Both come from the same claims.
@@ -1579,8 +1584,10 @@ function meetScore(field, ours, claims){
     if(ps.length>7) flags.push({kind:'many', school:s, n:ps.length});
     lists[s]=ps;
   });
+  /* A school short of five, ours included, has no score and its runners take
+     no scoring place. */
   var elig={};
-  names.forEach(function(s){ lists[s].slice(0,7).forEach(function(p){ elig[p]=1; }); });
+  names.forEach(function(s){ if(lists[s].length<5) return; lists[s].slice(0,7).forEach(function(p){ elig[p]=1; }); });
   var order=Object.keys(elig).map(Number).sort(numAsc), adj={};
   order.forEach(function(p,i){ adj[p]=i+1; });
   function rank(rows){
@@ -1597,7 +1604,7 @@ function meetScore(field, ours, claims){
   var maac=[], raw=[], small=[];
   names.forEach(function(s){
     var r7=lists[s].slice(0,7), a=r7.map(function(p){ return adj[p]; });
-    if(r7.length<5){ small.push({school:s, raw:r7, adj:a}); return; }
+    if(r7.length<5){ small.push({school:s, raw:r7, adj:[]}); return; }
     maac.push({school:s, score:sum5(a), sixth:a[5]==null?null:a[5], scorers:a.slice(0,5), disp:a.slice(5), raw:r7});
     raw.push({school:s, score:sum5(r7), sixth:r7[5]==null?null:r7[5], scorers:r7.slice(0,5), disp:r7.slice(5)});
   });
@@ -1721,7 +1728,7 @@ var HOW=[
   'A team score is the sum of the places of its first five finishers. Low score wins. The sixth and seventh are <b>displacers</b>: they don\u2019t score, but they push other teams\u2019 runners back a place.',
   'Results show the score, the five places that make it, and the pack: the average time of the five, and the spread from first to fifth.',
   'The score is built from every place in the race, not only ours, which is why every runner has to be tapped. With Timing on <b>Team</b>, only ours are timed, so there\u2019s no score.',
-  'On its own, the app scores ours against every place in the race. Under our conference\u2019s rule, runners past a school\u2019s seventh and unattached runners come out first and the rest move up, so the real score can be lower. A school with fewer than five keeps its places and pushes others back, but has no score.',
+  'On its own, the app scores ours against every place in the race. For the real score, runners past a school\u2019s seventh and unattached runners come out first and the rest move up, so it can be lower. A school with fewer than five has no score, and its runners come out too: they\u2019re listed under their school but don\u2019t push anyone back.',
   '<b>Meet scores</b>, under the score on Results, scores the whole meet that way. Enter each school\u2019s places from the meet\u2019s sheet, or paste the sheet in one go; ours come from the race. It shows every school\u2019s score and place beside the raw score done by hand, flags a place two schools claim, and copies the lot for the head coach. Once schools are in, home and Results show our score under the rule and our place.',
   'The <b>Team</b> tab and <b>All</b> tab above the list of finishers switch between our runners and every place in the race.',
   'A runner who started and dropped out, or was expected and never started, can be listed with <b>Didn\u2019t finish</b> in Edit race, on any phone. They show under the placed runners, on Edit race and Results, as DNF or DNS and never change the score, places or PRs. To take one off, tap it in Edit race.']},
@@ -4541,7 +4548,7 @@ function pullSplitsSoon(){
 }
 
 /* ---------- 4.52: the Meet scores screen ----------
-   Top, the standings: MAAC score and place, the raw score beside it, each
+   Top, the standings: the score and place, the raw score beside it, each
    school's scoring places with displacers in brackets. A school opens in
    place to show its runners with the app's time on each. Schools with fewer
    than five follow, unscored, with their places. Below, the schools as
@@ -4714,7 +4721,7 @@ function renderMeetScores(){
         h+='<button type="button" class="msrow small'+(t.school===OURS_KEY?' home':'')+'" data-k="'+esc(k)+'" aria-expanded="'+open+'">'+
            '<span class="msp num"></span>'+
            '<span class="msn"><span class="mss">'+esc(schoolLabel(t.school))+'</span>'+
-           '<span class="mspl num">'+(t.adj.length?t.adj.join(', '):'none in scoring places')+'</span></span>'+
+           '<span class="mspl num">'+(t.raw.length?'Places '+t.raw.join(', '):'')+'</span></span>'+
            '<span class="msc"><span class="msr num">'+t.raw.length+(t.raw.length===1?' finisher':' finishers')+'</span></span></button>';
         if(open) h+=msRunners(t.school,res)+msEntry(r,t.school);
       });
@@ -4724,7 +4731,7 @@ function renderMeetScores(){
        res.positions+' of '+S.fin.length+' in scoring places. '+
        (res.unclaimed ? res.unclaimed+' places nobody claimed, past a school\u2019s seventh or unattached, come out.' : 'Every place is claimed.')+'</div>';
   } else {
-    h+='<div class="note">Enter each school\u2019s places from the meet\u2019s sheet. Ours come from this race. The score follows the <b>MAAC rule</b>: runners past a school\u2019s seventh and runners nobody claimed come out, and a school with fewer than five keeps its places.</div>';
+    h+='<div class="note">Enter each school\u2019s places from the meet\u2019s sheet. Ours come from this race. To score, runners past a school\u2019s seventh, unattached runners and the runners of any school with fewer than five come out, and the rest are renumbered. A school with fewer than five is listed but has no score.</div>';
   }
   /* 4.53: one list. A school is entered and edited from its own row in the
      standings, so there is no second list of the same schools below. */
@@ -4865,18 +4872,18 @@ function buildMeetChat(){
   var res=mr.res, rawOf={};
   res.raw.forEach(function(t){ rawOf[t.school]=t; });
   var out=S.name.replace(/, (Girls|Boys)$/,'')+'\n'+[S.division, meetDist(), S.fin.length+' in the field'].filter(Boolean).join(', ')+'\n'+
-          fmtDate(S.date,true)+'\n\nTeam scores, MAAC rule\n';
+          fmtDate(S.date,true)+'\n\nTeam scores\n';
   res.maac.forEach(function(t){
     out+=t.place+'. '+schoolLabel(t.school)+' '+t.score+' ('+t.scorers.join(' + ')+')'+
          (t.disp.length?', displacers '+t.disp.join(', '):'')+'\n';
   });
   if(res.small.length){
-    out+='\nFewer than five, no team score\n';
-    res.small.forEach(function(t){ out+=schoolLabel(t.school)+(t.adj.length?' ('+t.adj.join(', ')+')':'')+'\n'; });
+    out+='\nFewer than five, no team score (overall places)\n';
+    res.small.forEach(function(t){ out+=schoolLabel(t.school)+(t.raw.length?' ('+t.raw.join(', ')+')':'')+'\n'; });
   }
   out+='\nRaw places, as scored by hand\n';
   res.raw.forEach(function(t){ out+=t.place+'. '+schoolLabel(t.school)+' '+t.score+'\n'; });
-  out+='\nMAAC rule: runners past a school\u2019s seventh and unattached runners come out and places are renumbered. Schools with fewer than five keep their places and displace.\n';
+  out+='\nScoring: runners past a school\u2019s seventh, unattached runners and the runners of schools with fewer than five come out, and places are renumbered.\n';
   return out;
 }
 /* The shape sent to the head coach on 24 Sep: a standings block, then every
@@ -4885,20 +4892,20 @@ function buildMeetCsv(){
   var mr=sMeetResult(); if(!mr) return '';
   var res=mr.res, rawOf={}, out='';
   res.raw.forEach(function(t){ rawOf[t.school]=t; });
-  out+='place_maac_rule,place_raw_places,school,score_maac_rule,score_raw_places,scorers_maac_rule,displacers_maac_rule,scorers_raw_places\n';
+  out+='place_scored,place_raw_places,school,score_scored,score_raw_places,scorers_scored,displacers_scored,scorers_raw_places\n';
   res.maac.forEach(function(t){
     var r=rawOf[t.school];
     out+=t.place+','+r.place+','+csvCell(schoolLabel(t.school))+','+t.score+','+r.score+','+t.scorers.join('+')+','+t.disp.join('+')+','+r.scorers.join('+')+'\n';
   });
   res.small.forEach(function(t){
-    out+=',,'+csvCell(schoolLabel(t.school))+',no team score,no team score,'+t.adj.join('+')+',,'+t.raw.join('+')+'\n';
+    out+=',,'+csvCell(schoolLabel(t.school))+',no team score,no team score,,,'+t.raw.join('+')+'\n';
   });
   out+='\nplace,time,school,scoring_place,runner\n';
   S.fin.forEach(function(f,i){
     var p=i+1, k=res.owner[p], nm=(f.h ? (nameOf(f.r)||f.n||'') : '');
     out+=p+','+fmt(f.ms,3)+','+(k!=null?csvCell(schoolLabel(k)):'')+','+(res.adj[p]||'')+','+csvCell(nm)+'\n';
   });
-  out+='\n'+csvCell('MAAC rule: runners past a school\u2019s seventh and unattached runners come out, then places are renumbered. Schools with fewer than five keep their places and displace. Raw places: overall finish place.')+'\n';
+  out+='\n'+csvCell('Scored: runners past a school\u2019s seventh, unattached runners and the runners of schools with fewer than five come out, then places are renumbered. Raw places: overall finish place.')+'\n';
   return out;
 }
 
@@ -6403,8 +6410,8 @@ function renderResults(){
   if($('resMeet')) $('resMeet').addEventListener('click',openMeetScores);
   resNote = tonly
     ? ['Only our runners were timed in this race, so <b>places are team places</b> and there is no score. If the full field is loaded later, places and the score follow from it.']
-    : mr ? ['Scored under the <b>MAAC rule</b> from the places each school reported in <b>Meet scores</b>. Runners past a school\u2019s seventh and runners nobody claimed come out, the rest are renumbered, and a school with fewer than five keeps its places. The places beside the score are scoring places; the list below keeps overall places.']
-    : ['Places are <b>raw order across the whole field</b>. Under the MAAC rule, runners past a school\u2019s seventh and unattached runners come out before scoring, so the score under that rule can be lower. Enter the other schools in <b>Meet scores</b> to score it properly. A missed or extra tap moves it.'];
+    : mr ? ['Scored from the places each school reported in <b>Meet scores</b>. Runners past a school\u2019s seventh, runners nobody claimed and the runners of any school with fewer than five come out, and the rest are renumbered. The places beside the score are scoring places; the list below keeps overall places.']
+    : ['Places are <b>raw order across the whole field</b>. For the real score, runners past a school\u2019s seventh, unattached runners and the runners of schools with fewer than five come out first, so it can be lower. Enter the other schools in <b>Meet scores</b> to score it properly. A missed or extra tap moves it.'];
   if(unnamed) resNote.push('<b>'+unnamed+' of your '+(unnamed===1?'places':'places')+' still '+(unnamed===1?'needs':'need')+' a name.</b> The score above is already final, since it only depends on where your runners crossed.');
   if(disp.length) resNote.push('The '+(disp.length===1?'one':'two')+' in brackets '+(disp.length===1?'is a <b>displacer</b>. It scores':'are <b>displacers</b>. They score')+' no points of '+(disp.length===1?'its':'their')+' own, '+(disp.length===1?'it pushes':'they push')+' other teams\' runners further back.');
   $('resInfo').addEventListener('click',function(){ infoOpen('About this score',resNote); });
