@@ -419,7 +419,10 @@ select{min-height:47px}
 /* Pinned below the list now rather than sitting at the end of it. On a hundred
    finisher race the copy buttons were a long scroll away. */
 #resultActions,#reconActions,#msActions{flex:0 0 auto;border-top:1px solid var(--rule);
-  padding:12px 16px calc(12px + env(safe-area-inset-bottom))}
+  padding:12px 16px max(10px, calc(env(safe-area-inset-bottom) - 16px))}
+/* 4.94: the footer sat the full home-bar allowance plus 12 above the bottom,
+   so the copy buttons hovered. Same rule as the tab bar now: it may sit 16
+   into the home-bar zone, never closer than 10 to the edge. */
 .copyrow button{
   flex:1;min-width:0;padding:14px 10px;border-radius:9px;border:1px solid var(--rule);
   background:var(--chalk);font-size:15px;font-weight:600;
@@ -1406,7 +1409,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.93';
+var BUILD='v4.94';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
