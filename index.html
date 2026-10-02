@@ -1396,7 +1396,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.85';
+var BUILD='v4.86';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -7686,23 +7686,16 @@ function chartFrame(n,ticks,yOf,yLabel,right){
   ticks.forEach(function(v){ g+='<line class="pk-grid" x1="'+L+'" x2="'+(W-R)+'" y1="'+yOf(v)+'" y2="'+yOf(v)+'"/><text class="pk-ax" x="'+(L-6)+'" y="'+(yOf(v)+4)+'" text-anchor="end">'+yLabel(v)+'</text>'; });
   return {W:W, H:H, L:L, R:R, T:T, B:B, x:x, grid:g, date:function(d){ return axDate(d,gap); }};
 }
-/* 4.79, 4.82: races too far from 2 miles are left off the time chart; the
-   key says where they went, so a missing meet doesn't read as a bug. */
-function packLeftOut(list){
-  var out=list.slice().reverse().filter(function(x){ return x.pack && !nearMain(distMeters(x.m.dist)); }).map(function(x){
-    return fmtDate(x.m.date)+' ('+(distLabel(distMeters(x.m.dist))||x.m.dist)+')';
-  });
-  if(!out.length) return '';
-  var list2=out.length===1 ? out[0] : out.slice(0,-1).join(', ')+' and '+out[out.length-1];
-  return '<span class="kn">'+esc(list2)+(out.length>1?' are':' is')+' on the pace chart</span>';
-}
+/* 4.86: races too far from 2 miles are left off the time chart without a
+   note. The pace chart shows them; saying so here (4.79 to 4.85) was one
+   line too many. */
 function packCard(list,col){
   var pts=packPoints(list,nearMain);
   /* 4.76: top 7, faster lower. The bar is the 1-7 split, the coach's word for
      first to last of the scoring group. */
   return chartCard('Top 7 runners: race time','',
     pts.length>=2 ? packSvg(pts,col) : chartWait('Draws once five of ours have run two races near 2 miles.'),
-    pts.length>=2 ? distKey(pts,col)+'<span><i class="kb"></i>1\u20137 split</span>'+packLeftOut(list) : '');
+    pts.length>=2 ? distKey(pts,col)+'<span><i class="kb"></i>1\u20137 split</span>' : '');
 }
 function paceCard(list,col){
   var pts=packPoints(list,function(d){ return d>0; }).map(function(p){ p.pace=p.avg/(p.d/MILE_M); return p; });
