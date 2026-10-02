@@ -849,6 +849,11 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 .pk-dot.tt{fill:var(--chalk);stroke:var(--ink);stroke-width:2}
 .updbar{display:flex;align-items:center;gap:12px;margin:10px 0 4px;padding:10px 12px;border-radius:12px;background:var(--chalk);border:1px solid var(--rule);font-size:14px;color:var(--ink)}
 .updbar span{flex:1;min-width:0}
+.updchk{margin:14px 0 6px}
+.updchk .hint{margin-top:8px;min-height:1.2em}
+.updchk .updgo{background:var(--red);color:#fff;border:0;border-radius:10px;padding:6px 12px;font:inherit;font-weight:600;margin-left:6px}
+#resReload{display:block;width:100%;text-align:center;margin:8px 0 0;font-size:13px}
+.updchk #updCheck{display:inline-block;width:auto;background:var(--chalk);border:1px solid var(--rule);color:var(--ink);border-radius:10px;padding:9px 16px;font:inherit;font-size:14px;font-weight:600}
 .updbar .updgo{flex:0 0 auto;background:var(--red);color:#fff;border:0;border-radius:10px;padding:8px 14px;font:inherit;font-weight:600}
 .pr-could{fill:var(--ink-soft);opacity:.22}
 .pr-first{fill:none;stroke:var(--ink-soft);stroke-width:1.5}
@@ -1323,6 +1328,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
       <button type="button" id="copyChat">Copy Text - Team</button>
       <button type="button" id="copyCsv">Copy CSV - Team</button>
     </div>
+    <button type="button" class="morelink" id="resReload">Reload from database</button>
   </div>
 </section>
 
@@ -1399,7 +1405,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.88';
+var BUILD='v4.89';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -3004,6 +3010,62 @@ function renderResSync(){
   var m=(S && S.meetId) ? findMeet(S.meetId) : null;
   $('resSync').textContent=syncLine(m);
   $('resSync').classList.toggle('test',!!(m && m.test));
+  /* 4.89: only for a finished race that is in the database, on a signed-in phone. */
+  var r=currentRace();
+  $('resReload').style.display=(r && r.up && UUID_RE.test(r.id) && raceState(r)==='done' && signedIn()) ? '' : 'none';
+}
+/* ---------- 4.89: Reload from database ----------
+   Throws away this phone's copy of a finished race (finishes, splits,
+   non-finishers, school places) and reads it fresh. A phone that timed the
+   race treats its own taps as the record and ignores the database's changes
+   to them, so after an official load it needed the app deleted and added
+   again (St. Benedict, 1 Oct). Here it asks first, then takes the database's.
+   Refused while this phone has changes to the race not yet saved, which the
+   reload would lose. If the read fails, the old copy is put back. */
+function raceUnsent(r){
+  return !!(r.d || (r.fin||[]).some(function(f){ return !f.up; }) ||
+    splitList(r).some(function(d){ return !d.up; }) || dnfList(r).some(function(d){ return !d.up; }) ||
+    schoolsOf(r).some(function(c){ return !c.up; }) ||
+    (r.splitGone||[]).length || (r.dnfGone||[]).length || (r.schoolGone||[]).length);
+}
+function reloadRace(){
+  var r=currentRace(), m=(S && S.meetId) ? findMeet(S.meetId) : null, btn=$('resReload');
+  if(!r || !m || raceState(r)!=='done') return;
+  if(raceUnsent(r)){
+    askOpen({title:'Not saved yet', msg:'This phone has changes to this race that haven\u2019t reached the database. Reloading now would lose them. Give them a moment to save, then try again.', ok:'OK', onOk:function(){ return null; }});
+    return;
+  }
+  function go(){
+    var keep={fin:r.fin, cursor:r.cursor, read:r.read, took:r.took, splits:r.splits, dnf:r.dnf, schools:r.schools};
+    btn.disabled=true; btn.textContent='Reloading\u2026';
+    function done(msg){ btn.disabled=false; btn.textContent='Reload from database'; if(msg) $('resSync').textContent=msg; }
+    function undo(){ r.fin=keep.fin; r.cursor=keep.cursor; r.read=keep.read; r.took=keep.took; r.splits=keep.splits; r.dnf=keep.dnf; r.schools=keep.schools; }
+    ensureFresh().then(function(ok){
+      if(!ok) throw new Error('signed out');
+      r.fin=[]; r.cursor=null; r.read=false; delete r.checkAt; delete r.fillAt;
+      if(ownsRace(r)) r.took=true;
+      r.splits=[]; r.dnf=[]; r.schools=[];
+      return pollRace(r);
+    }).then(function(out){
+      if(out.failed) throw new Error('read failed');
+      return pullDnf(r).then(function(){ return pullSchools(r); }).then(function(){ return pullSplits(r); });
+    }).then(function(){
+      relinkFinishes(r.fin, buildRoster());
+      saveSeason();
+      var n=(r.fin||[]).length;
+      openRace(m.id, r.id);
+      done('Reloaded from the database \u00b7 '+n+(n===1?' finisher':' finishers'));
+    }).catch(function(){
+      undo(); saveSeason(); done('Couldn\u2019t reach the database. Nothing changed.');
+    });
+  }
+  if(ownsRace(r) && !r.took){
+    askOpen({title:'Replace this phone\u2019s taps?',
+      msg:'This phone timed this race, so it has kept its own taps over anything changed in the database. Reloading replaces them with the database\u2019s copy. Do this after official results have been loaded.',
+      ok:'Replace', onOk:function(){ go(); return null; }});
+    return;
+  }
+  go();
 }
 
 /* Settle one request. A network failure or a refused session stops the whole
@@ -5341,12 +5403,31 @@ function renderAbout(){
   $('aboutBody').innerHTML=
     '<p class="lede">If the build below does not match the file you deployed, you are looking at a cached copy and nothing else on screen is trustworthy.</p>'+
     row('Build', BUILD)+
+    /* 4.89: ask the server now, rather than wait for the hourly check. */
+    '<div class="updchk"><button type="button" class="go" id="updCheck">Check for updates</button><div class="hint" id="updMsg"></div></div>'+
     row('Signed in', signedIn()?authEmail():'No')+
     row('Meets', String(st.meets))+
     row('Races timed', String(st.timed))+
     row('Finishers recorded', String(st.fin))+
     row('Stored locally', Math.round(bytes/1024)+' KB')+
-    '<p class="hint" style="margin-top:16px">To force a fresh copy on an iPhone, delete the home screen icon and add it again. A reload alone will not do it.</p>';
+    '<p class="hint" style="margin-top:16px">If Check for updates finds nothing and the build still isn\u2019t what you deployed, delete the home screen icon and add it again.</p>';
+  $('updCheck').addEventListener('click',function(){
+    var btn=this, msg=$('updMsg');
+    btn.disabled=true; msg.textContent='Checking\u2026';
+    checkBuild(true,function(st){
+      btn.disabled=false;
+      if(st==='new'){
+        msg.innerHTML='';
+        var t=document.createElement('span'); t.textContent=NEW_BUILD+' is ready. ';
+        var go=document.createElement('button'); go.type='button'; go.className='updgo'; go.textContent='Update';
+        go.addEventListener('click',updateNow);
+        msg.appendChild(t); msg.appendChild(go);
+      }
+      else if(st==='same') msg.textContent='You\u2019re on the latest version.';
+      else if(st==='offline') msg.textContent='No connection. Try again when you have signal.';
+      else msg.textContent='Couldn\u2019t reach the server. Try again shortly.';
+    });
+  });
 }
 function renderBackup(){
   var st=seasonStats();
@@ -5411,15 +5492,20 @@ function buildNewer(a,b){
 function timingHere(){
   return SEASON.meets.some(function(m){ return (m.races||[]).some(function(r){ return raceState(r)==='live' && ownsRace(r) && !isStale(r); }); });
 }
-function checkBuild(force){
+/* done, when given, hears how it went: 'new', 'same', 'offline' or 'failed'.
+   4.89: About's Check for updates passes force, skipping the hour. */
+function checkBuild(force,done){
+  done=done||function(){};
   var last=0; try{ last=+localStorage.getItem(UPD_KEY)||0; }catch(e){}
   if(!force && Date.now()-last<UPD_EVERY) return;
-  if(typeof fetch!=='function' || navigator.onLine===false) return;
+  if(typeof fetch!=='function' || navigator.onLine===false){ done('offline'); return; }
   try{ localStorage.setItem(UPD_KEY,String(Date.now())); }catch(e){}
   fetch(location.pathname+'?build='+Date.now(),{cache:'no-store'}).then(function(res){ return res.ok ? res.text() : ''; }).then(function(t){
     var m=/var BUILD='(v[0-9.]+)'/.exec(t||'');
-    if(m && buildNewer(m[1],BUILD)){ NEW_BUILD=m[1]; var h=$('home'); if(h && h.classList.contains('on')) renderHome(); }
-  }).catch(function(){});
+    if(!m){ done('failed'); return; }
+    if(buildNewer(m[1],BUILD)){ NEW_BUILD=m[1]; var h=$('home'); if(h && h.classList.contains('on')) renderHome(); done('new'); }
+    else done('same');
+  }).catch(function(){ done('failed'); });
 }
 function updateNow(){ location.replace(location.pathname+'?v='+NEW_BUILD.replace(/^v/,'')); }
 function updateBanner(){
@@ -7191,6 +7277,7 @@ $('nameWait').addEventListener('click',function(){ stopWait(); renderArmed(); })
 $('tap').addEventListener('click',function(){ record(null,false); });
 $('tapHome').addEventListener('click',function(){ record(null, ttRace() || !fieldTiming()); });
 $('undo').addEventListener('click',undo);
+$('resReload').addEventListener('click',reloadRace);
 $('stop').addEventListener('click',function(){
   /* 4.44: End? like Delete? and Hide?. Again to end was wider than End race,
      and with Splits in the row it pushed End race onto a line of its own. */
