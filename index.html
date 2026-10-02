@@ -876,7 +876,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 .pkkey span{display:inline-flex;align-items:center;gap:6px}
 .pkkey .kd{width:10px;height:10px;border-radius:50%;background:var(--ink)}
 .pkkey .kn{flex-basis:100%;justify-content:center;font-size:11px;opacity:.85}
-.pkkey .or-also{display:block;text-align:center;font-size:12px;opacity:1}
+.or-name.or-extra{font-size:10px;opacity:.72}
 .pk-val.pr-first{fill:var(--ink-soft);font-weight:500}
 .pkkey .kb{width:8px;height:16px;border-radius:4px;background:var(--ink-soft);opacity:.5}
 .h2r{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--rule)}
@@ -1383,7 +1383,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.80';
+var BUILD='v4.81';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -7736,7 +7736,7 @@ function orderCard(list){
   var ticks=[1,2,3,4,5,6,7];
   var F=chartFrame(races.length,ticks,function(v){ return 22+(v-1)/6*(180-22-26); },function(v){ return ordinal(v); },62);
   var y=function(v){ return F.T+(v-1)/6*(F.H-F.T-F.B); };
-  var h='<svg class="pk" viewBox="0 0 '+F.W+' '+F.H+'" role="img" aria-label="Our top seven at each race, by place on the team">'+F.grid;
+  var h=F.grid;
   races.forEach(function(rc,i){ h+='<text class="pk-x" x="'+F.x(i)+'" y="'+(F.H-F.B+16)+'" text-anchor="middle">'+esc(F.date(rc.m.date))+'</text>'; });
   var lines='', dots='';   /* every line under every dot */
   order.forEach(function(p){
@@ -7754,12 +7754,20 @@ function orderCard(list){
   tops[last].forEach(function(k,j){ var p=seen[k]; labels.push({y:y(j+1), name:p.label, c:p.c}); });
   for(var i=1;i<labels.length;i++) if(labels[i].y-labels[i-1].y<11) labels[i].y=labels[i-1].y+11;
   labels.forEach(function(l){ h+='<text class="or-name" x="'+(F.W-F.R+8)+'" y="'+(l.y+3.5)+'" style="fill:'+l.c+'">'+esc(l.name)+'</text>'; });
-  /* Everyone else on the chart, under it, best place first. */
+  /* 4.81: everyone else on the chart goes under the seven in the same
+     column, best place first, after a gap and a touch lighter, so they don't
+     read as 8th and 9th. They were a line under the chart in 4.80. Two fit
+     beside the dates; more and the chart grows a line each. */
   var also=order.filter(function(p){ return tops[last].indexOf(p.k)<0; })
                  .sort(function(a,b){ return (a.best-b.best) || (a.first-b.first); });
-  var key='<span>Our top 7 at each race</span>';
-  if(also.length) key+='<span class="kn or-also">Also: '+also.map(function(p){ return '<b style="color:'+p.c+'">'+esc(p.label)+'</b>'; }).join(', ')+'</span>';
-  return chartCard('Top 7, place on the team','',h+'</svg>',key);
+  /* Always below the 7th line, even when the latest race had fewer than seven. */
+  var ay=Math.max(labels.length ? labels[labels.length-1].y : 0, y(7))+17, H2=F.H;
+  also.forEach(function(p){
+    h+='<text class="or-name or-extra" x="'+(F.W-F.R+8)+'" y="'+(ay+3.5)+'" style="fill:'+p.c+'">'+esc(p.label)+'</text>';
+    H2=Math.max(H2,ay+8); ay+=11;
+  });
+  h='<svg class="pk" viewBox="0 0 '+F.W+' '+H2+'" role="img" aria-label="Our top seven at each race, by place on the team">'+h;
+  return chartCard('Top 7, place on the team','',h+'</svg>','<span>Our top 7 at each race</span>');
 }
 function renderSeason(){
   $('seaG').setAttribute('aria-pressed',String(SEA_DIV==='F'));
