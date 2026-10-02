@@ -860,7 +860,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 .pk-x{fill:var(--ink-soft);font-size:10.5px}
 /* 4.84: each card keeps its own height, and the carousel takes the height of
    the card on screen, so a short chart never sits on a tall empty panel. */
-.pkcar{display:flex;align-items:flex-start;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;gap:0;transition:height .2s ease}
+.pkcar{display:flex;align-items:flex-start;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;gap:0;transition:height .18s ease}
 .pkcar::-webkit-scrollbar{display:none}
 .pkslide{flex:0 0 100%;min-width:0;scroll-snap-align:start;scroll-snap-stop:always;padding:0 1px;box-sizing:border-box;display:flex}
 .pkslide .pkwrap{flex:1;min-width:0}
@@ -1396,7 +1396,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.84';
+var BUILD='v4.85';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -7644,22 +7644,29 @@ function chartsHtml(list){
 function wireCharts(){
   var car=$('pkCar'); if(!car) return;
   var dots=$('pkDots').querySelectorAll('.pkdot');
-  /* 4.84: the carousel is as tall as the card on screen. */
+  /* 4.84: the carousel is as tall as the card on screen. 4.85: but only once
+     a swipe has come to rest. Resizing a scrolling box mid-swipe cancels the
+     snap on an iPhone, and 4.84 did that on every card it passed, so swipes
+     stopped between cards. The dots still follow the finger. */
   var fit=function(){ var sl=car.children[CH_AT]; if(sl && sl.offsetHeight) car.style.height=sl.offsetHeight+'px'; };
-  var mark=function(){ for(var i=0;i<dots.length;i++) dots[i].classList.toggle('on', i===CH_AT); fit(); };
+  var mark=function(){ for(var i=0;i<dots.length;i++) dots[i].classList.toggle('on', i===CH_AT); };
+  var settle=null, rest=function(){ clearTimeout(settle); settle=setTimeout(fit,160); };
   /* The card the switch left you on stays on screen when Girls and Boys flip. */
   car.scrollLeft=CH_AT*car.clientWidth;
   fit();
   car.addEventListener('scroll',function(){
     var i=Math.round(car.scrollLeft/Math.max(1,car.clientWidth));
     if(i!==CH_AT){ CH_AT=i; mark(); }
+    rest();
   },{passive:true});
+  /* Where the browser says so outright, fit the moment the swipe ends. */
+  car.addEventListener('scrollend',function(){ clearTimeout(settle); fit(); });
   /* 4.83: Most improved's Show all and Show top 10. */
   var im=car.querySelector('.im-more');
   if(im) im.addEventListener('click',function(){ IMP_ALL=this.getAttribute('data-imall')==='1'; renderSeason(); });
   for(var i=0;i<dots.length;i++) dots[i].addEventListener('click',function(){
     CH_AT=+this.getAttribute('data-i'); mark();
-    if(car.scrollTo) car.scrollTo({left:CH_AT*car.clientWidth, behavior:'smooth'}); else car.scrollLeft=CH_AT*car.clientWidth;
+    if(car.scrollTo) car.scrollTo({left:CH_AT*car.clientWidth, behavior:'smooth'}); else { car.scrollLeft=CH_AT*car.clientWidth; fit(); }
   });
 }
 /* A frame shared by the charts: gridlines and labels down the left, dates
