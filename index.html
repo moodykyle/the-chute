@@ -847,6 +847,15 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 .pk-line{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;opacity:.85}
 .pk-dot{fill:var(--ink)}
 .pk-dot.tt{fill:var(--chalk);stroke:var(--ink);stroke-width:2}
+.pr-could{fill:var(--ink-soft);opacity:.22}
+.pr-first{fill:none;stroke:var(--ink-soft);stroke-width:1.5}
+.pkkey .kq{width:10px;height:10px;border-radius:3px;background:var(--ink-soft)}
+.pkkey .kq.pr{background:var(--ink);opacity:.85}
+.pkkey .kq.could{opacity:.35}
+.im-name{font-size:11.5px;font-weight:600;fill:var(--ink)}
+.im-times{font-size:9.5px;fill:var(--ink-soft)}
+.im-bar{fill:#34D3C4}
+.im-more{display:block;margin:6px auto 0;background:none;border:0;color:var(--tape);font:inherit;font-size:13px;font-weight:600;padding:6px 10px}
 .pk-val{fill:var(--ink);font-size:11px;font-weight:600}
 .pk-x{fill:var(--ink-soft);font-size:10.5px}
 .pkcar{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;gap:0}
@@ -1385,7 +1394,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.82';
+var BUILD='v4.83';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -2683,7 +2692,11 @@ function undo(){
   echoTap(gone,'undo');
 }
 function nameOf(id){
-  if(id==null) return null;
+  /* 4.83: with no race open there is no race roster to read. Season's charts
+     call this for runners the roster lookup missed (since 4.80), and on a
+     phone that had opened no race since starting, that threw and Season drew
+     nothing. Callers already fall back to the stamped name. */
+  if(id==null || !S || !S.roster) return null;
   for(var i=0;i<S.roster.length;i++) if(S.roster[i].id===id) return S.roster[i].name;
   return null;
 }
@@ -7602,9 +7615,10 @@ function seasonTableRow(x){
 }
 
 /* ---------- 4.67: the charts, a carousel ----------
-   Five cards since 4.82, swiped left and right, each answering one question:
+   Six cards since 4.83, swiped left and right, each answering one question:
    how fast (the pack's time, then its pace), who is moving (team order),
-   whether it was a good day (PRs), and how we scored (team score by meet). Order since 4.76. All follow the Girls and Boys
+   whether it was a good day (PRs), who has come furthest (most improved),
+   and how we scored (team score by meet). Order since 4.76. All follow the Girls and Boys
    switch. A card with too little to draw says what it is waiting for, so the
    carousel never changes length. */
 var CH_AT=0;
@@ -7620,7 +7634,7 @@ function chartsHtml(list){
      An event switched off "On the charts" (0020) draws on none of them. */
   list=list.filter(function(x){ return x.m.onCharts!==false; });
   var col=distColors(list);
-  var cards=[packCard(list,col), paceCard(list,col), orderCard(list), prCard(list), scoreCard(list)];
+  var cards=[packCard(list,col), paceCard(list,col), orderCard(list), prCard(list), improveCard(list), scoreCard(list)];
   var h='<div class="pkcar" id="pkCar">'+cards.join('')+'</div><div class="pkdots" id="pkDots">';
   for(var i=0;i<cards.length;i++) h+='<button type="button" class="pkdot'+(i===CH_AT?' on':'')+'" data-i="'+i+'" aria-label="Chart '+(i+1)+' of '+cards.length+'"></button>';
   return h+'</div>';
@@ -7635,6 +7649,9 @@ function wireCharts(){
     var i=Math.round(car.scrollLeft/Math.max(1,car.clientWidth));
     if(i!==CH_AT){ CH_AT=i; mark(); }
   },{passive:true});
+  /* 4.83: Most improved's Show all and Show top 10. */
+  var im=car.querySelector('.im-more');
+  if(im) im.addEventListener('click',function(){ IMP_ALL=this.getAttribute('data-imall')==='1'; renderSeason(); });
   for(var i=0;i<dots.length;i++) dots[i].addEventListener('click',function(){
     CH_AT=+this.getAttribute('data-i'); mark();
     if(car.scrollTo) car.scrollTo({left:CH_AT*car.clientWidth, behavior:'smooth'}); else car.scrollLeft=CH_AT*car.clientWidth;
@@ -7713,10 +7730,11 @@ function scoreCard(list){
     '<span>Score on top, our place below</span><span>Shorter is better</span>');
 }
 /* PRs by race: how many of ours beat their best at that distance, out of
-   those who had a best to beat. 4.79: a race that was everyone's first at its
-   distance can't hold a PR; it was left out, which read as a missing meet.
-   Now it shows with no bar and "First 3K" (or its distance) where the count
-   would be. */
+   those who had a best to beat. 4.83: drawn as counts, not percent, so a race
+   with 2 chances and one with 28 no longer look alike: a faint bar for
+   everyone who had a time to beat, the PRs filled in over it. A race that was
+   everyone's first at its distance is a small ring on the baseline, named
+   once in the key; 4.79's "First 3K" labels were too many words. */
 function prCard(list){
   var idx=recordsIndex(), map=aidMap();
   var pts=list.slice().reverse().map(function(x){
@@ -7732,23 +7750,67 @@ function prCard(list){
   });
   if(!pts.some(function(p){ return p.could>0; })) pts=[];
   if(!pts.length) return chartCard('PRs at each race','',chartWait('Draws once runners have a second race at a distance.'));
-  var F=chartFrame(pts.length,[0,50,100],function(v){ return 22+(100-v)/100*(180-22-26); },function(v){ return v+'%'; });
-  var y=function(pc){ return F.T+(100-pc)/100*(F.H-F.T-F.B); };
-  var h='<svg class="pk" viewBox="0 0 '+F.W+' '+F.H+'" role="img" aria-label="How many of ours set a PR at each race">'+F.grid;
+  var top=Math.max.apply(null,pts.map(function(p){ return p.could; }));
+  var step=top>40 ? 20 : (top>16 ? 10 : 5), hi=Math.max(step,Math.ceil(top/step)*step), ticks=[];
+  for(var v=0;v<=hi;v+=step) ticks.push(v);
+  var F=chartFrame(pts.length,ticks,function(v){ return 22+(hi-v)/hi*(180-22-26); },function(v){ return String(v); });
+  var y=function(v){ return F.T+(hi-v)/hi*(F.H-F.T-F.B); };
+  var bw=Math.max(14,Math.min(30,(pts.length>1 ? (F.W-F.R-F.L-28)/(pts.length-1) : 60)*0.55)), firsts=false;
+  var h='<svg class="pk" viewBox="0 0 '+F.W+' '+F.H+'" role="img" aria-label="How many of ours set a PR at each race, out of those who had a time to beat">'+F.grid;
   pts.forEach(function(p,i){
     var x=F.x(i);
     if(!p.could){
-      /* Two lines, so neighbouring first races never run into each other. */
-      h+='<text class="pk-val pr-first" x="'+x+'" y="'+(y(0)-21)+'" text-anchor="middle"><tspan x="'+x+'">First</tspan>'+
-         '<tspan x="'+x+'" dy="13">'+esc(distLabel(distMeters(p.m.dist))||p.m.dist)+'</tspan></text>';
+      firsts=true;
+      h+='<circle class="pr-first" cx="'+x+'" cy="'+(y(0)-6)+'" r="4"/>';
     } else {
-      var pc=p.did/p.could*100, top=y(pc);
-      h+='<rect class="pr-bar" x="'+(x-15)+'" y="'+top+'" width="30" height="'+Math.max(2,y(0)-top)+'" rx="5"/>'+
-         '<text class="pk-val" x="'+x+'" y="'+(top-7)+'" text-anchor="middle">'+p.did+' of '+p.could+'</text>';
+      var tc=y(p.could), td=y(p.did);
+      h+='<rect class="pr-could" x="'+(x-bw/2)+'" y="'+tc+'" width="'+bw+'" height="'+Math.max(2,y(0)-tc)+'" rx="5"/>'+
+         (p.did ? '<rect class="pr-bar" x="'+(x-bw/2)+'" y="'+td+'" width="'+bw+'" height="'+Math.max(2,y(0)-td)+'" rx="5"/>' : '')+
+         '<text class="pk-val" x="'+x+'" y="'+(tc-7)+'" text-anchor="middle">'+p.did+' of '+p.could+'</text>';
     }
     h+='<text class="pk-x" x="'+x+'" y="'+(F.H-F.B+16)+'" text-anchor="middle">'+esc(F.date(p.m.date))+'</text>';
   });
-  return chartCard('PRs at each race','',h+'</svg>','<span>Of the runners who had a time to beat</span>');
+  return chartCard('PRs at each race','',h+'</svg>',
+    '<span><i class="kq pr"></i>PR</span><span><i class="kq could"></i>Had a time to beat</span>'+
+    (firsts ? '<span><i class="kd hollow"></i>First race at its distance</span>' : ''));
+}
+/* 4.83: most improved this season. Each runner's first race at 2 miles
+   against their season best at 2 miles, biggest drop on top. The top ten,
+   then "Show all". Runners with one 2 mile race, or no drop yet, have no bar.
+   Follows the Girls and Boys switch and the events left on the charts. */
+var IMP_ALL=false;
+function improveCard(list){
+  var map=aidMap(), by={}, order=[], byKey={};
+  /* Names from the season roster, as the Top 7 chart does; the race roster
+     behind nameOf is only there while a race is open. */
+  runnersList(SEA_DIV).forEach(function(x){ byKey[rosterKey(x.r,map)]=x.r.name; });
+  list.slice().reverse().forEach(function(x){
+    oursIn(x.m,x.r,SEA_DIV).forEach(function(f){
+      if(finDist(f,x.m)!==MAIN_D || !(f.ms>0)) return;
+      var k=recKey(f,map), e=by[k];
+      if(!e){ e=by[k]={k:k, name:byKey[k]||nameOf(f.r)||f.n||'Unnamed', first:f.ms, best:f.ms, n:0, races:[]}; order.push(e); }
+      e.n++; if(f.ms<e.best) e.best=f.ms;
+      e.races.push(x.m.date+' '+fmt(f.ms,0));
+    });
+  });
+  var rows=order.filter(function(e){ return e.n>1 && e.first-e.best>=1000; }).map(function(e){ e.drop=e.first-e.best; return e; })
+                 .sort(function(a,b){ return (b.drop-a.drop) || a.name.localeCompare(b.name); });
+  if(!rows.length) return chartCard('Most improved this season','',chartWait('Draws once runners have a second 2 mile race.'));
+  var firsts={};
+  rows.forEach(function(e){ var f=e.name.split(' ')[0]; firsts[f]=(firsts[f]||0)+1; });
+  var shown=IMP_ALL ? rows : rows.slice(0,10), max=rows[0].drop, W=340, RH=32, top=6;
+  var h='<svg class="pk" viewBox="0 0 '+W+' '+(top+shown.length*RH+4)+'" role="img" aria-label="Most improved at 2 miles this season">';
+  shown.forEach(function(e,i){
+    var bits=e.name.split(' '), nm=firsts[bits[0]]>1 && bits.length>1 ? bits[0]+' '+bits[bits.length-1].charAt(0)+'.' : bits[0];
+    var y0=top+i*RH, bwid=Math.max(4,e.drop/max*170);
+    h+='<text class="im-name" x="0" y="'+(y0+12)+'">'+esc(nm)+'</text>'+
+       '<text class="im-times num" x="0" y="'+(y0+25)+'">'+fmt(e.first,0)+' \u2192 '+fmt(e.best,0)+'</text>'+
+       '<rect class="im-bar" x="104" y="'+(y0+4)+'" width="'+bwid+'" height="16" rx="4"/>'+
+       '<text class="pk-val num" x="'+(104+bwid+6)+'" y="'+(y0+16)+'">'+fmt(e.drop,0)+'</text>';
+  });
+  h+='</svg>';
+  var more=rows.length>10 ? '<button type="button" class="im-more" data-imall="'+(IMP_ALL?'0':'1')+'">'+(IMP_ALL ? 'Show top 10' : 'Show all '+rows.length)+'</button>' : '';
+  return chartCard('Most improved this season','',h+more,'<span>First 2 mile race to season best at 2 miles</span>');
 }
 /* Team order: our top 7 by season best, and their place on the team at every
    race. Lines that cross are runners moving. 4.79: every race at any
