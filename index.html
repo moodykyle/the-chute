@@ -389,6 +389,8 @@ select{min-height:47px}
 .msschool .chev{font-size:13px;color:var(--ink-soft)}
 .msrun{padding:4px 16px 10px 60px;border-bottom:1px solid var(--rule)}
 .msline{display:grid;grid-template-columns:36px 56px minmax(0,1fr) auto;gap:8px;font-size:13px;color:var(--ink-soft);padding:3px 0}
+.msline.mshead{font-size:11px;letter-spacing:.06em;text-transform:uppercase;opacity:.75;padding-bottom:5px;border-bottom:1px solid var(--rule);margin-bottom:3px}
+.msline span:last-child{text-align:right}
 .msnm{color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .msflags{margin:12px 16px 0;padding:10px 12px;border:1px solid var(--tape);border-radius:8px;font-size:13px;line-height:1.5;color:var(--ink)}
 .msflags div+div{margin-top:4px}
@@ -873,6 +875,8 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 .pkkey{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 18px;padding:2px 8px 10px;font-size:12px;color:var(--ink-soft)}
 .pkkey span{display:inline-flex;align-items:center;gap:6px}
 .pkkey .kd{width:10px;height:10px;border-radius:50%;background:var(--ink)}
+.pkkey .kn{flex-basis:100%;justify-content:center;font-size:11px;opacity:.85}
+.pk-val.pr-first{fill:var(--ink-soft);font-weight:500}
 .pkkey .kb{width:8px;height:16px;border-radius:4px;background:var(--ink-soft);opacity:.5}
 .h2r{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--rule)}
 .h2r .hb{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
@@ -1378,7 +1382,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.78';
+var BUILD='v4.79';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1729,7 +1733,7 @@ var HOW=[
   'Results show the score, the five places that make it, and the pack: the average time of the five, and the spread from first to fifth.',
   'The score is built from every place in the race, not only ours, which is why every runner has to be tapped. With Timing on <b>Team</b>, only ours are timed, so there\u2019s no score.',
   'On its own, the app scores ours against every place in the race. For the real score, runners past a school\u2019s seventh and unattached runners come out first and the rest move up, so it can be lower. A school with fewer than five has no score, and its runners come out too: they\u2019re listed under their school but don\u2019t push anyone back.',
-  '<b>Meet scores</b>, under the score on Results, scores the whole meet that way. Enter each school\u2019s places from the meet\u2019s sheet, or paste the sheet in one go; ours come from the race. It shows every school\u2019s score and place beside the raw score done by hand, flags a place two schools claim, and copies the lot for the head coach. Once schools are in, home and Results show our score under the rule and our place.',
+  '<b>Meet scores</b>, under the score on Results, scores the whole meet that way. Enter each school\u2019s places from the meet\u2019s sheet, or paste the sheet in one go; ours come from the race. It shows every school\u2019s score and place beside its score by place (the five places as they stand, the way it\u2019s scored by hand), flags a place two schools claim, and copies the lot for the head coach. Once schools are in, home and Results show our score under the rule and our place.',
   'The <b>Team</b> tab and <b>All</b> tab above the list of finishers switch between our runners and every place in the race.',
   'A runner who started and dropped out, or was expected and never started, can be listed with <b>Didn\u2019t finish</b> in Edit race, on any phone. They show under the placed runners, on Edit race and Results, as DNF or DNS and never change the score, places or PRs. To take one off, tap it in Edit race.']},
  {t:'Time trials', p:[
@@ -3600,6 +3604,12 @@ function pollTick(){
   }).then(function(out){
     pollBusy=false;
     if(out.failed) missed();
+    /* 4.79: finishes read in the background arrive with an athlete id and no
+       name, and in a time trial nothing else says girl or boy. Opening Results
+       matched them to the roster; nothing else did, so on a phone that read a
+       time trial after its roster, Season counted nobody from it. Match them
+       as they land, the same way. Found 1 Oct on a freshly installed phone. */
+    if(fill && out.changed) relinkFinishes(fill.fin, buildRoster());
     if(pulled || out.changed) saveSeason();
     if(out.changed && S && currentRace()===r){
       relinkFinishes(S.fin,S.roster);
@@ -4711,7 +4721,7 @@ function renderMeetScores(){
          '<span class="msp num">'+t.place+'</span>'+
          '<span class="msn"><span class="mss">'+esc(schoolLabel(t.school))+'</span>'+
          '<span class="mspl num">'+t.scorers.join('+')+(t.disp.length?' ('+t.disp.join(', ')+')':'')+'</span></span>'+
-         '<span class="msc"><span class="msv num">'+t.score+'</span><span class="msr num">raw '+raw.score+'</span></span></button>';
+         '<span class="msc"><span class="msv num">'+t.score+'</span><span class="msr num">by place '+raw.score+'</span></span></button>';
       if(open) h+=msRunners(t.school,res)+msEntry(r,t.school);
     });
     if(res.small.length){
@@ -4793,8 +4803,10 @@ function msEntry(r,k){
   return '<div class="msentry"><span class="mspl num">Entered as '+c.p.join(', ')+'</span>'+
          '<button type="button" class="msedit" data-e="'+esc(c.cid)+'">Edit</button></div>';
 }
+/* 4.79: a heading row, so the place on the left and the points on the right
+   say which is which. Points is MileSplit's word for the same column. */
 function msRunners(k,res){
-  var h='<div class="msrun">';
+  var h='<div class="msrun"><div class="msline mshead"><span>Place</span><span>Time</span><span>Runner</span><span>Points</span></div>';
   Object.keys(res.owner).map(Number).filter(function(p){ return res.owner[p]===k; }).sort(numAsc).forEach(function(p){
     var f=S.fin[p-1], sc=res.adj[p];
     if(k===OURS_KEY && !sc) return;
@@ -4881,7 +4893,7 @@ function buildMeetChat(){
     out+='\nFewer than five, no team score (overall places)\n';
     res.small.forEach(function(t){ out+=schoolLabel(t.school)+(t.raw.length?' ('+t.raw.join(', ')+')':'')+'\n'; });
   }
-  out+='\nRaw places, as scored by hand\n';
+  out+='\nBy place, as scored by hand\n';
   res.raw.forEach(function(t){ out+=t.place+'. '+schoolLabel(t.school)+' '+t.score+'\n'; });
   out+='\nScoring: runners past a school\u2019s seventh, unattached runners and the runners of schools with fewer than five come out, and places are renumbered.\n';
   return out;
@@ -7573,13 +7585,24 @@ function chartFrame(n,ticks,yOf,yLabel,right){
   ticks.forEach(function(v){ g+='<line class="pk-grid" x1="'+L+'" x2="'+(W-R)+'" y1="'+yOf(v)+'" y2="'+yOf(v)+'"/><text class="pk-ax" x="'+(L-6)+'" y="'+(yOf(v)+4)+'" text-anchor="end">'+yLabel(v)+'</text>'; });
   return {W:W, H:H, L:L, R:R, T:T, B:B, x:x, grid:g};
 }
+/* 4.79: races at another distance are left off the pack, so a 3K average
+   never sits beside 2 mile ones; the key says which, so a missing meet
+   doesn't read as a bug. */
+function packLeftOut(list){
+  var out=list.slice().reverse().filter(function(x){ return x.pack && distMeters(x.m.dist)!==MAIN_D; }).map(function(x){
+    return fmtDate(x.m.date)+' ('+(distLabel(distMeters(x.m.dist))||x.m.dist)+')';
+  });
+  if(!out.length) return '';
+  var list2=out.length===1 ? out[0] : out.slice(0,-1).join(', ')+' and '+out[out.length-1];
+  return '<span class="kn">'+esc(list2)+' not shown, different distance'+(out.length>1?'s':'')+'</span>';
+}
 function packCard(list){
   var pts=packPoints(list), tt=pts.some(function(p){ return p.tt; });
   /* 4.76: top 7, faster lower, so no "Higher is faster". The bar is the 1-7
      split, the coach's word for first to last of the scoring group. */
   return chartCard('Top 7 runners, 2 miles','',
     pts.length>=2 ? packSvg(pts) : chartWait('Draws once five of ours have run two 2 mile races.'),
-    pts.length>=2 ? '<span><i class="kd"></i>Average time</span><span><i class="kb"></i>1\u20137 split</span>'+(tt ? '<span><i class="kd hollow"></i>Time trial</span>' : '') : '');
+    pts.length>=2 ? '<span><i class="kd"></i>Average time</span><span><i class="kb"></i>1\u20137 split</span>'+(tt ? '<span><i class="kd hollow"></i>Time trial</span>' : '')+packLeftOut(list) : '');
 }
 /* 4.77: Team score by meet, replacing where our top 5 placed (v4.67 to
    v4.76). One bar per meet we were scored at, the meet score on top in the
@@ -7613,8 +7636,10 @@ function scoreCard(list){
     '<span>Score on top, our place below</span><span>Shorter is better</span>');
 }
 /* PRs by race: how many of ours beat their best at that distance, out of
-   those who had a best to beat. A first race at a distance can't be a PR, so
-   races where nobody could are left out. */
+   those who had a best to beat. 4.79: a race that was everyone's first at its
+   distance can't hold a PR; it was left out, which read as a missing meet.
+   Now it shows with no bar and "First 3K" (or its distance) where the count
+   would be. */
 function prCard(list){
   var idx=recordsIndex(), map=aidMap();
   var pts=list.slice().reverse().map(function(x){
@@ -7627,21 +7652,32 @@ function prCard(list){
       var rc=recOf(f,ctx); if(rc && rc.tag==='PR') did++;
     });
     return {m:x.m, could:could, did:did};
-  }).filter(function(p){ return p.could>0; });
+  });
+  if(!pts.some(function(p){ return p.could>0; })) pts=[];
   if(!pts.length) return chartCard('PRs at each race','',chartWait('Draws once runners have a second race at a distance.'));
   var F=chartFrame(pts.length,[0,50,100],function(v){ return 22+(100-v)/100*(180-22-26); },function(v){ return v+'%'; });
   var y=function(pc){ return F.T+(100-pc)/100*(F.H-F.T-F.B); };
   var h='<svg class="pk" viewBox="0 0 '+F.W+' '+F.H+'" role="img" aria-label="How many of ours set a PR at each race">'+F.grid;
   pts.forEach(function(p,i){
-    var x=F.x(i), pc=p.did/p.could*100, top=y(pc);
-    h+='<rect class="pr-bar" x="'+(x-15)+'" y="'+top+'" width="30" height="'+Math.max(2,y(0)-top)+'" rx="5"/>'+
-       '<text class="pk-val" x="'+x+'" y="'+(top-7)+'" text-anchor="middle">'+p.did+' of '+p.could+'</text>'+
-       '<text class="pk-x" x="'+x+'" y="'+(F.H-F.B+16)+'" text-anchor="middle">'+esc(fmtDate(p.m.date))+'</text>';
+    var x=F.x(i);
+    if(!p.could){
+      /* Two lines, so neighbouring first races never run into each other. */
+      h+='<text class="pk-val pr-first" x="'+x+'" y="'+(y(0)-21)+'" text-anchor="middle"><tspan x="'+x+'">First</tspan>'+
+         '<tspan x="'+x+'" dy="13">'+esc(distLabel(distMeters(p.m.dist))||p.m.dist)+'</tspan></text>';
+    } else {
+      var pc=p.did/p.could*100, top=y(pc);
+      h+='<rect class="pr-bar" x="'+(x-15)+'" y="'+top+'" width="30" height="'+Math.max(2,y(0)-top)+'" rx="5"/>'+
+         '<text class="pk-val" x="'+x+'" y="'+(top-7)+'" text-anchor="middle">'+p.did+' of '+p.could+'</text>';
+    }
+    h+='<text class="pk-x" x="'+x+'" y="'+(F.H-F.B+16)+'" text-anchor="middle">'+esc(fmtDate(p.m.date))+'</text>';
   });
   return chartCard('PRs at each race','',h+'</svg>','<span>Of the runners who had a time to beat</span>');
 }
 /* Team order: our top 7 by season best, and their place on the team at every
-   2 mile race. Lines that cross are runners moving. */
+   race. Lines that cross are runners moving. 4.79: every race at any
+   distance, not just 2 miles, since 3rd among ours means the same at 3K; a
+   place counts among teammates at that race's own distance. The seven are
+   still picked by season best at 2 miles. */
 /* 4.69: the varsity set, saturated so the lines read like team colours, the
    same for girls and boys. None is red or coral, which mean actions, records
    and the team score. */
@@ -7653,13 +7689,14 @@ function runnerColors(){
   return c;
 }
 function orderCard(list){
-  var races=list.slice().reverse().filter(function(x){ return distMeters(x.m.dist)===MAIN_D; });
+  var races=list.slice().reverse();
   var top=runnersList(SEA_DIV).filter(function(x){ return x.best; }).slice(0,7), map=aidMap();
-  if(races.length<2 || top.length<2) return chartCard('Top 7, place on the team','',chartWait('Draws once the team has run two 2 mile races.'));
+  if(races.length<2 || top.length<2) return chartCard('Top 7, place on the team','',chartWait('Draws once the team has run two races.'));
   var rows=top.map(function(x,ti){
     var k=rosterKey(x.r,map);
     return {name:x.r.name.split(' ')[0], c:ORDER_COLORS[ti], pl:races.map(function(rc){
-      var mates=oursIn(rc.m,rc.r,SEA_DIV).filter(function(f){ return finDist(f,rc.m)===MAIN_D; });
+      var d0=distMeters(rc.m.dist);
+      var mates=oursIn(rc.m,rc.r,SEA_DIV).filter(function(f){ return finDist(f,rc.m)===d0; });
       for(var j=0;j<mates.length;j++) if(recKey(mates[j],map)===k) return j+1;
       return null; })};
   });
