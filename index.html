@@ -858,7 +858,9 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 .im-more{display:block;margin:6px auto 0;background:none;border:0;color:var(--tape);font:inherit;font-size:13px;font-weight:600;padding:6px 10px}
 .pk-val{fill:var(--ink);font-size:11px;font-weight:600}
 .pk-x{fill:var(--ink-soft);font-size:10.5px}
-.pkcar{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;gap:0}
+/* 4.84: each card keeps its own height, and the carousel takes the height of
+   the card on screen, so a short chart never sits on a tall empty panel. */
+.pkcar{display:flex;align-items:flex-start;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;gap:0;transition:height .2s ease}
 .pkcar::-webkit-scrollbar{display:none}
 .pkslide{flex:0 0 100%;min-width:0;scroll-snap-align:start;scroll-snap-stop:always;padding:0 1px;box-sizing:border-box;display:flex}
 .pkslide .pkwrap{flex:1;min-width:0}
@@ -1394,7 +1396,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.83';
+var BUILD='v4.84';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -7642,9 +7644,12 @@ function chartsHtml(list){
 function wireCharts(){
   var car=$('pkCar'); if(!car) return;
   var dots=$('pkDots').querySelectorAll('.pkdot');
-  var mark=function(){ for(var i=0;i<dots.length;i++) dots[i].classList.toggle('on', i===CH_AT); };
+  /* 4.84: the carousel is as tall as the card on screen. */
+  var fit=function(){ var sl=car.children[CH_AT]; if(sl && sl.offsetHeight) car.style.height=sl.offsetHeight+'px'; };
+  var mark=function(){ for(var i=0;i<dots.length;i++) dots[i].classList.toggle('on', i===CH_AT); fit(); };
   /* The card the switch left you on stays on screen when Girls and Boys flip. */
   car.scrollLeft=CH_AT*car.clientWidth;
+  fit();
   car.addEventListener('scroll',function(){
     var i=Math.round(car.scrollLeft/Math.max(1,car.clientWidth));
     if(i!==CH_AT){ CH_AT=i; mark(); }
@@ -7775,8 +7780,8 @@ function prCard(list){
     (firsts ? '<span><i class="kd hollow"></i>First race at its distance</span>' : ''));
 }
 /* 4.83: most improved this season. Each runner's first race at 2 miles
-   against their season best at 2 miles, biggest drop on top. The top ten,
-   then "Show all". Runners with one 2 mile race, or no drop yet, have no bar.
+   against their season best at 2 miles, biggest drop on top. The top five
+   (ten until 4.84), then "Show all". Runners with one 2 mile race, or no drop yet, have no bar.
    Follows the Girls and Boys switch and the events left on the charts. */
 var IMP_ALL=false;
 function improveCard(list){
@@ -7798,7 +7803,8 @@ function improveCard(list){
   if(!rows.length) return chartCard('Most improved this season','',chartWait('Draws once runners have a second 2 mile race.'));
   var firsts={};
   rows.forEach(function(e){ var f=e.name.split(' ')[0]; firsts[f]=(firsts[f]||0)+1; });
-  var shown=IMP_ALL ? rows : rows.slice(0,10), max=rows[0].drop, W=340, RH=32, top=6;
+  /* 4.84: the top five, about the height of the other charts; Show all opens the rest. */
+  var shown=IMP_ALL ? rows : rows.slice(0,5), max=rows[0].drop, W=340, RH=32, top=6;
   var h='<svg class="pk" viewBox="0 0 '+W+' '+(top+shown.length*RH+4)+'" role="img" aria-label="Most improved at 2 miles this season">';
   shown.forEach(function(e,i){
     var bits=e.name.split(' '), nm=firsts[bits[0]]>1 && bits.length>1 ? bits[0]+' '+bits[bits.length-1].charAt(0)+'.' : bits[0];
@@ -7809,7 +7815,7 @@ function improveCard(list){
        '<text class="pk-val num" x="'+(104+bwid+6)+'" y="'+(y0+16)+'">'+fmt(e.drop,0)+'</text>';
   });
   h+='</svg>';
-  var more=rows.length>10 ? '<button type="button" class="im-more" data-imall="'+(IMP_ALL?'0':'1')+'">'+(IMP_ALL ? 'Show top 10' : 'Show all '+rows.length)+'</button>' : '';
+  var more=rows.length>5 ? '<button type="button" class="im-more" data-imall="'+(IMP_ALL?'0':'1')+'">'+(IMP_ALL ? 'Show top 5' : 'Show all '+rows.length)+'</button>' : '';
   return chartCard('Most improved this season','',h+more,'<span>First 2 mile race to season best at 2 miles</span>');
 }
 /* Team order: our top 7 by season best, and their place on the team at every
