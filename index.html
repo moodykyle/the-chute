@@ -97,7 +97,12 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
 @keyframes splLand{from{opacity:0;transform:scale(.84)}to{opacity:1;transform:scale(1)}}
 @keyframes splFade{from{opacity:0}to{opacity:1}}
 .spl-arrow{animation:splFly .78s cubic-bezier(.16,.84,.32,1) backwards}
-/* 4.75: the new mark, XC centred at 94,36 in its 188 by 72 box. */
+/* 4.75: the new mark, XC centred at 94,36 in its 188 by 72 box.
+   4.96: the feathers became a finish chute (posts, sagging ropes, pennants,
+   a lane into the X). On the splash the chute stands still and only the
+   arrow flies, so the runner comes down the chute; the headers and icons
+   carry a small cut of the same chute (two posts a side, one rope, heavier
+   lines) since the full one turns to speckle at 26px. */
 .spl-xc{animation:splLand .38s ease-out .66s backwards;transform-origin:94px 36px}
 .spl-word{animation:splFade .55s ease-out 1.08s backwards}
 @media (prefers-reduced-motion:reduce){
@@ -942,13 +947,24 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 .rnrace .rtime{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;gap:3px}
 .rnrace .rtime .t{font-size:17px}
 .rnrace .rtime .rec{font-size:12px}
+/* 4.95: the panel carries the team score, so our row is coral; by place under
+   a big number that entering schools will move; Meet scores rows expand. */
+.mspanel,.msbtn{align-items:stretch}
+.msstat{padding:8px 16px 10px 60px;border-bottom:1px solid var(--rule)}
+.rbyp{display:block;font-size:12px;font-weight:500;letter-spacing:0;color:var(--ink-soft);margin-top:6px;line-height:1}
+.rhead .mspanel{margin-top:14px}
+.msp-row.us .msp-n,.msp-row.us .msp-s{color:var(--tape)}
+.msrow{grid-template-columns:34px minmax(0,1fr) auto 12px}
+.msrow .chev{width:12px;height:12px;color:var(--ink-soft);transition:transform .15s}
+.msrow[aria-expanded="true"] .chev{transform:rotate(180deg)}
 </style>
 </head>
 <body>
 <div id="splash">
 <svg class="spl-mark" viewBox="0 0 188 72" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+<g class="spl-chute-lines"><path d="M4 5Q12.5 15.0 21 18" fill="none" stroke="#FFFFFF" stroke-width="1.5"/><path d="M21 18Q28.5 24.5 36 27" fill="none" stroke="#FFFFFF" stroke-width="1.5"/><polygon points="7.0,10.8 12.2,10.8 9.6,18.8" fill="#C8102E"/><polygon points="13.7,15.6 18.1,15.6 15.9,22.6" fill="#FFFFFF"/><polygon points="24.0,21.9 27.9,21.9 25.9,27.9" fill="#C8102E"/><polygon points="29.9,25.1 33.1,25.1 31.5,30.1" fill="#FFFFFF"/><path d="M4 0.5V13.5" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round"/><path d="M21 14.8V23.9" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round"/><path d="M36 24.9V30.9" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round"/><path d="M4 67Q12.5 64.0 21 54" fill="none" stroke="#FFFFFF" stroke-width="1.5"/><path d="M21 54Q28.5 51.5 36 45" fill="none" stroke="#FFFFFF" stroke-width="1.5"/><polygon points="7.0,64.3 12.2,64.3 9.6,72.3" fill="#C8102E"/><polygon points="13.7,59.4 18.1,59.4 15.9,66.4" fill="#FFFFFF"/><polygon points="24.0,51.9 27.9,51.9 25.9,57.9" fill="#C8102E"/><polygon points="29.9,48.5 33.1,48.5 31.5,53.5" fill="#FFFFFF"/><path d="M4 62.5V75.5" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round"/><path d="M21 50.9V59.9" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round"/><path d="M36 42.9V48.9" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round"/><path d="M36 27H53M36 45H53" fill="none" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round"/></g>
 <g class="spl-arrow">
-<path d="M4 23 14 33M14 23 24 33M24 23 34 33M4 49 14 39M14 49 24 39M24 49 34 39M5 36H162" fill="none" stroke="#C8102E" stroke-width="3.5" stroke-linecap="round"/><polygon points="160,24 184,36 160,48" fill="#C8102E"/>
+<path d="M26 36H162" fill="none" stroke="#C8102E" stroke-width="3.5" stroke-linecap="round"/><polygon points="160,24 184,36 160,48" fill="#C8102E"/>
 </g>
 <path class="spl-xc" d="M42 4H60L98 68H80Z M80 4H98L60 68H42Z M146 6.3A32 32 0 1 0 146 65.7L146 48.04A17 17 0 1 1 146 23.96Z" fill="#FFFFFF" stroke="#0C2340" stroke-width="6" stroke-linejoin="round" paint-order="stroke"/>
 </svg>
@@ -960,7 +976,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 <!-- SEASON AND RUNNERS, 4.57 -->
 <section class="screen" id="season">
   <div class="bar homebar">
-    <svg class="mark" viewBox="0 0 188 72" aria-hidden="true"><path d="M4 23 14 33M14 23 24 33M24 23 34 33M4 49 14 39M14 49 24 39M24 49 34 39M5 36H162" fill="none" stroke="#C8102E" stroke-width="3.5" stroke-linecap="round"/><polygon points="160,24 184,36 160,48" fill="#C8102E"/><path d="M42 4H60L98 68H80Z M80 4H98L60 68H42Z M146 6.3A32 32 0 1 0 146 65.7L146 48.04A17 17 0 1 1 146 23.96Z" fill="#FFFFFF" stroke="#0C2340" stroke-width="6" stroke-linejoin="round" paint-order="stroke"/></svg>
+    <svg class="mark" viewBox="0 0 188 72" aria-hidden="true"><path d="M5 5Q20.5 21.0 36 27" fill="none" stroke="#FFFFFF" stroke-width="2.6"/><polygon points="11.9,15.0 19.8,15.0 15.8,26.0" fill="#C8102E"/><polygon points="24.1,22.9 30.6,22.9 27.3,31.9" fill="#FFFFFF"/><path d="M5 0.5V13.5M36 24.5V31.5" stroke="#FFFFFF" stroke-width="3.6" stroke-linecap="round"/><path d="M5 67Q20.5 61.0 36 45" fill="none" stroke="#FFFFFF" stroke-width="2.6"/><polygon points="11.9,61.6 19.8,61.6 15.8,72.6" fill="#C8102E"/><polygon points="24.1,53.2 30.6,53.2 27.3,62.2" fill="#FFFFFF"/><path d="M5 62.5V75.5M36 42.5V49.5" stroke="#FFFFFF" stroke-width="3.6" stroke-linecap="round"/><path d="M36 27H53M36 45H53" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round"/><path d="M26 36H162" fill="none" stroke="#C8102E" stroke-width="3.5" stroke-linecap="round"/><polygon points="160,24 184,36 160,48" fill="#C8102E"/><path d="M42 4H60L98 68H80Z M80 4H98L60 68H42Z M146 6.3A32 32 0 1 0 146 65.7L146 48.04A17 17 0 1 1 146 23.96Z" fill="#FFFFFF" stroke="#0C2340" stroke-width="6" stroke-linejoin="round" paint-order="stroke"/></svg>
     <span class="wordmark">SEASON</span>
     <span class="season"></span>
   </div>
@@ -976,7 +992,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 </section>
 <section class="screen" id="runners">
   <div class="bar homebar">
-    <svg class="mark" viewBox="0 0 188 72" aria-hidden="true"><path d="M4 23 14 33M14 23 24 33M24 23 34 33M4 49 14 39M14 49 24 39M24 49 34 39M5 36H162" fill="none" stroke="#C8102E" stroke-width="3.5" stroke-linecap="round"/><polygon points="160,24 184,36 160,48" fill="#C8102E"/><path d="M42 4H60L98 68H80Z M80 4H98L60 68H42Z M146 6.3A32 32 0 1 0 146 65.7L146 48.04A17 17 0 1 1 146 23.96Z" fill="#FFFFFF" stroke="#0C2340" stroke-width="6" stroke-linejoin="round" paint-order="stroke"/></svg>
+    <svg class="mark" viewBox="0 0 188 72" aria-hidden="true"><path d="M5 5Q20.5 21.0 36 27" fill="none" stroke="#FFFFFF" stroke-width="2.6"/><polygon points="11.9,15.0 19.8,15.0 15.8,26.0" fill="#C8102E"/><polygon points="24.1,22.9 30.6,22.9 27.3,31.9" fill="#FFFFFF"/><path d="M5 0.5V13.5M36 24.5V31.5" stroke="#FFFFFF" stroke-width="3.6" stroke-linecap="round"/><path d="M5 67Q20.5 61.0 36 45" fill="none" stroke="#FFFFFF" stroke-width="2.6"/><polygon points="11.9,61.6 19.8,61.6 15.8,72.6" fill="#C8102E"/><polygon points="24.1,53.2 30.6,53.2 27.3,62.2" fill="#FFFFFF"/><path d="M5 62.5V75.5M36 42.5V49.5" stroke="#FFFFFF" stroke-width="3.6" stroke-linecap="round"/><path d="M36 27H53M36 45H53" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round"/><path d="M26 36H162" fill="none" stroke="#C8102E" stroke-width="3.5" stroke-linecap="round"/><polygon points="160,24 184,36 160,48" fill="#C8102E"/><path d="M42 4H60L98 68H80Z M80 4H98L60 68H42Z M146 6.3A32 32 0 1 0 146 65.7L146 48.04A17 17 0 1 1 146 23.96Z" fill="#FFFFFF" stroke="#0C2340" stroke-width="6" stroke-linejoin="round" paint-order="stroke"/></svg>
     <span class="wordmark">RUNNERS</span>
     <span class="season"></span>
   </div>
@@ -1004,8 +1020,8 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 <!-- HOME -->
 <section class="screen on" id="home">
   <div class="bar homebar">
-    <svg class="mark" viewBox="0 0 188 72" aria-hidden="true"><path d="M4 23 14 33M14 23 24 33M24 23 34 33M4 49 14 39M14 49 24 39M24 49 34 39M5 36H162" fill="none" stroke="#C8102E" stroke-width="3.5" stroke-linecap="round"/><polygon points="160,24 184,36 160,48" fill="#C8102E"/><path d="M42 4H60L98 68H80Z M80 4H98L60 68H42Z M146 6.3A32 32 0 1 0 146 65.7L146 48.04A17 17 0 1 1 146 23.96Z" fill="#FFFFFF" stroke="#0C2340" stroke-width="6" stroke-linejoin="round" paint-order="stroke"/></svg>
-    <span class="wordmark">THE CHUTE</span>
+    <svg class="mark" viewBox="0 0 188 72" aria-hidden="true"><path d="M5 5Q20.5 21.0 36 27" fill="none" stroke="#FFFFFF" stroke-width="2.6"/><polygon points="11.9,15.0 19.8,15.0 15.8,26.0" fill="#C8102E"/><polygon points="24.1,22.9 30.6,22.9 27.3,31.9" fill="#FFFFFF"/><path d="M5 0.5V13.5M36 24.5V31.5" stroke="#FFFFFF" stroke-width="3.6" stroke-linecap="round"/><path d="M5 67Q20.5 61.0 36 45" fill="none" stroke="#FFFFFF" stroke-width="2.6"/><polygon points="11.9,61.6 19.8,61.6 15.8,72.6" fill="#C8102E"/><polygon points="24.1,53.2 30.6,53.2 27.3,62.2" fill="#FFFFFF"/><path d="M5 62.5V75.5M36 42.5V49.5" stroke="#FFFFFF" stroke-width="3.6" stroke-linecap="round"/><path d="M36 27H53M36 45H53" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round"/><path d="M26 36H162" fill="none" stroke="#C8102E" stroke-width="3.5" stroke-linecap="round"/><polygon points="160,24 184,36 160,48" fill="#C8102E"/><path d="M42 4H60L98 68H80Z M80 4H98L60 68H42Z M146 6.3A32 32 0 1 0 146 65.7L146 48.04A17 17 0 1 1 146 23.96Z" fill="#FFFFFF" stroke="#0C2340" stroke-width="6" stroke-linejoin="round" paint-order="stroke"/></svg>
+    <span class="wordmark">EVENTS</span>
     <span class="season" id="seasonLabel"></span>
   </div>
   <div class="scroll pad" id="homeBody"></div>
@@ -1173,7 +1189,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 <!-- SETTINGS -->
 <section class="screen" id="settings">
   <div class="bar homebar">
-    <svg class="mark" viewBox="0 0 188 72" aria-hidden="true"><path d="M4 23 14 33M14 23 24 33M24 23 34 33M4 49 14 39M14 49 24 39M24 49 34 39M5 36H162" fill="none" stroke="#C8102E" stroke-width="3.5" stroke-linecap="round"/><polygon points="160,24 184,36 160,48" fill="#C8102E"/><path d="M42 4H60L98 68H80Z M80 4H98L60 68H42Z M146 6.3A32 32 0 1 0 146 65.7L146 48.04A17 17 0 1 1 146 23.96Z" fill="#FFFFFF" stroke="#0C2340" stroke-width="6" stroke-linejoin="round" paint-order="stroke"/></svg>
+    <svg class="mark" viewBox="0 0 188 72" aria-hidden="true"><path d="M5 5Q20.5 21.0 36 27" fill="none" stroke="#FFFFFF" stroke-width="2.6"/><polygon points="11.9,15.0 19.8,15.0 15.8,26.0" fill="#C8102E"/><polygon points="24.1,22.9 30.6,22.9 27.3,31.9" fill="#FFFFFF"/><path d="M5 0.5V13.5M36 24.5V31.5" stroke="#FFFFFF" stroke-width="3.6" stroke-linecap="round"/><path d="M5 67Q20.5 61.0 36 45" fill="none" stroke="#FFFFFF" stroke-width="2.6"/><polygon points="11.9,61.6 19.8,61.6 15.8,72.6" fill="#C8102E"/><polygon points="24.1,53.2 30.6,53.2 27.3,62.2" fill="#FFFFFF"/><path d="M5 62.5V75.5M36 42.5V49.5" stroke="#FFFFFF" stroke-width="3.6" stroke-linecap="round"/><path d="M36 27H53M36 45H53" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round"/><path d="M26 36H162" fill="none" stroke="#C8102E" stroke-width="3.5" stroke-linecap="round"/><polygon points="160,24 184,36 160,48" fill="#C8102E"/><path d="M42 4H60L98 68H80Z M80 4H98L60 68H42Z M146 6.3A32 32 0 1 0 146 65.7L146 48.04A17 17 0 1 1 146 23.96Z" fill="#FFFFFF" stroke="#0C2340" stroke-width="6" stroke-linejoin="round" paint-order="stroke"/></svg>
     <span class="wordmark">SETTINGS</span>
     <span class="season"></span>
   </div>
@@ -1409,7 +1425,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.94';
+var BUILD='v4.96';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1760,7 +1776,7 @@ var HOW=[
   'Results show the score, the five places that make it, and the pack: the average time of the five, and the spread from first to fifth.',
   'The score is built from every place in the race, not only ours, which is why every runner has to be tapped. With Timing on <b>Team</b>, only ours are timed, so there\u2019s no score.',
   'On its own, the app scores ours against every place in the race. For the real score, runners past a school\u2019s seventh and unattached runners come out first and the rest move up, so it can be lower. A school with fewer than five has no score, and its runners come out too: they\u2019re listed under their school but don\u2019t push anyone back.',
-  '<b>Meet scores</b>, under the score on Results, scores the whole meet that way. Enter each school\u2019s places from the meet\u2019s sheet, or paste the sheet in one go; ours come from the race. It shows every school\u2019s score and place beside its score by place (the five places as they stand, the way it\u2019s scored by hand), flags a place two schools claim, and copies the lot for the head coach. Once schools are in, home and Results show our score under the rule and our place.',
+  '<b>Meet scores</b>, on Results, scores the whole meet that way. Enter each school\u2019s places from the meet\u2019s sheet, or paste the sheet in one go; ours come from the race. It shows every school\u2019s score and place beside its score by place (the five places as they stand, the way it\u2019s scored by hand), flags a place two schools claim, and copies the lot for the head coach. Before any school is in, the score on Results is by place. Once schools are in, Results leads with the top three and our place, and Meet scores opens on our row with its places, average and spread.',
   'The <b>Team</b> tab and <b>All</b> tab above the list of finishers switch between our runners and every place in the race.',
   'A runner who started and dropped out, or was expected and never started, can be listed with <b>Didn\u2019t finish</b> in Edit race, on any phone. They show under the placed runners, on Edit race and Results, as DNF or DNS and never change the score, places or PRs. To take one off, tap it in Edit race.']},
  {t:'Time trials', p:[
@@ -4797,7 +4813,7 @@ function flagText(f){
   return esc(f.school)+' lists '+f.n+'. The first seven count.';
 }
 function openMeetScores(){
-  msOpen={}; msEdit=null; msMsg=''; msText=''; msRead=null; msPaste=!schoolsOf(msRace()).length;
+  msOpen={}; msOpen['t:'+OURS_KEY]=true; msEdit=null; msMsg=''; msText=''; msRead=null; msPaste=!schoolsOf(msRace()).length;
   backTo='results'; show('mscore');
 }
 function renderMeetScores(){
@@ -4811,14 +4827,17 @@ function renderMeetScores(){
     if(fl.length) h+='<div class="msflags">'+fl.map(function(f){ return '<div>'+flagText(f)+'</div>'; }).join('')+'</div>';
     h+='<div class="hsect rsect">Standings</div>';
     var rawOf={}; res.raw.forEach(function(t){ rawOf[t.school]=t; });
+    /* 4.95: a down chevron, as on Events, since a row opens in place rather
+       than opening a page; and each school's top five average on its line. */
+    var CHV='<svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8 9.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
     res.maac.forEach(function(t){
       var k='t:'+t.school, open=!!msOpen[k], raw=rawOf[t.school];
       h+='<button type="button" class="msrow'+(t.school===OURS_KEY?' home':'')+'" data-k="'+esc(k)+'" aria-expanded="'+open+'">'+
          '<span class="msp num">'+t.place+'</span>'+
          '<span class="msn"><span class="mss">'+esc(schoolLabel(t.school))+'</span>'+
-         '<span class="mspl num">'+t.scorers.join('+')+(t.disp.length?' ('+t.disp.join(', ')+')':'')+'</span></span>'+
-         '<span class="msc"><span class="msv num">'+t.score+'</span><span class="msr num">by place '+raw.score+'</span></span></button>';
-      if(open) h+=msRunners(t.school,res)+msEntry(r,t.school);
+         '<span class="mspl num">'+t.scorers.join('+')+(t.disp.length?' ('+t.disp.join(', ')+')':'')+msAvgText(t.school,res)+'</span></span>'+
+         '<span class="msc"><span class="msv num">'+t.score+'</span><span class="msr num">by place '+raw.score+'</span></span>'+CHV+'</button>';
+      if(open) h+=msRunners(t.school,res)+msEntry(r,t.school)+(t.school===OURS_KEY?msOurStats():'');
     });
     if(res.small.length){
       h+='<div class="hsect rsect">No team score</div>';
@@ -4828,7 +4847,7 @@ function renderMeetScores(){
            '<span class="msp num"></span>'+
            '<span class="msn"><span class="mss">'+esc(schoolLabel(t.school))+'</span>'+
            '<span class="mspl num">'+(t.raw.length?'Places '+t.raw.join(', '):'')+'</span></span>'+
-           '<span class="msc"><span class="msr num">'+t.raw.length+(t.raw.length===1?' finisher':' finishers')+'</span></span></button>';
+           '<span class="msc"><span class="msr num">'+t.raw.length+(t.raw.length===1?' finisher':' finishers')+'</span></span>'+CHV+'</button>';
         if(open) h+=msRunners(t.school,res)+msEntry(r,t.school);
       });
     }
@@ -4891,6 +4910,19 @@ function renderMeetScores(){
    and the scoring place when it has one. Ours carry their names. */
 /* Under an opened school: its places as entered, and Edit. Ours come from
    the race, so they have neither. */
+/* 4.95: a school's top five average, from the times on its scoring places.
+   Empty for a school with fewer than five of them. */
+function msAvgText(k,res){
+  var ps=Object.keys(res.owner).map(Number).filter(function(p){ return res.owner[p]===k && res.adj[p] && S.fin[p-1]; }).sort(numAsc).slice(0,5);
+  if(ps.length<5) return '';
+  var s=0; ps.forEach(function(p){ s+=S.fin[p-1].ms; });
+  return ' \u00b7 Avg '+fmt(s/5,0);
+}
+/* Under our open row, what left the Results header in 4.95. */
+function msOurStats(){
+  var st=scoringStats(); if(!st) return '';
+  return '<div class="msstat"><span class="mspl num">Top 5 Avg '+fmt(st.avg,0)+' \u00b7 Spread '+fmt(st.spread,0)+'</span></div>';
+}
 function msEntry(r,k){
   if(k===OURS_KEY) return '';
   var c=schoolsOf(r).filter(function(x){ return x.s===k; })[0];
@@ -6532,6 +6564,12 @@ function renderResults(){
   var shownDisp=disp;
   if(mr && mr.score!=null){ score=mr.score; shown=mr.scorers; shownDisp=mr.disp; }
   var sst=scoringStats();
+  /* 4.95: once we are in the standings, the panel carries our score (coral)
+     and the big number goes; the places, average and spread are a tap away,
+     on Meet scores with our row open. Before any school is in, the big
+     number stays, marked by place, since entering schools will move it. */
+  var meIn = complete && !!(mr && mr.res.maac.some(function(t){ return t.school===OURS_KEY; }));
+  var byPlace = complete && !mr && meetScorable(sRaceLike());
 
   /* The score, the five that made it, and the two behind them, in one block.
      Everything that explains the number lives behind the info button instead of
@@ -6542,8 +6580,8 @@ function renderResults(){
      '<div class="rid"><span class="ridtext">'+esc(S.name)+'</span>'+
      '<button type="button" class="info" id="resInfo" aria-label="About this score">i</button></div>'+
      '<div class="rwhen num">'+esc([S.date?fmtDate(S.date,true):'', meetDist()].filter(Boolean).join(' \u00b7 '))+'</div>'+
-     '<div class="rgrid">'+
-       '<div class="rscore num">'+(complete?score:(tonly?'':'&#183;'))+'</div>'+
+     (meIn ? '' : '<div class="rgrid">'+
+       '<div class="rscore num">'+(complete?score:(tonly?'':'&#183;'))+(byPlace?'<span class="rbyp">by place</span>':'')+'</div>'+
        '<div class="rside">'+
          '<div class="req num">'+(complete
             ? shown.join('<span class="op">+</span>')+
@@ -6552,7 +6590,7 @@ function renderResults(){
             : 'Need 5 finishers to score. You have '+ours.length+'.')+'</div>'+
          (sst?'<div class="rstat num">Top 5 Avg '+fmt(sst.avg,0)+' \u00b7 Spread '+fmt(sst.spread,0)+'</div>':'')+
        '</div>'+
-     '</div>'+
+     '</div>')+
      (meetScorable(sRaceLike()) ? msPanel(mr) : '')+
      '</div>';
 
@@ -6614,10 +6652,10 @@ function renderResults(){
   if($('resMeet')) $('resMeet').addEventListener('click',openMeetScores);
   resNote = tonly
     ? ['Only our runners were timed in this race, so <b>places are team places</b> and there is no score. If the full field is loaded later, places and the score follow from it.']
-    : mr ? ['Scored from the places each school reported in <b>Meet scores</b>. Runners past a school\u2019s seventh, runners nobody claimed and the runners of any school with fewer than five come out, and the rest are renumbered. The places beside the score are scoring places; the list below keeps overall places.']
+    : mr ? ['Scored from the places each school reported in <b>Meet scores</b>. Runners past a school\u2019s seventh, runners nobody claimed and the runners of any school with fewer than five come out, and the rest are renumbered. '+(meIn?'Our score is our row in the standings; tap it for our scoring places, average and spread.':'The places beside the score are scoring places;')+' The list below keeps overall places.']
     : ['Places are <b>raw order across the whole field</b>. For the real score, runners past a school\u2019s seventh, unattached runners and the runners of schools with fewer than five come out first, so it can be lower. Enter the other schools in <b>Meet scores</b> to score it properly. A missed or extra tap moves it.'];
   if(unnamed) resNote.push('<b>'+unnamed+' of your '+(unnamed===1?'places':'places')+' still '+(unnamed===1?'needs':'need')+' a name.</b> The score above is already final, since it only depends on where your runners crossed.');
-  if(disp.length) resNote.push('The '+(disp.length===1?'one':'two')+' in brackets '+(disp.length===1?'is a <b>displacer</b>. It scores':'are <b>displacers</b>. They score')+' no points of '+(disp.length===1?'its':'their')+' own, '+(disp.length===1?'it pushes':'they push')+' other teams\' runners further back.');
+  if(disp.length && !meIn) resNote.push('The '+(disp.length===1?'one':'two')+' in brackets '+(disp.length===1?'is a <b>displacer</b>. It scores':'are <b>displacers</b>. They score')+' no points of '+(disp.length===1?'its':'their')+' own, '+(disp.length===1?'it pushes':'they push')+' other teams\' runners further back.');
   $('resInfo').addEventListener('click',function(){ infoOpen('About this score',resNote); });
   /* The scope is named on the button rather than left to the segment above,
      because the copy is the thing you cannot take back once it is pasted. */
@@ -6699,7 +6737,8 @@ function splitsOnlyCsv(){
 /* 4.73: the way into Meet scores, made hard to miss. With no schools entered,
    a red-outlined Score the meet with a line saying what it is for. With
    schools in, the top of the standings in a panel: the first three, and us
-   in bold, after a gap if we are further down. The whole panel is the tap
+   in bold, after a gap if we are further down (4.95: the first three, then
+   us, and our row in coral, since it is the team score). The whole panel is the tap
    into Meet scores. Where meet scores cannot apply (a time trial, Team only,
    no finishes) the caller shows nothing. */
 function msPanel(mr){
@@ -6711,12 +6750,12 @@ function msPanel(mr){
   var rows=mr.res.maac, me=null;
   rows.forEach(function(t){ if(t.school===OURS_KEY) me=t; });
   var top=rows.slice(0,3), gap=false;
-  if(me && top.indexOf(me)<0){ top=rows.slice(0,2).concat([me]); gap=true; }
+  if(me && top.indexOf(me)<0){ top=rows.slice(0,3).concat([me]); gap=true; }
   var h='<button type="button" class="mspanel" id="resMeet"><span class="msp-head"><span>Meet scores</span>'+
         '<span class="msp-of">'+rows.length+(rows.length===1?' team':' teams')+chev+'</span></span>';
   if(!rows.length) h+='<span class="msp-none">No school has five finishers yet.</span>';
   top.forEach(function(t,i){
-    if(gap && i===2) h+='<span class="msp-gap" aria-hidden="true">\u22ef</span>';
+    if(gap && i===3) h+='<span class="msp-gap" aria-hidden="true">\u22ef</span>';
     h+='<span class="msp-row'+(t===me?' us':'')+'"><span class="msp-p num">'+t.place+'</span>'+
        '<span class="msp-n">'+esc(schoolLabel(t.school))+'</span><span class="msp-s num">'+t.score+'</span></span>';
   });
