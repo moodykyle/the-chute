@@ -947,6 +947,8 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 .rnrace .rtime{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;gap:3px}
 .rnrace .rtime .t{font-size:17px}
 .rnrace .rtime .rec{font-size:12px}
+/* 4.97: our row on Meet scores is coral too, as in the panel, and every row
+   starts shut, ours included; ours still opens to its average and spread. */
 /* 4.95: the panel carries the team score, so our row is coral; by place under
    a big number that entering schools will move; Meet scores rows expand. */
 .mspanel,.msbtn{align-items:stretch}
@@ -955,6 +957,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 .rhead .mspanel{margin-top:14px}
 .msp-row.us .msp-n,.msp-row.us .msp-s{color:var(--tape)}
 .msrow{grid-template-columns:34px minmax(0,1fr) auto 12px}
+.msrow.home .mss,.msrow.home .msv{color:var(--tape)}
 .msrow .chev{width:12px;height:12px;color:var(--ink-soft);transition:transform .15s}
 .msrow[aria-expanded="true"] .chev{transform:rotate(180deg)}
 </style>
@@ -1425,7 +1428,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.96';
+var BUILD='v4.97';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1776,7 +1779,7 @@ var HOW=[
   'Results show the score, the five places that make it, and the pack: the average time of the five, and the spread from first to fifth.',
   'The score is built from every place in the race, not only ours, which is why every runner has to be tapped. With Timing on <b>Team</b>, only ours are timed, so there\u2019s no score.',
   'On its own, the app scores ours against every place in the race. For the real score, runners past a school\u2019s seventh and unattached runners come out first and the rest move up, so it can be lower. A school with fewer than five has no score, and its runners come out too: they\u2019re listed under their school but don\u2019t push anyone back.',
-  '<b>Meet scores</b>, on Results, scores the whole meet that way. Enter each school\u2019s places from the meet\u2019s sheet, or paste the sheet in one go; ours come from the race. It shows every school\u2019s score and place beside its score by place (the five places as they stand, the way it\u2019s scored by hand), flags a place two schools claim, and copies the lot for the head coach. Before any school is in, the score on Results is by place. Once schools are in, Results leads with the top three and our place, and Meet scores opens on our row with its places, average and spread.',
+  '<b>Meet scores</b>, on Results, scores the whole meet that way. Enter each school\u2019s places from the meet\u2019s sheet, or paste the sheet in one go; ours come from the race. It shows every school\u2019s score and place beside its score by place (the five places as they stand, the way it\u2019s scored by hand), flags a place two schools claim, and copies the lot for the head coach. Before any school is in, the score on Results is by place. Once schools are in, Results leads with the top three and our place, and on Meet scores our row opens to its places, average and spread.',
   'The <b>Team</b> tab and <b>All</b> tab above the list of finishers switch between our runners and every place in the race.',
   'A runner who started and dropped out, or was expected and never started, can be listed with <b>Didn\u2019t finish</b> in Edit race, on any phone. They show under the placed runners, on Edit race and Results, as DNF or DNS and never change the score, places or PRs. To take one off, tap it in Edit race.']},
  {t:'Time trials', p:[
@@ -4813,7 +4816,7 @@ function flagText(f){
   return esc(f.school)+' lists '+f.n+'. The first seven count.';
 }
 function openMeetScores(){
-  msOpen={}; msOpen['t:'+OURS_KEY]=true; msEdit=null; msMsg=''; msText=''; msRead=null; msPaste=!schoolsOf(msRace()).length;
+  msOpen={}; msEdit=null; msMsg=''; msText=''; msRead=null; msPaste=!schoolsOf(msRace()).length;
   backTo='results'; show('mscore');
 }
 function renderMeetScores(){
@@ -6652,7 +6655,7 @@ function renderResults(){
   if($('resMeet')) $('resMeet').addEventListener('click',openMeetScores);
   resNote = tonly
     ? ['Only our runners were timed in this race, so <b>places are team places</b> and there is no score. If the full field is loaded later, places and the score follow from it.']
-    : mr ? ['Scored from the places each school reported in <b>Meet scores</b>. Runners past a school\u2019s seventh, runners nobody claimed and the runners of any school with fewer than five come out, and the rest are renumbered. '+(meIn?'Our score is our row in the standings; tap it for our scoring places, average and spread.':'The places beside the score are scoring places;')+' The list below keeps overall places.']
+    : mr ? ['Scored from the places each school reported in <b>Meet scores</b>. Runners past a school\u2019s seventh, runners nobody claimed and the runners of any school with fewer than five come out, and the rest are renumbered. '+(meIn?'Our score is our row in the standings; on Meet scores, open our row for our scoring places, average and spread.':'The places beside the score are scoring places;')+' The list below keeps overall places.']
     : ['Places are <b>raw order across the whole field</b>. For the real score, runners past a school\u2019s seventh, unattached runners and the runners of schools with fewer than five come out first, so it can be lower. Enter the other schools in <b>Meet scores</b> to score it properly. A missed or extra tap moves it.'];
   if(unnamed) resNote.push('<b>'+unnamed+' of your '+(unnamed===1?'places':'places')+' still '+(unnamed===1?'needs':'need')+' a name.</b> The score above is already final, since it only depends on where your runners crossed.');
   if(disp.length && !meIn) resNote.push('The '+(disp.length===1?'one':'two')+' in brackets '+(disp.length===1?'is a <b>displacer</b>. It scores':'are <b>displacers</b>. They score')+' no points of '+(disp.length===1?'its':'their')+' own, '+(disp.length===1?'it pushes':'they push')+' other teams\' runners further back.');
