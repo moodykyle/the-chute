@@ -1441,7 +1441,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.98';
+var BUILD='v4.99';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1765,6 +1765,7 @@ var HOW=[
   '<b>Team.</b> Our runners only, for when the field is too big to tap. The clock screen lists the roster in the order they\u2019re likely to finish. Tap a name as that runner crosses, and the place, time and name land together. With nobody else timed, places are team places and there\u2019s no score; Results says <b>Team only</b>.',
   'On the Team clock nothing moves on its own: a tapped name stays where it is, showing its place and time. Can\u2019t find a name in time? Tap <b>Name later</b>, and that place goes on the very bottom to name when you can. When the list fills up, tap <b>Tidy</b> in a gap: every name already in moves down to <b>In</b>, and the ones still to come are back at the top.',
   'The count at the top shows how many runners are in, so you can check it against the chute. <b>Undo last</b> takes back a mis-tap. <b>End race</b> needs two taps, so a stray thumb can\u2019t stop the clock.',
+  'Start recalled? Until the first finish, Undo last reads <b>Restart</b>. Two taps take the race back to Start, with who\u2019s here kept, and every phone waits for the new gun. A stray tap in the false start comes off with Undo last first.',
   '<b>Leave clock</b> takes you home while the race keeps running, for when a second race starts before the first one ends. Start the second race from home, and both clocks keep going. A phone can only tap the race on its screen, though, so one coach timing both means switching back and forth. When races overlap, a phone for each is easier. A strip on home shows what is running and allows for easy navigation.']},
  {t:'Naming finishers', p:[
   'Every finishing place for your team is populated from the same name selector, whether you do it during the race or after. Tap a place and pick the runner.',
@@ -1807,7 +1808,7 @@ var HOW=[
   'Records show on results as <b>PR \u22120:07.0</b>, the time taken off, and as (PR) in Copy Text. They can be turned off in <b>Settings &gt; Results display</b>. The CSV always includes them.']},
  {t:'Season and Runners', p:[
   'The bar along the bottom has <b>Events</b>, <b>Runners</b>, <b>Season</b> and <b>Settings</b>, with + in the middle for a new event. It isn\u2019t there while you time, name or take splits, so a thumb can\u2019t leave a race by accident.',
-  '<b>Season</b> is how the season is going, for the girls or the boys. Across the top, the meets we\u2019ve been scored in, our best finish, and our record against other schools. <b>Charts</b> swipe left and right: our top 5\u2019s average time and the gap between them, where they placed in each meet, how many of ours set a PR at each race, and our top 7\u2019s place on the team race by race. <b>Head to head</b> lists every school we\u2019ve raced once their places are in <b>Meet scores</b>. Under that, the meets themselves; tap one for its Results.',
+  '<b>Season</b> is how the season is going, for the girls or the boys. Across the top, the meets we\u2019ve been scored in, our best finish, and our record against other schools. <b>Charts</b> swipe left and right: our top 7\u2019s race times, the same as pace per mile so different distances compare, their place on the team race by race, how many of ours set a PR at each race, who\u2019s improved most this season, and our team score at each meet. An event with <b>On the charts</b> off shows on none of them. <b>Head to head</b> lists every school we\u2019ve raced once their places are in <b>Meet scores</b>. Under that, the meets themselves; tap one for its Results.',
   '<b>Runners</b> ranks the team by season best at 2 miles, with how many races each has run. Like records, it counts real events the database has, hidden events included.',
   'Tap a runner for their season: their best at each distance, how much they\u2019ve dropped at 2 miles, and every race with their place on the team, overall, and each mile where a splitter was out.']},
  {t:'Fixing mistakes', p:[
@@ -2727,6 +2728,19 @@ function record(runnerId,home){
   renderChute(); renderCount();
   echoTap(S.fin.length, (home||runnerId!=null)?'home':'field');
 }
+/* 4.99: Restart, for a recalled start. Until the first finish the Undo slot
+   has nothing to undo, so it offers this instead. It takes the race back to
+   before the gun: no start, no end, no shift, the same race, the same claim,
+   who's here kept. The database hears started_at go empty like any other
+   change to the clock, so other phones go back to waiting and follow the
+   next Start as they did the first. A stray tap in the false start is
+   undone first, which brings Restart back. */
+function restartRace(){
+  if(!S || S.t0Mono==null || S.endedMs!=null || S.fin.length) return;
+  S.t0Wall=null; S.t0Mono=null; S.shift=0; save();
+  openRace(S.meetId,S.raceId);
+}
+function canRestart(){ return !!S && S.t0Mono!=null && S.endedMs==null && !S.fin.length; }
 function undo(){
   if(!S.fin.length) return;
   /* The popped place may be the one the sheet is naming. */
@@ -4310,6 +4324,8 @@ function splitKeyOf(d,map){
 }
 function splitElapsed(r,d){
   if(!r || r.t0Wall==null || d.at==null) return null;
+  /* 4.99: a split stamped before the gun came from a false start. */
+  if(preGun(r,d)) return null;
   return d.at-r.t0Wall+(r.shift||0);
 }
 /* One race's splits by runner, for Results and the CSV: key to {mark: ms}. */
@@ -4426,9 +4442,11 @@ function spExpected(m,r,list){
     return a.ord-b.ord;
   });
 }
+function preGun(r,d){ return !!r && r.t0Wall!=null && d.at!=null && d.at<r.t0Wall; }
 function spFind(r,x,mk,map){
   var k=rosterKey(x,map);
-  return splitList(r).filter(function(d){ return d.m===mk && splitKeyOf(d,map)===k; })[0] || null;
+  /* 4.99: and a false start's split does not stand in the way of the real one. */
+  return splitList(r).filter(function(d){ return d.m===mk && splitKeyOf(d,map)===k && !preGun(r,d); })[0] || null;
 }
 function spTimeText(r,d){
   var ms=splitElapsed(r,d);
@@ -5867,6 +5885,14 @@ function meetRow(m,open,today){
 function renderCount(){
   $('cIn').textContent=S.fin.length;
   $('cOurs').textContent=ourCount();
+  /* 4.99: the Undo slot reads Restart until the first finish. A Restart
+     armed when that finish lands is dropped, so the next tap undoes. */
+  var u=$('undo'), mode=canRestart()?'restart':'undo';
+  if(u.getAttribute('data-mode')!==mode){
+    if(armDiscard===u){ armDiscard=null; u.classList.remove('armed'); u.style.minWidth=''; }
+    u.setAttribute('data-mode',mode);
+    u.textContent = mode==='restart' ? 'Restart' : 'Undo last';
+  }
 }
 /* A time trial is our runners only. The Field button would be a way to lose a
    runner's time, and the team count would restate the count beside it. */
@@ -7366,7 +7392,10 @@ $('gun').addEventListener('click',function(){
 $('nameWait').addEventListener('click',function(){ stopWait(); renderArmed(); });
 $('tap').addEventListener('click',function(){ record(null,false); });
 $('tapHome').addEventListener('click',function(){ record(null, ttRace() || !fieldTiming()); });
-$('undo').addEventListener('click',undo);
+$('undo').addEventListener('click',function(){
+  if(canRestart()) armTwoTap(this,'Restart?',restartRace);
+  else undo();
+});
 $('resReload').addEventListener('click',reloadRace);
 $('stop').addEventListener('click',function(){
   /* 4.44: End? like Delete? and Hide?. Again to end was wider than End race,
