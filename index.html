@@ -956,6 +956,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 .rnbest .d .w{font-size:12px;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rnbest .t{flex:0 0 auto;font-size:19px}
 .rnrace .mbody .mmeta{white-space:normal}
+.rsplits .sn{color:var(--ink);font-weight:600}
 .rnrace .mmeta .nw{white-space:nowrap;display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;vertical-align:bottom}
 .rnrace .rtime{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;gap:3px}
 .rnrace .rtime .t{font-size:17px}
@@ -1441,7 +1442,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v5.00';
+var BUILD='v5.01';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1811,7 +1812,7 @@ var HOW=[
   '<b>Season</b> is how the season is going, for the girls or the boys. Across the top, the meets we\u2019ve been scored in, our best finish, and our record against other schools. <b>Charts</b> swipe left and right: our top 7\u2019s race times, the same as pace per mile so different distances compare, their place on the team race by race, how many of ours set a PR at each race, who\u2019s improved most this season, and our team score at each meet. An event with <b>On the charts</b> off shows on none of them. <b>Head to head</b> lists every school we\u2019ve raced once their places are in <b>Meet scores</b>. Under that, the meets themselves; tap one for its Results.',
   '<b>Runners</b> ranks the team by season best at 2 miles, with how many races each has run. Like records, it counts real events the database has, hidden events included.',
   'Tap a runner for their season: their best at each distance, how much they\u2019ve dropped at 2 miles, and every race with their place on the team, overall, and each mile where a splitter was out.']},
- {t:'Fixing mistakes Where a splitter was out, each race says whether it was a negative or positive split: the first mile against the rest, per mile when the rest isn\u2019t a mile, and within a second a mile is even. <b>Mile split</b> under the bests is their fastest true mile from a split, never a 1 mile best.', p:[
+ {t:'Fixing mistakes Where a splitter was out, each race shows its mile, then the rest: the next mile, or <b>Remaining</b> as a pace per mile when the rest isn\u2019t a whole mile. <b>Split</b> is the last number less the first: + slower, \u2212 faster. <b>Mile split</b> under the bests is their fastest true mile from a split, never a 1 mile best.', p:[
   'Tapped times are never changed. They\u2019re the record of what happened; naming only decides whose they are. The three buttons at the bottom of Edit race handle everything else:',
   {ul:['<b>Missed finish</b> adds a place nobody tapped. Everyone behind it moves down one, and its time starts halfway between its neighbors, which you can change.',
        '<b>Shift all times</b> moves every time in the race by the same amount, for a clock started late or early. Places don\u2019t change.',
@@ -8266,27 +8267,33 @@ function runnerRaces(r){
         });
         if(segs.length){ var n=markMiles(d); segs.push({to:n ? 'Mile '+n : 'Finish', ms:f.ms-prev, fm:pm, tm:d}); }
       }
-      out.push({m:m, r:rc, f:f, d:d, tp:mates.indexOf(f)+1, tn:mates.length, g:g, verdict:splitVerdict(segs,f.ms,d),
+      out.push({m:m, r:rc, f:f, d:d, tp:mates.indexOf(f)+1, tn:mates.length, g:g, verdict:splitVerdict(segs),
         op:(isTT(m) || teamOnlyRace(rc)) ? null : i+1, on:fin.length,
         rec:recOf(f,{m:m, r:rc, idx:idx, map:map}), segs:segs, ord:raceOrd(m,rc)});
     });
   });
   return out.sort(function(a,b){ return a.ord<b.ord ? 1 : (a.ord>b.ord ? -1 : 0); });
 }
-/* 5.00: negative or positive, from the first split against the rest of the
-   race. Per mile, since the rest of a 3K is 0.86 of a mile; when both parts
-   are a mile, as in a 2 mile race, that is the two miles side by side and
-   reads without the /mi. Within a second a mile is even: hand splits are no
-   finer. Never a PR, never coral. */
-function splitVerdict(segs,ms,d){
-  if(!segs || segs.length<2 || !d || !(segs[0].tm>0) || d<=segs[0].tm) return null;
-  var a=segs[0].ms, am=segs[0].tm/MILE_M, bm=(d-segs[0].tm)/MILE_M;
-  var whole = markMiles(segs[0].tm)===1 && markMiles(d)===2;
-  var diff = whole ? (ms-a)-a : (ms-a)/bm - a/am;
-  var s=Math.round(Math.abs(diff)/1000);
-  if(s<1) return {kind:'even', text:'Even split'};
-  return {kind: diff<0 ? 'neg' : 'pos', s:s,
-    text:(diff<0 ? 'Negative split \u2212' : 'Positive split +')+fmt(s*1000,0)+(whole ? '' : '/mi')};
+/* 5.01: the splits line as the coach reads it. Each piece is a whole mile's
+   time, or, for the last piece of a race that is not a whole number of miles,
+   Remaining as a pace per mile. Times show to the second, cut like every time
+   in the app, and Split is the last number shown less the first, so the
+   line adds up as read: + slower, \u2212 faster, even at no gap. Only when the
+   first piece is mile 1. 5.00 compared exact times, so Rose's 7:35 then
+   7:38/mi read +0:03 while the gap shown was 0:04 after rounding. */
+function splitPieces(segs){
+  return (segs||[]).map(function(sg,i,all){
+    var last=i===all.length-1, whole=trueMile(sg);
+    if(last && !whole && sg.tm>sg.fm) return {lab:'Remaining', sec:Math.floor(sg.ms/((sg.tm-sg.fm)/MILE_M)/1000), mi:true};
+    return {lab:sg.to, sec:Math.floor(sg.ms/1000), mi:false};
+  });
+}
+function splitVerdict(segs){
+  if(!segs || segs.length<2 || !(segs[0].fm===0 && markMiles(segs[0].tm)===1)) return null;
+  var p=splitPieces(segs), a=p[0].sec, z=p[p.length-1], g=z.sec-a;
+  if(!g) return {kind:'even', text:'Split even', v:'even'};
+  var v=(g<0 ? '\u2212' : '+')+fmt(Math.abs(g)*1000,0)+(z.mi ? '/mi' : '');
+  return {kind: g<0 ? 'neg' : 'pos', s:Math.abs(g), text:'Split '+v, v:v};
 }
 /* 5.00: a true mile only: start to mile 1, one mile mark to the next, or the
    last mile of a race that is a whole number of miles. */
@@ -8332,13 +8339,14 @@ function renderRunner(){
     var p=(x.m.date||'').split('-');
     var line=[distLabel(x.d), ordinal(x.tp)+' of '+x.tn+(isTT(x.m) ? (x.g==='M' ? ' boys' : ' girls') : ' on the team')]
       .concat(x.op ? [ordinal(x.op)+' of '+x.on+' overall'] : []);
-    var sl=x.segs.map(function(sg){ return sg.to+' '+fmt(sg.ms,0); });
-    if(x.verdict) sl.push(x.verdict.text);
+    /* 5.01: labels in the meta gray, the numbers bold and white. */
+    var sl=splitPieces(x.segs).map(function(p){ return '<span class="nw"><span class="sl">'+esc(p.lab)+'</span> <b class="sn">'+fmt(p.sec*1000,0)+(p.mi?'/mi':'')+'</b></span>'; });
+    if(x.verdict) sl.push('<span class="nw"><span class="sl">Split</span> <b class="sn">'+esc(x.verdict.v)+'</b></span>');
     var nw=function(l){ return l.map(function(t){ return '<span class="nw">'+esc(t)+'</span>'; }).join(' \u00b7 '); };
     h+='<div class="mcard rnrace"><div class="mrow"><span class="mday"><span class="mdm">'+MON[parseInt(p[1],10)-1].toUpperCase()+'</span><span class="mdd">'+parseInt(p[2],10)+'</span>'+
       '<span class="mkind'+(isTT(x.m) ? ' tt' : '')+'">'+(isTT(x.m) ? 'TIME TRIAL' : 'MEET')+'</span></span>'+
       '<span class="mbody"><span class="mn">'+esc(x.m.name)+'</span><span class="mmeta num">'+nw(line)+'</span>'+
-      (sl.length ? '<span class="mmeta num">'+nw(sl)+'</span>' : '')+'</span>'+
+      (sl.length ? '<span class="mmeta num rsplits">'+sl.join(' \u00b7 ')+'</span>' : '')+'</span>'+
       '<span class="rtime"><span class="t num">'+fmt(x.f.ms,1)+'</span>'+(x.rec ? recHtml(x.rec) : '')+'</span></div></div>';
   });
   if(!races.length) h+='<p class="hint">No races this season yet. Test events never count.</p>';
