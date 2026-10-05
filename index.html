@@ -1540,7 +1540,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.05';
+var BUILD='v5.06';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -5755,8 +5755,6 @@ function renderHome(){
   var coming=ms.filter(function(m){ return !meetFinished(m) && m.date>=today; });
   var done  =ms.filter(meetFinished).reverse();
   var missed=ms.filter(function(m){ return !meetFinished(m) && m.date<today; }).reverse();
-  /* 5.02: a parent lands on the newest result, open. */
-  if(VIEW && !openByHand && !openMeet && done.length) openMeet=done[0].id;
   var shown=null;
   function group(title,list){
     if(!list.length) return;
