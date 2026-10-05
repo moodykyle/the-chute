@@ -1441,7 +1441,7 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 (function(){
 'use strict';
 
-var BUILD='v4.99';
+var BUILD='v5.00';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1811,7 +1811,7 @@ var HOW=[
   '<b>Season</b> is how the season is going, for the girls or the boys. Across the top, the meets we\u2019ve been scored in, our best finish, and our record against other schools. <b>Charts</b> swipe left and right: our top 7\u2019s race times, the same as pace per mile so different distances compare, their place on the team race by race, how many of ours set a PR at each race, who\u2019s improved most this season, and our team score at each meet. An event with <b>On the charts</b> off shows on none of them. <b>Head to head</b> lists every school we\u2019ve raced once their places are in <b>Meet scores</b>. Under that, the meets themselves; tap one for its Results.',
   '<b>Runners</b> ranks the team by season best at 2 miles, with how many races each has run. Like records, it counts real events the database has, hidden events included.',
   'Tap a runner for their season: their best at each distance, how much they\u2019ve dropped at 2 miles, and every race with their place on the team, overall, and each mile where a splitter was out.']},
- {t:'Fixing mistakes', p:[
+ {t:'Fixing mistakes Where a splitter was out, each race says whether it was a negative or positive split: the first mile against the rest, per mile when the rest isn\u2019t a mile, and within a second a mile is even. <b>Mile split</b> under the bests is their fastest true mile from a split, never a 1 mile best.', p:[
   'Tapped times are never changed. They\u2019re the record of what happened; naming only decides whose they are. The three buttons at the bottom of Edit race handle everything else:',
   {ul:['<b>Missed finish</b> adds a place nobody tapped. Everyone behind it moves down one, and its time starts halfway between its neighbors, which you can change.',
        '<b>Shift all times</b> moves every time in the race by the same amount, for a clock started late or early. Places don\u2019t change.',
@@ -8260,18 +8260,43 @@ function runnerRaces(r){
       var mates=fin.filter(function(x){ return counts(m,x) && finDist(x,m)===d && (!isTT(m) || (x.g||'')===g); });
       var sp=splitsByRunner(rc), my=sp && sp[k], segs=[];
       if(my){
-        var prev=0;
+        var prev=0, pm=0;
         Object.keys(my).map(Number).sort(function(a,b){ return a-b; }).forEach(function(mk){
-          if(my[mk]>prev && my[mk]<f.ms){ segs.push({to:markLabel(mk), ms:my[mk]-prev}); prev=my[mk]; }
+          if(my[mk]>prev && my[mk]<f.ms){ segs.push({to:markLabel(mk), ms:my[mk]-prev, fm:pm, tm:mk}); prev=my[mk]; pm=mk; }
         });
-        if(segs.length){ var n=markMiles(d); segs.push({to:n ? 'Mile '+n : 'Finish', ms:f.ms-prev}); }
+        if(segs.length){ var n=markMiles(d); segs.push({to:n ? 'Mile '+n : 'Finish', ms:f.ms-prev, fm:pm, tm:d}); }
       }
-      out.push({m:m, r:rc, f:f, d:d, tp:mates.indexOf(f)+1, tn:mates.length, g:g,
+      out.push({m:m, r:rc, f:f, d:d, tp:mates.indexOf(f)+1, tn:mates.length, g:g, verdict:splitVerdict(segs,f.ms,d),
         op:(isTT(m) || teamOnlyRace(rc)) ? null : i+1, on:fin.length,
         rec:recOf(f,{m:m, r:rc, idx:idx, map:map}), segs:segs, ord:raceOrd(m,rc)});
     });
   });
   return out.sort(function(a,b){ return a.ord<b.ord ? 1 : (a.ord>b.ord ? -1 : 0); });
+}
+/* 5.00: negative or positive, from the first split against the rest of the
+   race. Per mile, since the rest of a 3K is 0.86 of a mile; when both parts
+   are a mile, as in a 2 mile race, that is the two miles side by side and
+   reads without the /mi. Within a second a mile is even: hand splits are no
+   finer. Never a PR, never coral. */
+function splitVerdict(segs,ms,d){
+  if(!segs || segs.length<2 || !d || !(segs[0].tm>0) || d<=segs[0].tm) return null;
+  var a=segs[0].ms, am=segs[0].tm/MILE_M, bm=(d-segs[0].tm)/MILE_M;
+  var whole = markMiles(segs[0].tm)===1 && markMiles(d)===2;
+  var diff = whole ? (ms-a)-a : (ms-a)/bm - a/am;
+  var s=Math.round(Math.abs(diff)/1000);
+  if(s<1) return {kind:'even', text:'Even split'};
+  return {kind: diff<0 ? 'neg' : 'pos', s:s,
+    text:(diff<0 ? 'Negative split \u2212' : 'Positive split +')+fmt(s*1000,0)+(whole ? '' : '/mi')};
+}
+/* 5.00: a true mile only: start to mile 1, one mile mark to the next, or the
+   last mile of a race that is a whole number of miles. */
+function trueMile(sg){ var a=sg.fm ? markMiles(sg.fm) : 0, b=markMiles(sg.tm); return b>0 && (sg.fm===0 || a>0) && b===a+1; }
+function bestMileSplit(races){
+  var best=null;
+  races.forEach(function(x){ (x.segs||[]).forEach(function(sg){
+    if(trueMile(sg) && (!best || sg.ms<best.ms)) best={ms:sg.ms, m:x.m, mile:markMiles(sg.tm)};
+  }); });
+  return best;
 }
 /* The first time at two miles against the best, when the best came later.
    Nothing when the first was the best: that is not news worth a banner. */
@@ -8298,6 +8323,9 @@ function renderRunner(){
     h+='<p class="hsect">SEASON BESTS</p>';
     ds.forEach(function(d){ var x=bd[d];
       h+='<div class="rnbest"><span class="d"><span class="k">'+esc(distLabel(d))+'</span><span class="w">'+esc(fmtDate(x.m.date)+' \u00b7 '+x.m.name)+'</span></span><span class="t num">'+fmt(x.f.ms,1)+'</span></div>'; });
+    /* 5.00: its own row, not a 1 mile best. */
+    var bm=bestMileSplit(races);
+    if(bm) h+='<div class="rnbest rnmile"><span class="d"><span class="k">Mile split</span><span class="w">'+esc(fmtDate(bm.m.date)+' \u00b7 '+bm.m.name+', mile '+bm.mile)+'</span></span><span class="t num">'+fmt(bm.ms,1)+'</span></div>';
     h+='<p class="hsect">RACES</p>';
   }
   races.forEach(function(x){
@@ -8305,6 +8333,7 @@ function renderRunner(){
     var line=[distLabel(x.d), ordinal(x.tp)+' of '+x.tn+(isTT(x.m) ? (x.g==='M' ? ' boys' : ' girls') : ' on the team')]
       .concat(x.op ? [ordinal(x.op)+' of '+x.on+' overall'] : []);
     var sl=x.segs.map(function(sg){ return sg.to+' '+fmt(sg.ms,0); });
+    if(x.verdict) sl.push(x.verdict.text);
     var nw=function(l){ return l.map(function(t){ return '<span class="nw">'+esc(t)+'</span>'; }).join(' \u00b7 '); };
     h+='<div class="mcard rnrace"><div class="mrow"><span class="mday"><span class="mdm">'+MON[parseInt(p[1],10)-1].toUpperCase()+'</span><span class="mdd">'+parseInt(p[2],10)+'</span>'+
       '<span class="mkind'+(isTT(x.m) ? ' tt' : '')+'">'+(isTT(x.m) ? 'TIME TRIAL' : 'MEET')+'</span></span>'+
