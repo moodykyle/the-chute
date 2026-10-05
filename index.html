@@ -976,10 +976,12 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 .msrow[aria-expanded="true"] .chev{transform:rotate(180deg)}
 /* 5.02: the banquet link. The viewer's Home, a thank-you page, and what the
    viewer leaves out of the screens it shares with the coaches. */
-.tabbar .vtab{display:none}
-body.viewer .tabbar{grid-template-columns:repeat(4,minmax(0,1fr))}
-body.viewer .tabbar .vtab{display:flex}
-body.viewer .tabbar [data-tab=plus],body.viewer .tabbar [data-tab=settings]{display:none}
+/* 5.05: in a browser the parent's tabs run along the top; Safari has the bottom. */
+.vtop{display:none}
+body.viewer .tabbar{display:none}
+body.viewer .vtop{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));flex:0 0 auto;border-bottom:1px solid var(--rule);background:var(--field)}
+.vtop button{min-width:0;min-height:44px;padding:10px 0 8px;font-size:15px;font-weight:600;color:var(--ink-soft);border-bottom:2px solid transparent;margin-bottom:-1px}
+.vtop button[aria-current=page]{color:var(--ink);border-bottom-color:var(--tape)}
 body.viewer #backRecon,body.viewer #resultActions,body.viewer #msActions,body.viewer #resMeet.msbtn,
 body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer #runners .scroll>.hsect{display:none}
 #vhome .scroll{padding:0 0 28px}
@@ -1049,10 +1051,10 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
     <span class="wordmark">SEASON</span>
     <span class="season"></span>
   </div>
+  <nav class="vtop" aria-label="Sections"><button type="button" data-tab="vhome">Home</button><button type="button" data-tab="home">Events</button><button type="button" data-tab="runners">Runners</button><button type="button" data-tab="season" aria-current="page">Season</button></nav>
   <div class="seg2"><button type="button" id="seaG" aria-pressed="true">Girls</button><button type="button" id="seaB" aria-pressed="false">Boys</button></div>
   <div class="scroll pad" id="seasonBody"></div>
   <nav class="tabbar" aria-label="Sections">
-    <button type="button" class="vtab" data-tab="vhome"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7"/><path d="M6.5 9.5V20h4v-5.5h3V20h4V9.5"/></svg><span>Home</span></button>
     <button type="button" data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14.5" rx="2"/><line x1="4" y1="10" x2="20" y2="10"/><line x1="8.5" y1="3.5" x2="8.5" y2="7"/><line x1="15.5" y1="3.5" x2="15.5" y2="7"/></svg><span>Events</span></button>
     <button type="button" data-tab="runners"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="7.5" r="3.5"/><path d="M5 20c.8-4 3.6-6 7-6s6.2 2 7 6"/></svg><span>Runners</span></button>
     <button type="button" class="tabplus" data-tab="plus" aria-label="Add event"><span class="pc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg></span></button>
@@ -1066,6 +1068,7 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
     <span class="wordmark">RUNNERS</span>
     <span class="season"></span>
   </div>
+  <nav class="vtop" aria-label="Sections"><button type="button" data-tab="vhome">Home</button><button type="button" data-tab="home">Events</button><button type="button" data-tab="runners" aria-current="page">Runners</button><button type="button" data-tab="season">Season</button></nav>
   <div class="seg2"><button type="button" id="runG" aria-pressed="true">Girls</button><button type="button" id="runB" aria-pressed="false">Boys</button></div>
   <div class="scroll pad">
     <div id="runnersBody"></div>
@@ -1073,7 +1076,6 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
     <button class="srow" id="runRoster"><span class="sn">Roster</span><span class="ss" id="subRoster"></span><span class="chev">&#8250;</span></button>
   </div>
   <nav class="tabbar" aria-label="Sections">
-    <button type="button" class="vtab" data-tab="vhome"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7"/><path d="M6.5 9.5V20h4v-5.5h3V20h4V9.5"/></svg><span>Home</span></button>
     <button type="button" data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14.5" rx="2"/><line x1="4" y1="10" x2="20" y2="10"/><line x1="8.5" y1="3.5" x2="8.5" y2="7"/><line x1="15.5" y1="3.5" x2="15.5" y2="7"/></svg><span>Events</span></button>
     <button type="button" data-tab="runners" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="7.5" r="3.5"/><path d="M5 20c.8-4 3.6-6 7-6s6.2 2 7 6"/></svg><span>Runners</span></button>
     <button type="button" class="tabplus" data-tab="plus" aria-label="Add event"><span class="pc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg></span></button>
@@ -1085,9 +1087,9 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
 <!-- A RUNNER'S SEASON, 4.61 -->
 <section class="screen" id="runner">
   <div class="bar nav"><button class="linkbtn back" id="rnBack"><span class="bc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5 8 12l7 7"/></svg></span><span class="bl">Runners</span><span class="bh" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7"/><path d="M6.5 9.5V20h4v-5.5h3V20h4V9.5"/></svg></span></button><h1 class="navmid nt" id="rnName"></h1><span aria-hidden="true"></span></div>
+  <nav class="vtop" aria-label="Sections"><button type="button" data-tab="vhome">Home</button><button type="button" data-tab="home">Events</button><button type="button" data-tab="runners" aria-current="page">Runners</button><button type="button" data-tab="season">Season</button></nav>
   <div class="scroll pad" id="rnBody"></div>
   <nav class="tabbar" aria-label="Sections">
-    <button type="button" class="vtab" data-tab="vhome"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7"/><path d="M6.5 9.5V20h4v-5.5h3V20h4V9.5"/></svg><span>Home</span></button>
     <button type="button" data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14.5" rx="2"/><line x1="4" y1="10" x2="20" y2="10"/><line x1="8.5" y1="3.5" x2="8.5" y2="7"/><line x1="15.5" y1="3.5" x2="15.5" y2="7"/></svg><span>Events</span></button>
     <button type="button" data-tab="runners"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="7.5" r="3.5"/><path d="M5 20c.8-4 3.6-6 7-6s6.2 2 7 6"/></svg><span>Runners</span></button>
     <button type="button" class="tabplus" data-tab="plus" aria-label="Add event"><span class="pc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg></span></button>
@@ -1103,15 +1105,8 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
     <span class="wordmark">HOME</span>
     <span class="season"></span>
   </div>
+  <nav class="vtop" aria-label="Sections"><button type="button" data-tab="vhome" aria-current="page">Home</button><button type="button" data-tab="home">Events</button><button type="button" data-tab="runners">Runners</button><button type="button" data-tab="season">Season</button></nav>
   <div class="scroll" id="vhomeBody"></div>
-  <nav class="tabbar" aria-label="Sections">
-    <button type="button" class="vtab" data-tab="vhome" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7"/><path d="M6.5 9.5V20h4v-5.5h3V20h4V9.5"/></svg><span>Home</span></button>
-    <button type="button" data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14.5" rx="2"/><line x1="4" y1="10" x2="20" y2="10"/><line x1="8.5" y1="3.5" x2="8.5" y2="7"/><line x1="15.5" y1="3.5" x2="15.5" y2="7"/></svg><span>Events</span></button>
-    <button type="button" data-tab="runners"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="7.5" r="3.5"/><path d="M5 20c.8-4 3.6-6 7-6s6.2 2 7 6"/></svg><span>Runners</span></button>
-    <button type="button" class="tabplus" data-tab="plus" aria-label="Add event"><span class="pc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg></span></button>
-    <button type="button" data-tab="season"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4,17 9,12 13,15 20,7"/><line x1="4" y1="20" x2="20" y2="20"/></svg><span>Season</span></button>
-    <button type="button" data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><circle cx="15" cy="7" r="2.4"/><line x1="4" y1="12.5" x2="20" y2="12.5"/><circle cx="9" cy="12.5" r="2.4"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="16" cy="18" r="2.4"/></svg><span>Settings</span></button>
-  </nav>
 </section>
 <section class="screen" id="banquet">
   <div class="bar nav"><button class="linkbtn back" id="bqBack"><span class="bc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5 8 12l7 7"/></svg></span><span class="bl">Settings</span><span class="bh" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7"/><path d="M6.5 9.5V20h4v-5.5h3V20h4V9.5"/></svg></span></button><h1 class="navmid nt">Banquet page</h1><span aria-hidden="true"></span></div>
@@ -1125,9 +1120,9 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
     <span class="wordmark">EVENTS</span>
     <span class="season" id="seasonLabel"></span>
   </div>
+  <nav class="vtop" aria-label="Sections"><button type="button" data-tab="vhome">Home</button><button type="button" data-tab="home" aria-current="page">Events</button><button type="button" data-tab="runners">Runners</button><button type="button" data-tab="season">Season</button></nav>
   <div class="scroll pad" id="homeBody"></div>
   <nav class="tabbar" aria-label="Sections">
-    <button type="button" class="vtab" data-tab="vhome"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7"/><path d="M6.5 9.5V20h4v-5.5h3V20h4V9.5"/></svg><span>Home</span></button>
     <button type="button" data-tab="home" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14.5" rx="2"/><line x1="4" y1="10" x2="20" y2="10"/><line x1="8.5" y1="3.5" x2="8.5" y2="7"/><line x1="15.5" y1="3.5" x2="15.5" y2="7"/></svg><span>Events</span></button>
     <button type="button" data-tab="runners"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="7.5" r="3.5"/><path d="M5 20c.8-4 3.6-6 7-6s6.2 2 7 6"/></svg><span>Runners</span></button>
     <button type="button" class="tabplus" data-tab="plus" aria-label="Add event"><span class="pc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg></span></button>
@@ -1311,7 +1306,6 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
     </div>
   </div>
   <nav class="tabbar" aria-label="Sections">
-    <button type="button" class="vtab" data-tab="vhome"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7"/><path d="M6.5 9.5V20h4v-5.5h3V20h4V9.5"/></svg><span>Home</span></button>
     <button type="button" data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14.5" rx="2"/><line x1="4" y1="10" x2="20" y2="10"/><line x1="8.5" y1="3.5" x2="8.5" y2="7"/><line x1="15.5" y1="3.5" x2="15.5" y2="7"/></svg><span>Events</span></button>
     <button type="button" data-tab="runners"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="7.5" r="3.5"/><path d="M5 20c.8-4 3.6-6 7-6s6.2 2 7 6"/></svg><span>Runners</span></button>
     <button type="button" class="tabplus" data-tab="plus" aria-label="Add event"><span class="pc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg></span></button>
@@ -1546,7 +1540,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.04';
+var BUILD='v5.05';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -7816,6 +7810,14 @@ function fillYears(){
   var y=seasonYear(), l=document.querySelectorAll('.homebar .season');
   for(var i=0;i<l.length;i++) l[i].textContent=y;
 }
+/* 5.05: the parent's tabs along the top. Four places, nothing else. */
+(function(){
+  var v=document.querySelectorAll('.vtop button');
+  for(var i=0;i<v.length;i++) v[i].addEventListener('click',function(){
+    var t=this.getAttribute('data-tab');
+    show(t==='vhome' ? 'vhome' : t==='runners' ? 'runners' : t==='season' ? 'season' : 'home');
+  });
+})();
 (function(){
   var l=document.querySelectorAll('.tabbar button');
   for(var i=0;i<l.length;i++) l[i].addEventListener('click',function(){
@@ -7824,7 +7826,6 @@ function fillYears(){
     else if(t==='runners') show('runners');
     else if(t==='season') show('season');
     else if(t==='settings') show('settings');
-    else if(t==='vhome') show('vhome');
     else show('home');
   });
 })();
@@ -8371,7 +8372,7 @@ $('runRoster').addEventListener('click',function(){ backTo='runners'; show('rost
    events, results the database has, hidden events counted. Newest first. */
 var RN=null;
 function markRunnerTab(){
-  var cur=backTo==='vhome' ? 'vhome' : 'runners', l=document.querySelectorAll('#runner .tabbar button');
+  var cur=backTo==='vhome' ? 'vhome' : 'runners', l=document.querySelectorAll('#runner .tabbar button, #runner .vtop button');
   for(var i=0;i<l.length;i++){ if(l[i].getAttribute('data-tab')===cur) l[i].setAttribute('aria-current','page'); else l[i].removeAttribute('aria-current'); }
 }
 function openRunner(r,from){ RN=r; backTo=from||'runners'; show('runner'); }
