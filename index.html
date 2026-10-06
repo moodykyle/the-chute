@@ -1029,6 +1029,9 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
 .bqph .bqrm{color:var(--danger)}
 #bqAdd:disabled{opacity:.4}
 .stiles.two{grid-template-columns:repeat(2,minmax(0,1fr));margin-top:0}
+.bqvis{margin:10px 0 4px}
+.bqv{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--rule);font-size:15px}
+.bqv .num{color:var(--ink-soft)}
 </style>
 </head>
 <body>
@@ -1541,7 +1544,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.11';
+var BUILD='v5.12';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -2029,6 +2032,7 @@ function show(id){
   closeSheet();
   /* 5.02: the viewer has its four tabs, the runner page, Results and Meet scores. */
   if(VIEW && VIEW_IDS.indexOf(id)<0) id='vhome';
+  if(VIEW) vCount(VSCREEN[id]);
   navBack(id);
   var all=document.querySelectorAll('.screen');
   for(var i=0;i<all.length;i++) all[i].classList.toggle('on', all[i].id===id);
@@ -8697,14 +8701,26 @@ function vCarousel(ph){
     car.scrollTo({left:n*car.clientWidth, behavior:n ? 'smooth' : 'auto'});
   },VNEXT_MS);
 }
+/* 5.12: visits, counted in the database (0023): one 'open' when the link
+   loads, one view each time a parent lands on a screen. Counts only, sent and
+   forgotten; nothing is kept on the phone. */
+var VSCREEN={vhome:'home', home:'events', results:'results', runners:'runners', runner:'runner', season:'season'};
+function vCount(screen){
+  if(!VIEW || VSTATE!=='ok' || !screen) return;
+  try{
+    fetch(SB_URL+'/rest/v1/rpc/viewer_visit',{method:'POST', keepalive:true,
+      headers:{'apikey':SB_KEY,'Content-Type':'application/json'}, body:JSON.stringify({p_code:VIEW, p_screen:screen})}).catch(function(){});
+  }catch(e){}
+}
 function viewerBoot(){
   document.body.classList.add('viewer');
   NAV_NAMES.home='Events';
   try{ document.title=(VIEW ? 'The Chute' : document.title); }catch(e){}
   SEASON={meets:[]};
   show('vhome');
-  vLoad().then(function(){
+  vLoad().then(function(ok){
     fillYears();
+    if(ok){ vCount('open'); if(onScreen('vhome')) vCount('home'); }
     if(onScreen('vhome')) renderVHome();
   });
 }
@@ -8714,7 +8730,7 @@ function viewerBoot(){
    share, a new link that kills the old one, the coaches' message, and up to
    20 photos. Straight to the database, not through the outbox: it is set up
    once, at a desk, and a save that fails says so. */
-var BQ=null, BQ_PH=[], BQ_MSG='', BQ_BUSY=false, BQ_MAX=20;
+var BQ=null, BQ_PH=[], BQ_VIS=[], BQ_MSG='', BQ_BUSY=false, BQ_MAX=20;
 function bqCall(path,opts){
   return ensureFresh().then(function(ok){
     if(!ok) return {ok:false, status:401, data:null};
@@ -8736,9 +8752,12 @@ function renderBanquet(){
     if(!res.ok || !Array.isArray(res.data)){ b.innerHTML='<p class="hint">'+esc(res.offline ? 'No connection. The banquet page needs signal to set up.' : authMessage(res))+'</p>'; return null; }
     BQ=res.data[0]||null;
     if(!BQ){ b.innerHTML='<p class="hint">There is no banquet page for '+esc(yr)+' in the database yet.</p>'; return null; }
-    return bqCall('/rest/v1/viewer_photos?select=id,position,caption,created_at&page_id=eq.'+BQ.id+'&order=position.asc,created_at.asc');
-  }).then(function(res){
-    if(!res) return;
+    return Promise.all([bqCall('/rest/v1/viewer_photos?select=id,position,caption,created_at&page_id=eq.'+BQ.id+'&order=position.asc,created_at.asc'),
+      bqCall('/rest/v1/viewer_visits?select=day,screen,n&page_id=eq.'+BQ.id+'&order=day.desc')]);
+  }).then(function(rs){
+    if(!rs) return;
+    var res=rs[0];
+    BQ_VIS=(rs[1].ok && Array.isArray(rs[1].data)) ? rs[1].data : [];
     BQ_PH=(res.ok && Array.isArray(res.data)) ? res.data : [];
     BQ_MSG=BQ.message.replace(/\r\n?/g,'\n');
     bqDraw();
@@ -8753,6 +8772,7 @@ function bqDraw(){
   h+='<div class="bqqr"><img id="bqQr" alt="QR code for the banquet page"></div>';
   h+='<div class="btnrow"><button type="button" id="bqOpen">Open the page</button><button type="button" id="bqNew">New link</button></div>';
   h+='<div class="hint" id="bqNote"></div>';
+  h+=bqVisits();
   h+='<p class="hsect">MESSAGE</p>';
   h+='<div class="field"><textarea id="bqMsg" spellcheck="true">'+esc(BQ_MSG)+'</textarea></div>';
   h+='<div class="field"><label for="bqSig">Signed</label><input type="text" id="bqSig" maxlength="120" value="'+esc(BQ.signature)+'"></div>';
@@ -8799,6 +8819,24 @@ function bqDraw(){
   for(var i=0;i<rows.length;i++) bqRow(rows[i]);
   $('bqAdd').addEventListener('click',function(){ $('bqPick').click(); });
   $('bqPick').addEventListener('change',function(){ bqAdd(Array.prototype.slice.call(this.files||[])); this.value=''; });
+}
+/* 5.12: what the link's counts say: opens in all, opens by day, views by
+   screen. Opening it from here counts too. */
+var BQ_SCREENS=[['home','Home'],['events','Events'],['results','Results'],['runners','Runners'],['runner','Runner pages'],['season','Season']];
+function bqVisits(){
+  var h='<p class="hsect">VISITS</p>', opens=0, days={}, by={};
+  BQ_VIS.forEach(function(v){
+    if(v.screen==='open'){ opens+=v.n; days[v.day]=(days[v.day]||0)+v.n; }
+    else by[v.screen]=(by[v.screen]||0)+v.n;
+  });
+  if(!opens) return h+'<div class="hint">No visits yet. Each time someone opens the link, it counts here.</div>';
+  h+='<div class="stiles two"><div class="stile"><span class="sv num">'+opens+'</span><span class="sk">Opened</span></div>'+
+     '<div class="stile"><span class="sv num">'+Object.keys(days).length+'</span><span class="sk">'+(Object.keys(days).length===1 ? 'Day' : 'Days')+'</span></div></div>';
+  h+='<div class="bqvis">'+Object.keys(days).sort().reverse().map(function(d){
+    return '<div class="bqv"><span>'+esc(fmtDate(d))+'</span><span class="num">'+days[d]+(days[d]===1 ? ' open' : ' opens')+'</span></div>'; }).join('')+'</div>';
+  h+='<div class="bqvis">'+BQ_SCREENS.map(function(s){
+    return '<div class="bqv"><span>'+s[1]+'</span><span class="num">'+(by[s[0]]||0)+'</span></div>'; }).join('')+'</div>';
+  return h+'<div class="hint">Visits, not people: someone who opens it three times counts three. Opening it from here counts too.</div>';
 }
 function bqRow(el){
   var i=+el.getAttribute('data-i'), p=BQ_PH[i], img=el.querySelector('img'), cap=el.querySelector('input');
