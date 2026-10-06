@@ -1541,7 +1541,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.09';
+var BUILD='v5.10';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -8312,17 +8312,17 @@ function orderCard(list){
    they set: every counted finish in a real event, a time trial's by each
    runner's own division. PRs are worked out on every draw, like the tags. */
 function seasonCounts(g){
-  var map=aidMap(), idx=recordsIndex(), raced={}, prs=0;
+  var map=aidMap(), idx=recordsIndex(), raced={}, prs=0, prd={};
   seasonEvents().forEach(function(m){ (m.races||[]).forEach(function(r){
     if(raceState(r)!=='done') return;
     var ctx={m:m, r:r, idx:idx, map:map}, rd=r.division==='Girls' ? 'F' : r.division==='Boys' ? 'M' : null;
     (r.fin||[]).forEach(function(f){
       if(!counts(m,f) || (rd || f.g)!==g) return;
       var k=recKey(f,map); if(k) raced[k]=1;
-      var rec=recOf(f,ctx); if(rec && rec.tag==='PR') prs++;
+      var rec=recOf(f,ctx); if(rec && rec.tag==='PR'){ prs++; if(k) prd[k]=1; }
     });
   }); });
-  return {runners:Object.keys(raced).length, prs:prs};
+  return {runners:Object.keys(raced).length, prs:prs, prd:Object.keys(prd).length};
 }
 function renderSeason(){
   $('seaG').setAttribute('aria-pressed',String(SEA_DIV==='F'));
@@ -8338,7 +8338,7 @@ function renderSeason(){
   var h='<div class="stiles">'+tile('Scored meets',scored.length)+tile('Best finish',best!=null ? ordinal(best) : '\u2013')+
     tile('Head to head',hh.length ? W+'\u2013'+L+(T ? '\u2013'+T : '') : '\u2013')+'</div>';
   var sc=seasonCounts(SEA_DIV);
-  h+='<div class="stiles two">'+tile('Runners',sc.runners)+tile('PRs',sc.prs)+'</div>';
+  h+='<div class="stiles two">'+tile('Runners',sc.runners)+tile('PR\u2019d',sc.prd)+'</div>';
   h+='<p class="hsect">CHARTS</p>'+chartsHtml(list);
   h+='<p class="hsect">HEAD TO HEAD</p>';
   if(hh.length){
