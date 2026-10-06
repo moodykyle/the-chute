@@ -1541,7 +1541,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.08';
+var BUILD='v5.09';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -2444,6 +2444,14 @@ function recordsIndex(){
       });
     });
   });
+  /* 5.09: a past season's best is an earlier race at its distance: it sets the
+     time to beat for a PR, never a season record, and is never a last race. */
+  priorBests().forEach(function(p){
+    if(!p || !p.athlete_id || !p.distance_m || !p.best_ms) return;
+    var k='a:'+p.athlete_id+'|'+p.distance_m;
+    (idx[k]=idx[k]||[]).push({ms:p.best_ms, ord:(p.meet_date||p.season_year+'-01-01')+'|000000000000000',
+      yr:String(p.season_year), date:p.meet_date, rid:null, prior:true});
+  });
   return idx;
 }
 /* The runner's most recent counted race other than the one open. */
@@ -2480,7 +2488,8 @@ function recHtml(rec){
    sheet: the best guess at where they finish, and what they are chasing. */
 function bestAt(key,d,ctx){
   var b=null;
-  (ctx.idx[key+'|'+d]||[]).forEach(function(e){ if(e.rid!==ctx.r.id && (!b || e.ms<b.ms)) b=e; });
+  /* 5.09: this season only; last year's best is no guess at today's place. */
+  (ctx.idx[key+'|'+d]||[]).forEach(function(e){ if(!e.prior && e.rid!==ctx.r.id && (!b || e.ms<b.ms)) b=e; });
   return b;
 }
 function runnerById(id){
@@ -4113,6 +4122,7 @@ function quietRoster(rows){
   return true;
 }
 function refreshRoster(){
+  pullPrior();
   return sbFetch(rosterPath(),{auth:true}).then(function(res){
     return (res.ok && Array.isArray(res.data)) ? quietRoster(res.data) : false;
   }, function(){ return false; });
@@ -5416,6 +5426,7 @@ function siVerify(){
    guards. A slow network gets eight seconds; the reads finish behind it. */
 var SI_LOAD_MS=8000;
 function autoRoster(){
+  pullPrior();
   if(rosterNames().length) return Promise.resolve();
   return sbFetch(rosterPath(),{auth:true}).then(function(res){
     if(res.ok && Array.isArray(res.data)) applyPulledRoster(res.data);
@@ -7306,6 +7317,19 @@ function esc(s){
 /* ---------- wiring ---------- */
 var RKEY_G='chute.roster.girls.v1', RKEY_B='chute.roster.boys.v1', RKEY_X='chute.roster.extra.v1';
 var RKEY_A='chute.roster.aid.v1';
+/* 5.09: last season's bests, from prior_bests (0022), kept as the database
+   sent them. Read with the roster; a database without the table just leaves
+   it empty. */
+var PKEY='chute.prior.v1';
+function priorBests(){
+  try{ var l=JSON.parse(localStorage.getItem(PKEY)||'[]'); return Array.isArray(l) ? l : []; }catch(e){ return []; }
+}
+function pullPrior(){
+  return sbFetch('/rest/v1/prior_bests?select=athlete_id,season_year,distance_m,best_ms,meet_name,meet_date',{auth:true}).then(function(res){
+    if(res.ok && Array.isArray(res.data)){ try{ localStorage.setItem(PKEY,JSON.stringify(res.data)); }catch(e){} return true; }
+    return false;
+  }, function(){ return false; });
+}
 var TKEY='chute.team.v1', HKEY='chute.history.v1';
 /* What Results shows, per phone. Everything on unless turned off, so a phone
    that has never opened the screen looks the way Results always has. */
@@ -8481,6 +8505,13 @@ function renderRunner(){
     /* 5.00: its own row, not a 1 mile best. */
     var bm=bestMileSplit(races);
     if(bm) h+='<div class="rnbest rnmile"><span class="d"><span class="k">Mile split</span><span class="w">'+esc(fmtDate(bm.m.date)+' \u00b7 '+bm.m.name+', mile '+bm.mile)+'</span></span><span class="t num">'+fmt(bm.ms,1)+'</span></div>';
+    /* 5.09: last season's best under this season's, so a PR tag that moved
+       has its reason on the page. */
+    var rk=rosterKey(r,aidMap());
+    priorBests().filter(function(p){ return 'a:'+p.athlete_id===rk; }).sort(function(a,b){ return b.season_year-a.season_year || b.distance_m-a.distance_m; }).forEach(function(p){
+      h+='<div class="rnbest rnprior"><span class="d"><span class="k">'+esc(p.season_year+' best')+'</span><span class="w">'+
+        esc([distLabel(p.distance_m), fmtDate(p.meet_date), p.meet_name].filter(Boolean).join(' · '))+'</span></span><span class="t num">'+fmt(p.best_ms,1)+'</span></div>';
+    });
     h+='<p class="hsect">RACES</p>';
   }
   races.forEach(function(x){
@@ -8552,6 +8583,7 @@ function viewRest(path,opts){
   else if(t==='race_school_places') rows=by(VDATA.schools||[],'race_id');
   else if(t==='roster_season') rows=VDATA.roster;
   else if(t==='race_nonfinishers') rows=[];
+  else if(t==='prior_bests') rows=VDATA.prior||[];
   else return off;
   return {ok:true, status:200, data:JSON.parse(JSON.stringify(rows||[])), raw:''};
 }
@@ -8573,7 +8605,7 @@ function vLoad(){
       mergeFinishes(r,(VDATA.finishes||[]).filter(function(x){ return x.race_id===r.id; }));
       r.read=true;
     });
-    return Promise.all(all.map(function(r){ return Promise.all([pullSplits(r), pullSchools(r)]); })).then(function(){
+    return Promise.all(all.map(function(r){ return Promise.all([pullSplits(r), pullSchools(r)]); }).concat([pullPrior()])).then(function(){
       relinkAll(); VSTATE='ok'; return true;
     });
   });
