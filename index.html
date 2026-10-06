@@ -1541,7 +1541,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.10';
+var BUILD='v5.11';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -8499,18 +8499,22 @@ function renderRunner(){
   races.forEach(function(x){ if(!bd[x.d] || x.f.ms<bd[x.d].f.ms) bd[x.d]=x; });
   var ds=Object.keys(bd).map(Number).sort(function(a,b){ return b-a; });
   if(ds.length){
-    h+='<p class="hsect">SEASON BESTS</p>';
+    h+='<p class="hsect">'+esc(seasonYear())+' SEASON BESTS</p>';
     ds.forEach(function(d){ var x=bd[d];
       h+='<div class="rnbest"><span class="d"><span class="k">'+esc(distLabel(d))+'</span><span class="w">'+esc(fmtDate(x.m.date)+' \u00b7 '+x.m.name)+'</span></span><span class="t num">'+fmt(x.f.ms,1)+'</span></div>'; });
     /* 5.00: its own row, not a 1 mile best. */
     var bm=bestMileSplit(races);
     if(bm) h+='<div class="rnbest rnmile"><span class="d"><span class="k">Mile split</span><span class="w">'+esc(fmtDate(bm.m.date)+' \u00b7 '+bm.m.name+', mile '+bm.mile)+'</span></span><span class="t num">'+fmt(bm.ms,1)+'</span></div>';
-    /* 5.09: last season's best under this season's, so a PR tag that moved
-       has its reason on the page. */
-    var rk=rosterKey(r,aidMap());
-    priorBests().filter(function(p){ return 'a:'+p.athlete_id===rk; }).sort(function(a,b){ return b.season_year-a.season_year || b.distance_m-a.distance_m; }).forEach(function(p){
-      h+='<div class="rnbest rnprior"><span class="d"><span class="k">'+esc(p.season_year+' best')+'</span><span class="w">'+
-        esc([distLabel(p.distance_m), fmtDate(p.meet_date), p.meet_name].filter(Boolean).join(' · '))+'</span></span><span class="t num">'+fmt(p.best_ms,1)+'</span></div>';
+    /* 5.11: a past season's bests are their own section, by year, in the
+       same rows as this season's: distance, then date and meet, then time. */
+    var rk=rosterKey(r,aidMap()), past={};
+    priorBests().forEach(function(p){ if('a:'+p.athlete_id===rk) (past[p.season_year]=past[p.season_year]||[]).push(p); });
+    Object.keys(past).sort(function(a,b){ return b-a; }).forEach(function(y){
+      h+='<p class="hsect">'+esc(y)+' SEASON BESTS</p>';
+      past[y].sort(function(a,b){ return b.distance_m-a.distance_m; }).forEach(function(p){
+        h+='<div class="rnbest rnprior"><span class="d"><span class="k">'+esc(distLabel(p.distance_m))+'</span><span class="w">'+
+          esc([fmtDate(p.meet_date), p.meet_name].filter(Boolean).join(' · '))+'</span></span><span class="t num">'+fmt(p.best_ms,1)+'</span></div>';
+      });
     });
     h+='<p class="hsect">RACES</p>';
   }
