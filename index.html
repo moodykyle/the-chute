@@ -1544,7 +1544,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.13';
+var BUILD='v5.14';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -2005,8 +2005,23 @@ function fmt(ms,prec){
   var t=Math.max(0,ms), cs=Math.floor(t%1000), s=Math.floor(t/1000);
   var m=Math.floor(s/60); s=s%60;
   var frac = prec===0 ? '' :
-             prec===3 ? ('.'+String(cs).padStart(3,'0')) : ('.'+Math.floor(cs/100));
+             prec===3 ? ('.'+String(cs).padStart(3,'0')) :
+             prec===2 ? ('.'+String(Math.floor(cs/10)).padStart(2,'0')) : ('.'+Math.floor(cs/100));
   return m+':'+String(s).padStart(2,'0')+frac;
+}
+/* 5.14: the precision a race's times actually have. A tapped race has real
+   thousandths; official results load in hundredths or tenths, so every time
+   ends in zeros. Results and its CSV print the whole race to the fewest digits
+   that lose nothing, so a loaded 13:10.880 reads 13:10.88 and the column still
+   lines up. Decided per race, never per time. */
+function racePrec(fins){
+  var p=1, any=false;
+  (fins||[]).forEach(function(f){
+    if(!f || f.ms==null) return;
+    any=true;
+    if(f.ms%10) p=3; else if(f.ms%100 && p<2) p=2;
+  });
+  return any ? p : 3;
 }
 
 /* ---------- dom ---------- */
@@ -5199,9 +5214,10 @@ function buildMeetCsv(){
     out+=',,'+csvCell(schoolLabel(t.school))+',no team score,no team score,,,'+t.raw.join('+')+'\n';
   });
   out+='\nplace,time,school,scoring_place,runner\n';
+  var pr=racePrec(S.fin);
   S.fin.forEach(function(f,i){
     var p=i+1, k=res.owner[p], nm=(f.h ? (nameOf(f.r)||f.n||'') : '');
-    out+=p+','+fmt(f.ms,3)+','+(k!=null?csvCell(schoolLabel(k)):'')+','+(res.adj[p]||'')+','+csvCell(nm)+'\n';
+    out+=p+','+fmt(f.ms,pr)+','+(k!=null?csvCell(schoolLabel(k)):'')+','+(res.adj[p]||'')+','+csvCell(nm)+'\n';
   });
   out+='\n'+csvCell('Scored: runners past a school\u2019s seventh, unattached runners and the runners of schools with fewer than five come out, then places are renumbered. Raw places: overall finish place.')+'\n';
   return out;
@@ -7060,7 +7076,7 @@ function resRow(extra,place,who,cls,tags,ms,rp,lead){
   return '<div class="rrow'+extra+'"><span class="pl num">'+place+'</span>'+
     '<span class="who'+cls+'"><span class="wn">'+who+'</span>'+
       (tags.length?'<small class="wt">'+tags.join(' \u00b7 ')+'</small>':'')+'</span>'+
-    '<span class="tm num">'+fmt(ms,3)+(gap?'<span class="gap">'+gap+'</span>':'')+'</span></div>';
+    '<span class="tm num">'+fmt(ms,racePrec(S&&S.fin))+(gap?'<span class="gap">'+gap+'</span>':'')+'</span></div>';
 }
 /* How far behind the race winner, place 1 across the whole field, to the
    tenth. Blank for the winner and for anyone tied with them. The same number on
@@ -7133,13 +7149,13 @@ function buildCsv(full){
     'place,time,runner,team,grade,scoring,record'+smarks.map(function(mk){ return ','+markCol(mk); }).join('')+'\n';
   /* The record column is data, so it is there whatever the display switch
      says. PR or SR, blank otherwise. */
-  var seen=0, rx=recCtx(true);
+  var seen=0, rx=recCtx(true), pr=racePrec(S.fin);
   S.fin.forEach(function(f,i){
     var sc='';
     if(f.h){ seen++; sc = tonly ? '' : scoringRole(seen); }
     if(!full && !f.h) return;
     var r=runnerById(f.r);
-    out+=(i+1)+','+fmt(f.ms,3)+(f.m?'*':'')+','+csvCell((nameOf(f.r)||f.n||null)||'')+','+
+    out+=(i+1)+','+fmt(f.ms,pr)+(f.m?'*':'')+','+csvCell((nameOf(f.r)||f.n||null)||'')+','+
          csvCell(f.h?S.team:((cmr && cmr.res.owner[i+1]) || ''))+','+(r&&r.grade?r.grade:'')+','+sc+','+((recOf(f,rx)||{}).tag||'')+splCells(f)+'\n';
   });
   /* No place and no time, and the status where the place would be. */
@@ -7169,10 +7185,10 @@ function buildTTCsv(){
     csvCell(S.date||'')+','+csvCell(S.name)+',time trial,'+csvCell(meetDist())+','+
     csvCell(ttScope())+','+rows.length+'\n\n'+
     (two?'distance,':'')+'place,division_place,time,runner,division,grade,record\n';
-  var rx=recCtx(true);
+  var rx=recCtx(true), pr=racePrec(S.fin);
   shown.forEach(function(r){
     out+=(two?csvCell(r.dist?distLabel(r.dist):'')+',':'')+
-         r.place+','+(r.dplace||'')+','+fmt(r.ms,3)+(r.f.m?'*':'')+','+
+         r.place+','+(r.dplace||'')+','+fmt(r.ms,pr)+(r.f.m?'*':'')+','+
          csvCell(r.name||'')+','+(r.div==='M'?'Boys':(r.div==='F'?'Girls':''))+','+
          (r.grade?r.grade:'')+','+((recOf(r.f,rx)||{}).tag||'')+'\n';
   });
