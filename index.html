@@ -1544,7 +1544,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.12';
+var BUILD='v5.13';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -8342,7 +8342,7 @@ function renderSeason(){
   var h='<div class="stiles">'+tile('Scored meets',scored.length)+tile('Best finish',best!=null ? ordinal(best) : '\u2013')+
     tile('Head to head',hh.length ? W+'\u2013'+L+(T ? '\u2013'+T : '') : '\u2013')+'</div>';
   var sc=seasonCounts(SEA_DIV);
-  h+='<div class="stiles two">'+tile('Runners',sc.runners)+tile('PR\u2019d',sc.prd)+'</div>';
+  h+='<div class="stiles two">'+tile('Runners',sc.runners)+tile('Set a PR',sc.prd)+'</div>';
   h+='<p class="hsect">CHARTS</p>'+chartsHtml(list);
   h+='<p class="hsect">HEAD TO HEAD</p>';
   if(hh.length){
