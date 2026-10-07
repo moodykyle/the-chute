@@ -1565,7 +1565,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.19';
+var BUILD='v5.20';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -7214,7 +7214,8 @@ function renderOffLoad(){
     h+='<div class="field olpaste"><label for="olIn">Paste this race\u2019s official results</label>'+
        '<textarea id="olIn" spellcheck="false" placeholder="1 Lila Sand 8 Atlanta International School 12:06.58 1">'+esc(olText)+'</textarea>'+
        '<div class="hint">Open the race on MileSplit, select the whole list and copy it. The results table works, and so does its Completed version. One race at a time. Nothing is saved until you check it.</div></div>'+
-       '<div class="pad"><div class="btnrow"><button type="button" class="go" id="olReadGo">Read it</button></div></div>';
+       '<div class="pad"><div class="btnrow"><button type="button" id="olClear"'+(olText?'':' style="display:none"')+'>Clear</button>'+
+       '<button type="button" class="go" id="olReadGo">Read it</button></div></div>';
   } else {
     var b=olBuild();
     h+=olReadBack(b);
@@ -7299,6 +7300,13 @@ function wireOffLoad(){
     olText=q('olIn').value; olRead=offParse(olText); olOurs=null; olPick={}; olDrop={}; olAdd={}; olMsg=''; renderOffLoad();
   });
   if(q('olEdit')) q('olEdit').addEventListener('click',function(){ olRead=null; olMsg=''; renderOffLoad(); });
+  /* 5.20: Clear empties the box for a fresh paste. It shows only with
+     something in the box, and asks nothing: the paste is still on the
+     clipboard. */
+  if(q('olIn')) q('olIn').addEventListener('input',function(){ olText=this.value; if(q('olClear')) q('olClear').style.display=olText?'':'none'; });
+  if(q('olClear')) q('olClear').addEventListener('click',function(){
+    olText=''; olMsg=''; var b=q('olIn'); b.value=''; this.style.display='none'; b.focus();
+  });
   if(q('olOursSel')) q('olOursSel').addEventListener('change',function(){ olOurs=this.value; olPick={}; renderOffLoad(); });
   [].forEach.call($('olBody').querySelectorAll('[data-pick]'),function(s){
     s.addEventListener('change',function(){ var v=s.value; if(v==='') return; olPick[s.getAttribute('data-pick')]= v==='name' ? 'name' : +v; renderOffLoad(); });
