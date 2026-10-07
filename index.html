@@ -1565,7 +1565,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.18';
+var BUILD='v5.19';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -7015,14 +7015,28 @@ function offParse(text){
   /* Lines whose grade was missing: their school is one the other lines named. */
   var known=[];
   rows.forEach(function(r){ if(r.school && known.indexOf(r.school)<0) known.push(r.school); });
+  /* 5.19: HY-TEK text copied on a phone loses its runs of spaces, and its
+     grades are often blank, so "Corse, James Cliff Valley School" is all one
+     run. Take one word after the comma as the first name and the rest as the
+     school; a school that comes out that way on two or more lines is trusted,
+     and settles a two-word first name ("Groover, Sarah Cate St. Benedict"). */
+  var guess={};
+  rows.forEach(function(r){
+    if(r.mid==null || r.mid.indexOf(',')<1) return;
+    var after=r.mid.slice(r.mid.indexOf(',')+1).trim().split(' ');
+    r.guess=after.slice(1).join(' ');
+    if(r.guess) guess[r.guess]=(guess[r.guess]||0)+1;
+  });
+  Object.keys(guess).forEach(function(g){ if(guess[g]>=2 && known.indexOf(g)<0) known.push(g); });
   known.sort(function(a,b){ return b.length-a.length; });
   rows.forEach(function(r){
     if(r.mid==null) return;
     var hit=null;
     known.forEach(function(s){ if(!hit && r.mid.length>s.length && r.mid.slice(-s.length-1)===' '+s) hit=s; });
+    if(!hit && r.guess) hit=r.guess;   /* a school seen once, after a one-word first name */
     if(hit){ r.school=hit; r.name=olName(r.mid.slice(0,-hit.length-1)); }
     else r.unread=true;
-    delete r.mid;
+    delete r.mid; delete r.guess;
   });
   if(!teams.length){
     var by={};
