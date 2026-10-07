@@ -1544,7 +1544,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.14';
+var BUILD='v5.16';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -2013,15 +2013,21 @@ function fmt(ms,prec){
    thousandths; official results load in hundredths or tenths, so every time
    ends in zeros. Results and its CSV print the whole race to the fewest digits
    that lose nothing, so a loaded 13:10.880 reads 13:10.88 and the column still
-   lines up. Decided per race, never per time. */
+   lines up. Decided per race, never per time.
+   5.15: entered finishes don't decide it. An entered time is an estimate (a
+   hand-inserted finish, or a runner the official list missed, added from a
+   tap), so it prints at the precision of the timed ones. A race with nothing
+   but entered finishes decides from those.
+   5.16: hundredths at most. A thumb tap isn't good to a thousandth, so a
+   tapped race prints to the hundredth too, cut not rounded, like tenths
+   everywhere else. The database keeps the full time. */
 function racePrec(fins){
-  var p=1, any=false;
-  (fins||[]).forEach(function(f){
-    if(!f || f.ms==null) return;
-    any=true;
-    if(f.ms%10) p=3; else if(f.ms%100 && p<2) p=2;
-  });
-  return any ? p : 3;
+  var all=(fins||[]).filter(function(f){ return f && f.ms!=null; });
+  var timed=all.filter(function(f){ return !f.m; });
+  var use=timed.length ? timed : all, p=1;
+  if(!use.length) return 2;
+  use.forEach(function(f){ if(f.ms%100) p=2; });
+  return p;
 }
 
 /* ---------- dom ---------- */
