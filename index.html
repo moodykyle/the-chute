@@ -432,6 +432,21 @@ select{min-height:47px}
 .msnote{flex:0 0 auto;font-size:12px;color:var(--ink-soft)}
 .msprev .warn,.hint .warn{color:var(--tape)}
 .msmsg .warn{color:var(--tape)} .msmsg .good{color:var(--tape)}
+/* 5.18: the official-results read-back */
+.olpaste textarea{min-height:180px;font-size:13px}
+.olrow{display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--rule)}
+.olrow .olp{width:2.2em;text-align:right;color:var(--ink-soft);flex:none}
+.olrow .oln{flex:1;min-width:0;overflow-wrap:anywhere}
+.olrow .oln small{display:block;font-size:12px;color:var(--ink-soft);margin-top:2px}
+.olrow .olt{flex:none}
+.olrow.olbad .oln small,.olred{color:var(--danger)}
+.olrow.olbad{background:rgba(240,84,90,.08)}
+.olrow.olout .oln{opacity:.5;text-decoration:line-through}
+.olrow.olout .oln small{text-decoration:none}
+.ollink{flex:none;background:none;border:0;color:var(--tape);font:inherit;font-size:13px;padding:6px 0;min-height:0}
+.olpick{padding:0 16px 10px calc(16px + 2.2em + 10px)}
+.olpick select{width:100%}
+.olours{padding:12px 16px 4px}
 #msActions button:disabled{opacity:.45}
 .copyrow{display:flex;gap:9px;padding:14px 16px 18px}
 /* Pinned below the list now rather than sitting at the end of it. On a hundred
@@ -1446,7 +1461,7 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
   </div>
   <div class="scroll" id="resultBody"></div>
   <div id="resultActions">
-    <div class="syncnote" id="resSync"><span id="resSyncText"></span><button type="button" class="synclink" id="resReload">Reload</button></div>
+    <div class="syncnote" id="resSync"><span id="resSyncText"></span><button type="button" class="synclink" id="resReload">Reload</button><button type="button" class="synclink" id="resLoad">Official results</button></div>
     <div class="copyrow">
       <button type="button" id="copyChat">Copy Text - Team</button>
       <button type="button" id="copyCsv">Copy CSV - Team</button>
@@ -1464,6 +1479,12 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
       <button type="button" id="msCopyCsv">Copy CSV - Meet</button>
     </div>
   </div>
+</section>
+
+<!-- OFFICIAL RESULTS (5.18) -->
+<section class="screen" id="offload">
+  <div class="bar nav"><button class="linkbtn back" id="olBack"><span class="bc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5 8 12l7 7"/></svg></span><span class="bl">Results</span><span class="bh" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7"/><path d="M6.5 9.5V20h4v-5.5h3V20h4V9.5"/></svg></span></button><h1 class="navmid nt">Official results</h1><span aria-hidden="true"></span></div>
+  <div class="scroll" id="olBody"></div>
 </section>
 
 <!-- MILE SPLITS -->
@@ -1544,7 +1565,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.16';
+var BUILD='v5.18';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -2018,6 +2039,10 @@ function fmt(ms,prec){
    hand-inserted finish, or a runner the official list missed, added from a
    tap), so it prints at the precision of the timed ones. A race with nothing
    but entered finishes decides from those.
+   5.17: everything on a Results row and in its CSV follows it: the time, the
+   gap under it, each split, and the split columns. A splits-only race has no
+   finishes, so its splits print to the hundredth. Copy Text and the rest of
+   the app stay in tenths.
    5.16: hundredths at most. A thumb tap isn't good to a thousandth, so a
    tapped race prints to the hundredth too, cut not rounded, like tenths
    everywhere else. The database keeps the full time. */
@@ -2071,7 +2096,7 @@ function show(id){
   if(id==='season') renderSeason();
   if(id==='runners') renderRunners();
   if(id==='runner'){ markRunnerTab(); renderRunner(); }
-  if(S && ['rosterEdit','home','meet','backup','signin','settings','account','about','resPrefs','howto','season','runners','runner'].indexOf(id)<0 && id!=='split' && id!=='mscore' && id!=='clockchk') { S.screen=id; save(); }
+  if(S && ['rosterEdit','home','meet','backup','signin','settings','account','about','resPrefs','howto','season','runners','runner'].indexOf(id)<0 && id!=='split' && id!=='mscore' && id!=='offload' && id!=='clockchk') { S.screen=id; save(); }
   if(id==='vhome') renderVHome();
   if(id==='banquet') renderBanquet();
   if(id==='home' && VIEW) renderHome();
@@ -2096,6 +2121,7 @@ function show(id){
   if(id==='split'){ renderSplit(); spStart(); keepAwake(); } else spStop();
   if(id==='results'){ pullSplitsSoon(); pullSchoolsSoon(); }
   if(id==='mscore'){ renderMeetScores(); pullSchoolsSoon(); }
+  if(id==='offload') renderOffLoad();
   if(id==='clockchk'){ ckSample(); renderClockCheck(); if(!ckTimer) ckTimer=setInterval(ckTick,100); }
   if(id==='recon'){
     pullDnfSoon();
@@ -3209,6 +3235,8 @@ function renderResSync(){
      buttons, which took room from the runners on every Results screen. */
   var r=currentRace();
   $('resReload').style.display=(r && r.up && UUID_RE.test(r.id) && raceState(r)==='done' && signedIn()) ? '' : 'none';
+  /* 5.18: load or unload a meet race's official results. Not a time trial. */
+  $('resLoad').style.display=(r && r.up && UUID_RE.test(r.id) && raceState(r)==='done' && signedIn() && !ttRace() && !VIEW) ? '' : 'none';
 }
 /* ---------- 4.89: Reload from database ----------
    Throws away this phone's copy of a finished race (finishes, splits,
@@ -4518,9 +4546,10 @@ function splitRunners(r){
   order.sort(function(a,b){ return (b.far-a.far) || (a.ms-b.ms); });
   return order;
 }
-/* Each point with its time, for a row or a line of copy. */
-function splitWords(marks,list,short){
-  return list.map(function(mk){ return (short ? markShort(mk) : markLabel(mk))+' '+fmt(marks[mk],1); });
+/* Each point with its time, for a row or a line of copy. Tenths unless told
+   otherwise (5.17: a Results row passes its race's precision). */
+function splitWords(marks,list,short,prec){
+  return list.map(function(mk){ return (short ? markShort(mk) : markLabel(mk))+' '+fmt(marks[mk],prec==null?1:prec); });
 }
 
 function spRace(){ var f=SP ? findRace(SP.mid,SP.rid) : null; return f ? f.race : null; }
@@ -6804,7 +6833,7 @@ function renderResults(){
     var got=spl && spl[finSplitKey(f,smap)];
     if(!got) return;
     Object.keys(got).map(Number).sort(function(a,b){ return a-b; }).forEach(function(mk){
-      tags.push(splitTag(mk)+' '+fmt(got[mk],1));
+      tags.push(splitTag(mk)+' '+fmt(got[mk],racePrec(S.fin)));   /* 5.17: the row's precision */
     });
   }
   if(resFull){
@@ -6881,11 +6910,11 @@ function renderSplitsOnly(){
   rows.forEach(function(p,i){
     var tags=[];
     if(rp.grade && p.grade) tags.push(p.grade+'th');
-    if(many) tags=tags.concat(splitWords(p.marks,p.list,true));
+    if(many) tags=tags.concat(splitWords(p.marks,p.list,true,racePrec(S.fin)));
     h+='<div class="rrow home"><span class="pl num">'+(i+1)+'</span>'+
        '<span class="who'+(p.name?'':' pending')+'"><span class="wn">'+(p.name?esc(p.name):'needs a name')+'</span>'+
        (tags.length?'<small class="wt">'+tags.join(' \u00b7 ')+'</small>':'')+'</span>'+
-       '<span class="tm num">'+fmt(p.ms,1)+'</span></div>';
+       '<span class="tm num">'+fmt(p.ms,racePrec(S.fin))+'</span></div>';
   });
   h+=dnfBlock();
   $('resultBody').innerHTML=h;
@@ -6899,6 +6928,474 @@ function renderSplitsOnly(){
     if(b.textContent!=='Copied' && b.textContent!=='Select the text below') b.textContent=t;
   });
 }
+/* 5.18: Load official results in the app. The SQL load, moved onto the phone.
+   Paste one race from MileSplit, either its results table or its Completed
+   (HY-TEK) text. Nothing is written until the read-back says every line read
+   and every one of ours has a runner; then the whole field goes in as
+   finishes, every school's places go to Meet scores, our taps are marked
+   deleted, and one race_loads row (0024) records it all so Unload can put the
+   race back from any phone. */
+var OL_TIME=/^(?:\d{1,2}:)?\d{1,2}:\d{2}(?:\.\d{1,3})?$/;
+var olText='', olRead=null, olOurs=null, olPick={}, olDrop={}, olAdd={}, olMsg='', olBusy=false, olLoad=undefined, olNoTable=false;
+function olMs(t){
+  var p=String(t).split(':'), sec=parseFloat(p.pop()), min=+p.pop(), hr=p.length?+p.pop():0;
+  return Math.round(((hr*60+min)*60+sec)*1000);
+}
+function olName(s){
+  s=String(s||'').replace(/\s+/g,' ').trim();
+  var c=s.indexOf(',');
+  if(c>0) s=(s.slice(c+1).trim()+' '+s.slice(0,c).trim()).trim();
+  return s;
+}
+function olIsGrade(w){ return /^\d{1,2}$/.test(w); }
+function olIsYear(w){ return /^(FR|SO|JR|SR)$/i.test(w); }
+/* Name, grade and school with only single spaces between them: the grade
+   splits them. A number first, since "Jr" can end a name. */
+function olSplitWords(mid){
+  var tk=mid.split(' '), i;
+  for(i=2;i<tk.length-1;i++) if(olIsGrade(tk[i])) return {name:tk.slice(0,i).join(' '), grade:tk[i], school:tk.slice(i+1).join(' ')};
+  for(i=2;i<tk.length-1;i++) if(olIsYear(tk[i])) return {name:tk.slice(0,i).join(' '), grade:tk[i], school:tk.slice(i+1).join(' ')};
+  return null;
+}
+function olRow(place,mid,time,pts,line,cells){
+  var r={place:+place, ms:olMs(time), pts:(pts!=null && pts!=='')?+pts:null, line:line.trim(), name:'', school:'', grade:''};
+  if(cells){
+    r.school=normSchool(cells.school);
+    var nm=cells.name.replace(/\s+/g,' ').trim().split(' ');
+    if(nm.length>1 && (olIsGrade(nm[nm.length-1]) || olIsYear(nm[nm.length-1]))) r.grade=nm.pop();
+    r.name=olName(nm.join(' '));
+    if(cells.grade) r.grade=cells.grade;
+    return r;
+  }
+  mid=mid.replace(/\t/g,'  ');
+  if(/\S\s{2,}\S/.test(mid)){
+    var parts=mid.trim().split(/\s{2,}/);
+    if(parts.length>=2){
+      r.name=olName(parts[0]); r.school=normSchool(parts[parts.length-1]);
+      if(parts.length>2) r.grade=parts[1];
+      if(olIsGrade(r.school.split(' ')[0]) || olIsYear(r.school.split(' ')[0])){ var w=r.school.split(' '); r.grade=w.shift(); r.school=w.join(' '); }
+      if(r.school) return r;
+    }
+  }
+  var sp=olSplitWords(mid.replace(/\s+/g,' ').trim());
+  if(sp){ r.name=olName(sp.name); r.grade=sp.grade; r.school=normSchool(sp.school); return r; }
+  r.mid=mid.replace(/\s+/g,' ').trim();   /* settled against the other lines' schools */
+  return r;
+}
+/* Team scores, from HY-TEK's block, or summed from a PTS column. */
+function olTeamLine(line){
+  var m=/^\s*(\d+)\s+(.+?)\s+(\d+)((?:\s+\d+)*)\s*$/.exec(line);
+  if(!m || /total time|average/i.test(line)) return null;
+  return {school:normSchool(m[2]), total:+m[3]};
+}
+function offParse(text){
+  var lines=String(text||'').split(/\r?\n/), rows=[], bad=[], teams=[], inTeams=false, fmtName='table';
+  lines.forEach(function(line){
+    if(/team scores/i.test(line)){ inTeams=true; fmtName='hytek'; return; }
+    if(/HY-TEK|Meet Manager|={10,}/.test(line)) fmtName='hytek';
+    if(inTeams){ var t=olTeamLine(line); if(t) teams.push(t); return; }
+    var hasTime=/(?:^|\s)(?:\d{1,2}:)?\d{1,2}:\d{2}(?:\.\d{1,3})?(?:\s|$)/.test(line);
+    if(!hasTime || !/^\s*\d+/.test(line)) return;
+    if(/\t/.test(line)){
+      var c=line.split('\t').map(function(x){ return x.trim(); }), ti=-1;
+      c.forEach(function(x,i){ if(ti<0 && i>1 && OL_TIME.test(x)) ti=i; });
+      if(ti>=3 && /^\d+$/.test(c[0])){
+        var after=c.slice(ti+1).filter(Boolean);
+        var gi=(ti>=4 && (olIsGrade(c[ti-2])||olIsYear(c[ti-2]))) ? ti-2 : -1;
+        rows.push(olRow(c[0],'',c[ti],/^\d+$/.test(after[0]||'')?after[0]:null,line,
+          {name:c.slice(1,gi>0?gi:ti-1).join(' '), grade:gi>0?c[gi]:'', school:c[ti-1]}));
+        return;
+      }
+    }
+    var m=/^\s*(\d+)\.?\s+(.*?\S)\s+((?:\d{1,2}:)?\d{1,2}:\d{2}(?:\.\d{1,3})?)(?:\s+(\d+))?\s*$/.exec(line);
+    if(m) rows.push(olRow(m[1],m[2],m[3],m[4],line));
+    else bad.push(line.trim());
+  });
+  if(rows.length<3) rows=olStream(text, bad);
+  /* Lines whose grade was missing: their school is one the other lines named. */
+  var known=[];
+  rows.forEach(function(r){ if(r.school && known.indexOf(r.school)<0) known.push(r.school); });
+  known.sort(function(a,b){ return b.length-a.length; });
+  rows.forEach(function(r){
+    if(r.mid==null) return;
+    var hit=null;
+    known.forEach(function(s){ if(!hit && r.mid.length>s.length && r.mid.slice(-s.length-1)===' '+s) hit=s; });
+    if(hit){ r.school=hit; r.name=olName(r.mid.slice(0,-hit.length-1)); }
+    else r.unread=true;
+    delete r.mid;
+  });
+  if(!teams.length){
+    var by={};
+    rows.forEach(function(r){ if(r.pts!=null && r.school){ (by[r.school]=by[r.school]||[]).push(r.pts); } });
+    Object.keys(by).forEach(function(s){ var p=by[s]; if(p.length>=5) teams.push({school:s, total:p.slice(0,5).reduce(function(a,b){ return a+b; },0)}); });
+  }
+  return {rows:rows, bad:bad, teams:teams, fmt:fmtName};
+}
+/* A table copied cell by cell, one cell to a line: read as one run of words,
+   cut at each place in turn. */
+function olStream(text, bad){
+  var tk=String(text||'').replace(/\s+/g,' ').trim().split(' '), rows=[], k=0, want=1;
+  while(k<tk.length && tk[k]!=='1') k++;
+  while(k<tk.length && tk[k]===String(want)){
+    var j=k+1, mid=[];
+    while(j<tk.length && !OL_TIME.test(tk[j])) mid.push(tk[j++]);
+    if(j>=tk.length) break;
+    var time=tk[j], pts=null, a=tk[j+1], b=tk[j+2];
+    if(a!=null && /^\d+$/.test(a) && (a!==String(want+1) || (b!=null && b===String(want+1)))){ pts=a; j++; }
+    rows.push(olRow(String(want), mid.join(' '), time, pts, String(want)+' '+mid.join(' ')+' '+time+(pts?' '+pts:'')));
+    k=j+1; want++;
+  }
+  return rows;
+}
+function olSchoolSame(a,b){
+  var x=schoolCore(a), y=schoolCore(b);
+  if(!x || !y) return false;
+  if(x===y) return true;
+  var n=Math.min(x.length,y.length);
+  return n>=6 && x.slice(0,n)===y.slice(0,n);
+}
+function olRace(){ return currentRace(); }
+function olRoster(r){
+  var g=divOf(r);
+  return buildRoster().filter(function(p){ return p.g===g && !p.dead; });
+}
+/* One of ours on the sheet against the roster: the full name, or failing
+   that one runner whose last name matches and whose first name is the same,
+   starts the other ("Sam", "Samuel") or shares its first three letters
+   ("Nico", "Nicholas"), or whose name holds every word of
+   the other ("Jules Chidester", "Jules Harper Chidester"). */
+function olMatch(name, ros){
+  var k=name.toLowerCase().replace(/\s+/g,' ').trim();
+  var ex=ros.filter(function(p){ return p.name.toLowerCase().replace(/\s+/g,' ').trim()===k; });
+  if(ex.length===1) return {p:ex[0], how:'exact'};
+  if(ex.length>1) return {many:ex};
+  var w=k.split(' '), first=w[0], last=w[w.length-1];
+  var c=ros.filter(function(p){
+    var v=p.name.toLowerCase().replace(/\s+/g,' ').trim().split(' '), f=v[0], l=v[v.length-1];
+    if(l!==last) return false;
+    if(f===first || f.indexOf(first)===0 || first.indexOf(f)===0) return true;
+    if(f.length>=3 && first.length>=3 && f.slice(0,3)===first.slice(0,3)) return true;   /* Nico, Nicholas */
+    var all=function(a,b){ return a.every(function(x){ return b.indexOf(x)>=0; }); };
+    return all(w,v) || all(v,w);
+  });
+  if(c.length===1) return {p:c[0], how:'close'};
+  return c.length ? {many:c} : {none:true};
+}
+/* Our taps against the official times: the offset is the median gap between
+   each tap and its nearest official time, and a tap with no official time
+   within 0.7 s of it, once the offset is taken off, is a runner the list
+   missed. */
+function olTaps(r, offMs){
+  var taps=(r.fin||[]).map(function(f){ return f; }).filter(function(f){ return f.ms!=null; });
+  if(!taps.length || !offMs.length) return null;
+  var d=[];
+  taps.forEach(function(f){
+    var best=null;
+    offMs.forEach(function(o){ var x=f.ms-o; if(Math.abs(x)<=3000 && (best==null || Math.abs(x)<Math.abs(best))) best=x; });
+    if(best!=null) d.push(best);
+  });
+  if(!d.length) return {offset:0, missed:[], taps:taps.length, lined:0};
+  d.sort(function(a,b){ return a-b; });
+  var off=d[Math.floor(d.length/2)], used={}, missed=[], lined=0;
+  taps.forEach(function(f){
+    var t=f.ms-off, bi=-1, bd=701;
+    offMs.forEach(function(o,i){ if(!used[i] && Math.abs(t-o)<bd){ bd=Math.abs(t-o); bi=i; } });
+    if(bi>=0){ used[bi]=1; lined++; }
+    else missed.push({f:f, ms:Math.round(t)});
+  });
+  return {offset:off, missed:missed, taps:taps.length, lined:lined};
+}
+function olBuild(){
+  var r=olRace(); if(!olRead || !r) return null;
+  var ros=olRoster(r), rows=olRead.rows;
+  var schools=[];
+  rows.forEach(function(x){ if(x.school && schools.indexOf(x.school)<0) schools.push(x.school); });
+  /* Ours: the school with the most names on our roster, the team's own name breaking a tie. */
+  if(olOurs==null || schools.indexOf(olOurs)<0){
+    var best=null, bn=0;
+    schools.forEach(function(s){
+      var n=rows.filter(function(x){ return x.school===s && olMatch(x.name,ros).how==='exact'; }).length;
+      if(n>bn || (n===bn && n>0 && isOurSchool(s))){ best=s; bn=n; }
+    });
+    if(!best) schools.forEach(function(s){ if(!best && olSchoolSame(s,S.team)) best=s; });
+    olOurs=best;
+  }
+  var kept=[], unread=[], odd=[], ours=[], usedBy={};
+  rows.forEach(function(x,i){
+    x.i=i;
+    if(x.unread){ unread.push(x); if(!olDrop[i]) return; return; }
+    var isOdd=!x.name || /^unknown\b/i.test(x.name);
+    if(isOdd){ odd.push(x); if(olDrop[i]!==false) return; }
+    else if(olDrop[i]) return;
+    kept.push(x);
+  });
+  kept.forEach(function(x){
+    x.ours=x.school===olOurs; x.p=null; x.state='';
+    if(!x.ours) return;
+    var pick=olPick[x.i];
+    if(pick==='name'){ x.state='name'; }
+    else if(pick!=null){ x.p=ros.filter(function(p){ return p.id===pick; })[0]||null; x.state=x.p?'picked':'none'; }
+    else { var m=olMatch(x.name,ros); x.p=m.p||null; x.state=m.p?m.how:(m.many?'many':'none'); x.cands=m.many||null; }
+    if(x.p) (usedBy[x.p.id]=usedBy[x.p.id]||[]).push(x);
+    ours.push(x);
+  });
+  ours.forEach(function(x){ x.twice=!!(x.p && usedBy[x.p.id].length>1); });
+  var taps=(r.fin||[]).length ? olTaps(r, kept.map(function(x){ return x.ms; })) : null;
+  var wild = taps && taps.missed.length > Math.max(5, Math.round(taps.taps*0.1));
+  var adds=[];
+  if(taps) taps.missed.forEach(function(m){
+    var on = olAdd[m.f.cid]!=null ? olAdd[m.f.cid] : !wild;
+    m.on=on; if(on) adds.push(m);
+  });
+  /* The field in order, official lines first on a tie. */
+  var all=kept.map(function(x){ return {ms:x.ms, x:x}; }).concat(adds.map(function(m){ return {ms:m.ms, add:m}; }));
+  all.sort(function(a,b){ return (a.ms-b.ms) || ((a.add?1:0)-(b.add?1:0)); });
+  var places={}, ourP=[];
+  all.forEach(function(e,i){
+    var pl=i+1;
+    if(e.x){ if(e.x.ours) ourP.push(pl); else if(e.x.school) (places[e.x.school]=places[e.x.school]||[]).push(pl); }
+    else if(e.add.f.h) ourP.push(pl);
+  });
+  var claims=Object.keys(places).map(function(s){ return {s:s, p:places[s].slice(0,25)}; });
+  var res=meetScore(all.length, ourP, claims), cmp=[];
+  if(olRead.teams.length) res.maac.forEach(function(t){
+    var nm=t.school===OURS_KEY ? olOurs : t.school;
+    var o=olRead.teams.filter(function(q){ return olSchoolSame(q.school,nm) || q.school===nm; })[0];
+    if(o && o.total!==t.score) cmp.push({school:nm, theirs:o.total, ours:t.score});
+  });
+  var red=unread.filter(function(x){ return !olDrop[x.i]; }).length +
+          ours.filter(function(x){ return x.state==='none' || x.state==='many' || x.twice; }).length;
+  return {r:r, ros:ros, rows:rows, kept:kept, all:all, unread:unread, odd:odd, ours:ours, schools:schools, places:places,
+          claims:claims, res:res, cmp:cmp, taps:taps, wild:wild, adds:adds, red:red};
+}
+function openOffLoad(){
+  olText=''; olRead=null; olOurs=null; olPick={}; olDrop={}; olAdd={}; olMsg=''; olLoad=undefined; olNoTable=false;
+  backTo='results'; show('offload'); olFetchLoad();
+}
+function olFetchLoad(){
+  var r=olRace(); if(!r) return;
+  ensureFresh().then(function(ok){
+    if(!ok){ olLoad=null; renderOffLoad(); return; }
+    return sbFetch('/rest/v1/race_loads?select=id,added,hid,schools,created_at&race_id=eq.'+r.id+'&undone_at=is.null&order=created_at.desc&limit=1',{auth:true})
+      .then(function(res){
+        if(res.status===404 || (res.data && res.data.code==='42P01')){ olNoTable=true; olLoad=null; }
+        else olLoad = (res.ok && res.data && res.data[0]) || null;
+        if(onScreen('offload')) renderOffLoad();
+      });
+  });
+}
+function renderOffLoad(){
+  var r=olRace(); if(!S || !r) return;
+  var h='<div class="rhead"><div class="rid"><span class="ridtext">'+esc(S.name)+'</span></div>'+
+        '<div class="rwhen num">'+esc([S.date?fmtDate(S.date,true):'', meetDist()].filter(Boolean).join(' \u00b7 '))+'</div></div>';
+  if(olNoTable) h+='<div class="note"><span class="olred">Loading needs a database update (0024) that hasn\u2019t been run yet.</span></div>';
+  if(olLoad){
+    h+='<div class="note">Official results were loaded '+esc(fmtDate(String(olLoad.created_at).slice(0,10),true))+': '+
+       (olLoad.added||[]).length+' finishers.'+((olLoad.hid||[]).length?' This phone\u2019s '+(olLoad.hid.length)+' taps were set aside.':'')+
+       ' Unload takes them out and puts the race back as it was.</div>'+
+       '<div class="pad"><div class="btnrow"><button type="button" id="olUnload"'+(olBusy?' disabled':'')+'>Unload</button></div></div>';
+  } else if(olLoad===undefined){
+    h+='<div class="note">Checking the database\u2026</div>';
+  } else if(!olRead){
+    h+='<div class="field olpaste"><label for="olIn">Paste this race\u2019s official results</label>'+
+       '<textarea id="olIn" spellcheck="false" placeholder="1 Lila Sand 8 Atlanta International School 12:06.58 1">'+esc(olText)+'</textarea>'+
+       '<div class="hint">Open the race on MileSplit, select the whole list and copy it. The results table works, and so does its Completed version. One race at a time. Nothing is saved until you check it.</div></div>'+
+       '<div class="pad"><div class="btnrow"><button type="button" class="go" id="olReadGo">Read it</button></div></div>';
+  } else {
+    var b=olBuild();
+    h+=olReadBack(b);
+  }
+  if(olMsg) h+='<div class="hint msmsg olmsg">'+olMsg+'</div>';
+  $('olBody').innerHTML=h;
+  wireOffLoad();
+}
+function olReadBack(b){
+  var h='', nS=b.schools.length;
+  if(!b.rows.length) return '<div class="note"><span class="olred">No results found in that.</span> Each line needs a place, a name, a school and a time.</div>'+
+    '<div class="pad"><div class="btnrow"><button type="button" id="olEdit">Edit the paste</button></div></div>';
+  h+='<div class="note"><b>'+b.all.length+(b.all.length===1?' finisher':' finishers')+', '+nS+(nS===1?' school':' schools')+'.</b> '+
+     (b.red ? '<span class="olred">'+b.red+(b.red===1?' thing needs':' things need')+' you before this can be saved.</span>' : 'Every line read.')+'</div>';
+  if(b.unread.length){
+    h+='<div class="hsect rsect">Couldn\u2019t read</div>';
+    b.unread.forEach(function(x){
+      var out=!!olDrop[x.i];
+      h+='<div class="olrow'+(out?' olout':' olbad')+'"><span class="olp num">'+x.place+'</span><span class="oln">'+esc(x.line)+'<small>Can\u2019t tell the name from the school.</small></span>'+
+         '<button type="button" class="ollink" data-drop="'+x.i+'">'+(out?'Put back':'Leave out')+'</button></div>';
+    });
+  }
+  if(b.odd.length){
+    h+='<div class="hsect rsect">Left out</div>';
+    b.odd.forEach(function(x){
+      var inn=olDrop[x.i]===false;
+      h+='<div class="olrow'+(inn?'':' olout')+'"><span class="olp num">'+x.place+'</span><span class="oln">'+esc(x.line)+'<small>No runner named.</small></span>'+
+         '<button type="button" class="ollink" data-keep="'+x.i+'">'+(inn?'Leave out':'Keep it')+'</button></div>';
+    });
+  }
+  h+='<div class="field olours"><label for="olOursSel">Our school on this sheet</label><select id="olOursSel">'+
+     b.schools.map(function(s){ return '<option'+(s===olOurs?' selected':'')+'>'+esc(s)+'</option>'; }).join('')+'</select></div>';
+  h+='<div class="hsect rsect">Ours ('+b.ours.length+')</div>';
+  var opts=b.ros.slice().sort(function(a,c){ return a.name.localeCompare(c.name); });
+  b.ours.forEach(function(x){
+    var bad=x.state==='none' || x.state==='many' || x.twice;
+    var note = x.twice ? 'Matched to '+esc(x.p.name)+' twice.'
+             : x.state==='exact' ? ''
+             : x.state==='close' ? 'Matched as '+esc(x.p.name)+'.'
+             : x.state==='picked' ? 'Picked: '+esc(x.p.name)+'.'
+             : x.state==='name' ? 'Not on the roster. Saved by name, as a walk-on is.'
+             : x.state==='many' ? 'More than one on the roster could be this runner.'
+             : 'Not on the roster.';
+    h+='<div class="olrow'+(bad?' olbad':'')+'"><span class="olp num">'+x.place+'</span><span class="oln">'+esc(x.name)+
+       (note?'<small>'+note+'</small>':'')+'</span><span class="olt num">'+fmt(x.ms,2)+'</span></div>';
+    if(bad || x.state==='close' || x.state==='picked' || x.state==='name'){
+      h+='<div class="olpick"><select data-pick="'+x.i+'"><option value="">'+(bad?'Pick a runner':'Change')+'\u2026</option>'+
+         opts.map(function(p){ return '<option value="'+p.id+'">'+esc(p.name)+'</option>'; }).join('')+
+         '<option value="name">Not on the roster: keep the name</option></select></div>';
+    }
+  });
+  if(b.taps){
+    h+='<div class="hsect rsect">Our taps</div>';
+    var off=b.taps.offset;
+    h+='<div class="note">'+b.taps.lined+' of '+b.taps.taps+' taps line up with the official times'+
+       (Math.abs(off)<5?', to the hundredth.':(', '+fmt(Math.abs(off),2).replace(/^0:0?/,'')+' s '+(off>0?'after':'before')+' theirs.'))+
+       (b.taps.missed.length ? ' '+b.taps.missed.length+(b.taps.missed.length===1?' tap has':' taps have')+' no official time: a runner the list may have missed.' : ' The list accounts for every tap.')+
+       (b.wild?' <span class="olred">That\u2019s too many to trust, so none are added unless you choose.</span>':'')+'</div>';
+    b.taps.missed.forEach(function(m){
+      var who=(m.f.h && m.f.n) ? m.f.n+' (ours)' : (m.f.h ? 'One of ours, unnamed' : 'Field');
+      h+='<div class="olrow'+(m.on?'':' olout')+'"><span class="olp num"></span><span class="oln">'+esc(who)+'<small>'+(m.on?'Added at '+fmt(m.ms,2)+', marked entered.':'Not added.')+'</small></span>'+
+         '<button type="button" class="ollink" data-add="'+esc(m.f.cid)+'">'+(m.on?'Don\u2019t add':'Add')+'</button></div>';
+    });
+  }
+  h+='<div class="hsect rsect">Schools</div>';
+  Object.keys(b.places).sort(function(a,c){ return b.places[a][0]-b.places[c][0]; }).forEach(function(s){
+    var p=b.places[s];
+    h+='<div class="olrow"><span class="oln">'+esc(s)+'<small class="num">'+p.slice(0,7).join(', ')+(p.length>7?' and '+(p.length-7)+' more':'')+'</small></span></div>';
+  });
+  if(olRead.teams.length){
+    h+='<div class="note">'+(b.cmp.length
+      ? '<span class="olred">Scores differ from the sheet\u2019s:</span> '+b.cmp.map(function(c){ return esc(c.school)+' '+c.theirs+' there, '+c.ours+' here'; }).join('; ')+'.'+(b.adds.length?' Added runners move places, so some difference is expected.':'')
+      : 'Team scores match the sheet\u2019s.')+'</div>';
+  }
+  h+='<div class="pad"><div class="btnrow"><button type="button" id="olEdit">Edit the paste</button>'+
+     '<button type="button" class="go" id="olSave"'+((b.red||olBusy||olNoTable)?' disabled':'')+'>'+(olBusy?'Saving\u2026':'Save')+'</button></div></div>';
+  return h;
+}
+function wireOffLoad(){
+  var q=function(id){ return $(id); };
+  if(q('olReadGo')) q('olReadGo').addEventListener('click',function(){
+    olText=q('olIn').value; olRead=offParse(olText); olOurs=null; olPick={}; olDrop={}; olAdd={}; olMsg=''; renderOffLoad();
+  });
+  if(q('olEdit')) q('olEdit').addEventListener('click',function(){ olRead=null; olMsg=''; renderOffLoad(); });
+  if(q('olOursSel')) q('olOursSel').addEventListener('change',function(){ olOurs=this.value; olPick={}; renderOffLoad(); });
+  [].forEach.call($('olBody').querySelectorAll('[data-pick]'),function(s){
+    s.addEventListener('change',function(){ var v=s.value; if(v==='') return; olPick[s.getAttribute('data-pick')]= v==='name' ? 'name' : +v; renderOffLoad(); });
+  });
+  [].forEach.call($('olBody').querySelectorAll('[data-drop]'),function(b){
+    b.addEventListener('click',function(){ var i=b.getAttribute('data-drop'); olDrop[i]=!olDrop[i]; renderOffLoad(); });
+  });
+  [].forEach.call($('olBody').querySelectorAll('[data-keep]'),function(b){
+    b.addEventListener('click',function(){ var i=b.getAttribute('data-keep'); olDrop[i] = olDrop[i]===false ? true : false; renderOffLoad(); });
+  });
+  [].forEach.call($('olBody').querySelectorAll('[data-add]'),function(b){
+    b.addEventListener('click',function(){
+      var k=b.getAttribute('data-add'), bb=olBuild(), m=bb && bb.taps ? bb.taps.missed.filter(function(x){ return x.f.cid===k; })[0] : null;
+      olAdd[k]=!(m && m.on); renderOffLoad();
+    });
+  });
+  if(q('olSave')) q('olSave').addEventListener('click',offSave);
+  if(q('olUnload')) q('olUnload').addEventListener('click',function(){
+    askOpen({title:'Unload official results?', msg:'The loaded finishers come out, this phone\u2019s taps come back, and Meet scores goes back to what it was before the load.',
+      ok:'Unload', onOk:function(){ offUnload(); return null; }});
+  });
+}
+function olChunks(a,n){ var out=[]; for(var i=0;i<a.length;i+=n) out.push(a.slice(i,i+n)); return out; }
+/* Every write in order, stopping at the first refusal. The race_loads row goes
+   first, so a load stopped part way is still one Unload away from undone. */
+function olSteps(steps){
+  return seq(steps,function(st){
+    return st[1]().then(function(res){ if(res && res.ok===false){ throw new Error(st[0]); } return true; });
+  });
+}
+function olStopped(e,what){
+  olBusy=false;
+  olMsg='<span class="warn">Stopped while '+esc(e && e.message || 'saving')+'. '+what+'</span>';
+  renderOffLoad();
+}
+function offSave(){
+  var b=olBuild(), r=b && b.r, m=r ? meetOfRace(r) : null;
+  if(!b || b.red || olBusy) return;
+  if(raceUnsent(r)){ olMsg='<span class="warn">This phone has changes to this race that haven\u2019t reached the database yet. Give them a moment, then save.</span>'; renderOffLoad(); return; }
+  olBusy=true; olMsg=''; renderOffLoad();
+  var home='', amap=aidMap(), shift=r.shift||0, loadId=uid(), hid=[], before=[];
+  var rows=b.all.map(function(e,i){
+    var cid=uid(), body={race_id:r.id, client_id:cid, elapsed_ms:Math.max(0,Math.round(e.ms-shift)), seq:i,
+      entered:!!e.add, athlete_id:null, team_id:null, runner_name:null, runner_division:null, distance_m:null};
+    if(e.x && e.x.ours){
+      if(e.x.p){ var a=amap[histKey(e.x.p)]; if(a) body.athlete_id=a; else body.runner_name=e.x.p.name; }
+      else body.runner_name=e.x.name;
+      body.team_id='HOME';
+    } else if(e.add && e.add.f.h){
+      if(e.add.f.a) body.athlete_id=e.add.f.a; else if(e.add.f.n) body.runner_name=e.add.f.n;
+      body.team_id='HOME';
+    }
+    return body;
+  });
+  var schools=b.claims.map(function(c){ return {id:uid(), race_id:r.id, school:c.s, places:c.p}; });
+  var base='/rest/v1/finishes?race_id=eq.'+r.id;
+  ensureFresh().then(function(ok){
+    if(!ok) throw new Error('signing in');
+    return homeTeamId();
+  }).then(function(h){
+    if(!h) throw new Error('finding our team');
+    home=h; rows.forEach(function(x){ if(x.team_id==='HOME') x.team_id=home; });
+    return sbFetch(base+'&deleted_at=is.null&select=client_id',{auth:true});
+  }).then(function(res){
+    if(!res.ok) throw new Error('reading the race');
+    hid=(res.data||[]).map(function(x){ return x.client_id; });
+    return sbFetch('/rest/v1/race_school_places?select=school,places&race_id=eq.'+r.id,{auth:true});
+  }).then(function(res){
+    if(!res.ok) throw new Error('reading Meet scores');
+    before=res.data||[];
+    var steps=[['recording the load',function(){ return sbFetch('/rest/v1/race_loads',{method:'POST', auth:true, prefer:'return=minimal',
+      body:{id:loadId, race_id:r.id, added:rows.map(function(x){ return x.client_id; }), hid:hid, schools:before, source:(olRead.fmt||'paste')}}); }]];
+    olChunks(hid,80).forEach(function(c){ steps.push(['setting our taps aside',function(){
+      return sbFetch(base+'&client_id='+inList(c),{method:'PATCH', auth:true, prefer:'return=minimal', body:{deleted_at:new Date().toISOString()}}); }]); });
+    olChunks(rows,100).forEach(function(c){ steps.push(['saving the finishers',function(){
+      return sbFetch('/rest/v1/finishes',{method:'POST', auth:true, prefer:'return=minimal', body:c}); }]); });
+    steps.push(['clearing Meet scores',function(){ return sbFetch('/rest/v1/race_school_places?race_id=eq.'+r.id,{method:'DELETE', auth:true, prefer:'return=minimal'}); }]);
+    if(schools.length) steps.push(['saving Meet scores',function(){ return sbFetch('/rest/v1/race_school_places',{method:'POST', auth:true, prefer:'return=minimal', body:schools}); }]);
+    return olSteps(steps);
+  }).then(function(){
+    olBusy=false; olAfter(r,m,'Loaded '+rows.length+' official finishers');
+  }).catch(function(e){ olStopped(e,'Anything saved before that is undone by Unload.'); olLoad=undefined; olRead=null; olFetchLoad(); });
+}
+function offUnload(){
+  var r=olRace(), m=r ? meetOfRace(r) : null, L=olLoad;
+  if(!r || !L || olBusy) return;
+  olBusy=true; olMsg=''; renderOffLoad();
+  var base='/rest/v1/finishes?race_id=eq.'+r.id;
+  ensureFresh().then(function(ok){
+    if(!ok) throw new Error('signing in');
+    var steps=[];
+    olChunks(L.added||[],80).forEach(function(c){ steps.push(['taking the finishers out',function(){
+      return sbFetch(base+'&client_id='+inList(c),{method:'PATCH', auth:true, prefer:'return=minimal', body:{deleted_at:new Date().toISOString()}}); }]); });
+    olChunks(L.hid||[],80).forEach(function(c){ steps.push(['putting our taps back',function(){
+      return sbFetch(base+'&client_id='+inList(c),{method:'PATCH', auth:true, prefer:'return=minimal', body:{deleted_at:null}}); }]); });
+    steps.push(['clearing Meet scores',function(){ return sbFetch('/rest/v1/race_school_places?race_id=eq.'+r.id,{method:'DELETE', auth:true, prefer:'return=minimal'}); }]);
+    var prev=(L.schools||[]).map(function(s){ return {id:uid(), race_id:r.id, school:s.school, places:s.places}; });
+    if(prev.length) steps.push(['putting Meet scores back',function(){ return sbFetch('/rest/v1/race_school_places',{method:'POST', auth:true, prefer:'return=minimal', body:prev}); }]);
+    steps.push(['closing the load',function(){ return sbFetch('/rest/v1/race_loads?id=eq.'+L.id,{method:'PATCH', auth:true, prefer:'return=minimal', body:{undone_at:new Date().toISOString()}}); }]);
+    return olSteps(steps);
+  }).then(function(){
+    olBusy=false; olAfter(r,m,'Unloaded. The race is back as it was');
+  }).catch(function(e){ olStopped(e,'Tap Unload again to finish.'); });
+}
+/* The phone takes the database's copy, as Reload does. */
+function olAfter(r,m,msg){
+  r.took=true; saveSeason();
+  show('results');
+  reloadRace();
+}
+
 function splitsOnlyChat(){
   var r=currentRace(), rows=splitRunners(r), marks=splitMarksIn(r), many=marks.length>1;
   var out=S.name.replace(/, (Girls|Boys)$/,'')+'\n';
@@ -6922,7 +7419,7 @@ function splitsOnlyCsv(){
     'order,runner,team,grade'+marks.map(function(mk){ return ','+markCol(mk); }).join('')+'\n';
   rows.forEach(function(p,i){
     out+=(i+1)+','+csvCell(p.name||'')+','+csvCell(S.team)+','+(p.grade||'')+
-         marks.map(function(mk){ return ','+(p.marks[mk]!=null ? fmt(p.marks[mk],1) : ''); }).join('')+'\n';
+         marks.map(function(mk){ return ','+(p.marks[mk]!=null ? fmt(p.marks[mk],racePrec(S.fin)) : ''); }).join('')+'\n';
   });
   return out;
 }
@@ -7084,13 +7581,13 @@ function resRow(extra,place,who,cls,tags,ms,rp,lead){
       (tags.length?'<small class="wt">'+tags.join(' \u00b7 ')+'</small>':'')+'</span>'+
     '<span class="tm num">'+fmt(ms,racePrec(S&&S.fin))+(gap?'<span class="gap">'+gap+'</span>':'')+'</span></div>';
 }
-/* How far behind the race winner, place 1 across the whole field, to the
-   tenth. Blank for the winner and for anyone tied with them. The same number on
+/* How far behind the race winner, place 1 across the whole field, at the
+   race's precision (5.17; tenths before). Blank for the winner and for anyone tied with them. The same number on
    Team and All, since the winner does not change with the view. */
 function gapToFirst(ms,lead){
   var w = lead!=null ? lead : (S && S.fin.length ? S.fin[0].ms : null);
   if(w==null || ms==null || ms<=w) return '';
-  return '+'+fmt(ms-w,1);
+  return '+'+fmt(ms-w,racePrec(S.fin));   /* 5.17: the row's precision */
 }
 /* Our finishers in order, with the raw field place each took. */
 function ourFinishers(){
@@ -7141,7 +7638,7 @@ function buildCsv(full){
   var sr=currentRace(), spl=splitsByRunner(sr), smarks=spl?splitMarksIn(sr):[], smap=spl?aidMap():null;
   function splCells(f){
     var got=spl && spl[finSplitKey(f,smap)];
-    return smarks.map(function(mk){ return ','+(got && got[mk]!=null ? fmt(got[mk],1) : ''); }).join('');
+    return smarks.map(function(mk){ return ','+(got && got[mk]!=null ? fmt(got[mk],racePrec(S.fin)) : ''); }).join('');
   }
   /* 4.52: team_place on the end, so a sheet built on the old columns still
      lines up. With meet scores in, the score and places are the meet's. */
@@ -7563,6 +8060,7 @@ $('undo').addEventListener('click',function(){
   else undo();
 });
 $('resReload').addEventListener('click',reloadRace);
+$('resLoad').addEventListener('click',openOffLoad);
 $('stop').addEventListener('click',function(){
   /* 4.44: End? like Delete? and Hide?. Again to end was wider than End race,
      and with Splits in the row it pushed End race onto a line of its own. */
@@ -7653,6 +8151,7 @@ $('copyChat').addEventListener('click',function(){ copyOut(buildChat(), this); }
 $('msCopyText').addEventListener('click',function(){ copyOut(buildMeetChat(), this); });
 $('msCopyCsv').addEventListener('click',function(){ copyOut(buildMeetCsv(), this); });
 $('msBack').addEventListener('click',function(){ show('results'); });
+$('olBack').addEventListener('click',function(){ show('results'); });
 $('copyCsv').addEventListener('click',function(){ copyOut(buildCsv(), this); });
 $('rosterPull').addEventListener('click',pullRoster);
 $('rosterDone').addEventListener('click',function(){ goBack('rosterEdit'); });
