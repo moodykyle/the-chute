@@ -530,6 +530,9 @@ input.code{
 /* 4.41: armed on a day that is not the event's, waiting for the second tap. */
 .gun.armed{background:var(--danger);font-size:28px}
 .armed-sub.warn{color:var(--danger);font-weight:600}
+/* 5.23: a quiet text link, kept away from the gun so a thumb at the start can't land on it */
+.armedfoot{flex:0 0 auto;text-align:center;padding:8px 16px calc(14px + env(safe-area-inset-bottom))}
+.armedload{background:none;border:0;color:var(--ink-soft);font:inherit;font-size:14px;text-decoration:underline;text-underline-offset:3px;padding:10px 12px;min-height:44px}
 
 /* ---------- timing ---------- */
 .clockwrap{
@@ -1403,8 +1406,9 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
     <div class="armed-sub" id="armedSub">Hold the phone in your dominant hand and put your thumb on the button.</div>
     <button class="gun" id="gun">Start</button>
     <button class="linkbtn" id="nameWait">Time it on this phone instead</button>
-    <button class="linkbtn" id="armedLoad">Load official results instead</button>
   </div>
+  <!-- 5.23: at the foot of the screen, well clear of the Start button -->
+  <div class="armedfoot"><button type="button" class="armedload" id="armedLoad">Load official results instead</button></div>
 </section>
 
 <!-- TIMING -->
@@ -1566,7 +1570,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.22';
+var BUILD='v5.23';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
