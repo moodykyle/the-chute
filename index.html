@@ -1403,6 +1403,7 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
     <div class="armed-sub" id="armedSub">Hold the phone in your dominant hand and put your thumb on the button.</div>
     <button class="gun" id="gun">Start</button>
     <button class="linkbtn" id="nameWait">Time it on this phone instead</button>
+    <button class="linkbtn" id="armedLoad">Load official results instead</button>
   </div>
 </section>
 
@@ -1565,7 +1566,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.21';
+var BUILD='v5.22';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -2061,7 +2062,7 @@ function $(id){ return document.getElementById(id); }
 /* 4.57: the four tab screens, and the one last shown, which Results and the
    event form go back to. Set before the first show() at boot. */
 var TAB_IDS=['home','runners','season','settings','vhome'], lastTab='home';
-var NAV_NAMES={vhome:'Home', banquet:'Banquet page', settings:'Settings', account:'Account', rosterEdit:'Roster', home:'Home', results:'Results', runners:'Runners', season:'Season', runner:'Runner'};
+var NAV_NAMES={vhome:'Home', banquet:'Banquet page', settings:'Settings', account:'Account', rosterEdit:'Roster', home:'Home', results:'Results', runners:'Runners', season:'Season', runner:'Runner', armed:'Race'};
 function navBack(id){
   var b=document.querySelector('#'+id+' .bar.nav .linkbtn.back');
   if(!b || id==='recon') return;
@@ -6100,6 +6101,9 @@ function renderArmed(){
   var w=armedWait, off=!w && offDay();
   $('gun').style.display = w ? 'none' : '';
   $('nameWait').style.display = w ? '' : 'none';
+  /* 5.22: a race nobody times can take its official results straight from here. */
+  var ar=currentRace();
+  $('armedLoad').style.display = (!w && ar && ar.up && UUID_RE.test(ar.id) && signedIn() && !ttRace() && !VIEW) ? '' : 'none';
   $('armedSub').classList.toggle('warn', off);
   $('armedSub').textContent = off ? 'This event is dated '+fmtDate(S.date)+', not today. Start takes a second tap.'
     : !w ? 'Hold the phone in your dominant hand and put your thumb on the button.'
@@ -6936,7 +6940,7 @@ function renderSplitsOnly(){
    deleted, and one race_loads row (0024) records it all so Unload can put the
    race back from any phone. */
 var OL_TIME=/^(?:\d{1,2}:)?\d{1,2}:\d{2}(?:\.\d{1,3})?$/;
-var olSrc=null, olText='', olRead=null, olOurs=null, olPick={}, olDrop={}, olAdd={}, olMsg='', olBusy=false, olLoad=undefined, olNoTable=false;
+var olFrom='results', olSrc=null, olText='', olRead=null, olOurs=null, olPick={}, olDrop={}, olAdd={}, olMsg='', olBusy=false, olLoad=undefined, olNoTable=false;
 function olMs(t){
   var p=String(t).split(':'), sec=parseFloat(p.pop()), min=+p.pop(), hr=p.length?+p.pop():0;
   return Math.round(((hr*60+min)*60+sec)*1000);
@@ -7184,13 +7188,15 @@ function olBuild(){
 }
 function openOffLoad(){
   olSrc=null; olText=''; olRead=null; olOurs=null; olPick={}; olDrop={}; olAdd={}; olMsg=''; olLoad=undefined; olNoTable=false;
-  backTo='results'; show('offload'); olFetchLoad();
+  /* 5.22: also from an untimed race's Start screen, and back to it. */
+  olFrom = onScreen('armed') ? 'armed' : 'results';
+  backTo=olFrom; show('offload'); olFetchLoad();
 }
 function olFetchLoad(){
   var r=olRace(); if(!r) return;
   ensureFresh().then(function(ok){
     if(!ok){ olLoad=null; renderOffLoad(); return; }
-    return sbFetch('/rest/v1/race_loads?select=id,added,hid,schools,created_at&race_id=eq.'+r.id+'&undone_at=is.null&order=created_at.desc&limit=1',{auth:true})
+    return sbFetch('/rest/v1/race_loads?select=*&race_id=eq.'+r.id+'&undone_at=is.null&order=created_at.desc&limit=1',{auth:true})
       .then(function(res){
         if(res.status===404 || (res.data && res.data.code==='42P01')){ olNoTable=true; olLoad=null; }
         else olLoad = (res.ok && res.data && res.data[0]) || null;
@@ -7387,6 +7393,17 @@ function offSave(){
     return body;
   });
   var schools=b.claims.map(function(c){ return {id:uid(), race_id:r.id, school:c.s, places:c.p}; });
+  /* 5.22: a race nobody timed gets a clock from the load, so Results opens:
+     started at 9:00 on the event's date, ended a second after the last
+     finisher. No phone becomes its timer, and the load records that it set
+     the clock (0025) so Unload can take it away again. */
+  var setClock = r.t0Wall==null, clock=null;
+  if(setClock){
+    var d0 = (S && S.date) ? new Date(S.date+'T09:00:00') : new Date();
+    if(isNaN(d0.getTime())) d0=new Date();
+    var last = b.all.length ? b.all[b.all.length-1].ms : 0;
+    clock = {started_at:d0.toISOString(), ended_at:new Date(d0.getTime()+last+1000).toISOString()};
+  }
   var base='/rest/v1/finishes?race_id=eq.'+r.id;
   ensureFresh().then(function(ok){
     if(!ok) throw new Error('signing in');
@@ -7403,7 +7420,9 @@ function offSave(){
     if(!res.ok) throw new Error('reading Meet scores');
     before=res.data||[];
     var steps=[['recording the load',function(){ return sbFetch('/rest/v1/race_loads',{method:'POST', auth:true, prefer:'return=minimal',
-      body:{id:loadId, race_id:r.id, added:rows.map(function(x){ return x.client_id; }), hid:hid, schools:before, source:(olSrc||olRead.fmt||'paste')}}); }]];
+      body:Object.assign({id:loadId, race_id:r.id, added:rows.map(function(x){ return x.client_id; }), hid:hid, schools:before, source:(olSrc||olRead.fmt||'paste')}, setClock?{set_clock:true}:{})}); }]];
+    if(setClock) steps.push(['marking the race finished',function(){
+      return sbFetch('/rest/v1/races?id=eq.'+r.id+'&started_at=is.null',{method:'PATCH', auth:true, prefer:'return=minimal', body:clock}); }]);
     olChunks(hid,80).forEach(function(c){ steps.push(['setting our taps aside',function(){
       return sbFetch(base+'&client_id='+inList(c),{method:'PATCH', auth:true, prefer:'return=minimal', body:{deleted_at:new Date().toISOString()}}); }]); });
     olChunks(rows,100).forEach(function(c){ steps.push(['saving the finishers',function(){
@@ -7412,7 +7431,9 @@ function offSave(){
     if(schools.length) steps.push(['saving Meet scores',function(){ return sbFetch('/rest/v1/race_school_places',{method:'POST', auth:true, prefer:'return=minimal', body:schools}); }]);
     return olSteps(steps);
   }).then(function(){
-    olBusy=false; olAfter(r,m,'Loaded '+rows.length+' official finishers');
+    olBusy=false;
+    if(setClock){ applyRaceRow(r,{started_at:clock.started_at, ended_at:clock.ended_at, shift_ms:0, timed_by:null}); r.pulled=true; }
+    olAfter(r,m,'Loaded '+rows.length+' official finishers');
   }).catch(function(e){ olStopped(e,'Anything saved before that is undone by Unload.'); olLoad=undefined; olRead=null; olFetchLoad(); });
 }
 function offUnload(){
@@ -7430,10 +7451,18 @@ function offUnload(){
     steps.push(['clearing Meet scores',function(){ return sbFetch('/rest/v1/race_school_places?race_id=eq.'+r.id,{method:'DELETE', auth:true, prefer:'return=minimal'}); }]);
     var prev=(L.schools||[]).map(function(s){ return {id:uid(), race_id:r.id, school:s.school, places:s.places}; });
     if(prev.length) steps.push(['putting Meet scores back',function(){ return sbFetch('/rest/v1/race_school_places',{method:'POST', auth:true, prefer:'return=minimal', body:prev}); }]);
+    if(L.set_clock) steps.push(['putting the race back to not started',function(){
+      return sbFetch('/rest/v1/races?id=eq.'+r.id,{method:'PATCH', auth:true, prefer:'return=minimal', body:{started_at:null, ended_at:null}}); }]);
     steps.push(['closing the load',function(){ return sbFetch('/rest/v1/race_loads?id=eq.'+L.id,{method:'PATCH', auth:true, prefer:'return=minimal', body:{undone_at:new Date().toISOString()}}); }]);
     return olSteps(steps);
   }).then(function(){
-    olBusy=false; olAfter(r,m,'Unloaded. The race is back as it was');
+    olBusy=false;
+    if(L.set_clock){
+      /* back to a race nobody has timed: its Start screen */
+      applyRaceRow(r,{started_at:null, ended_at:null, shift_ms:0, timed_by:null}); r.fin=[]; r.gone=[]; delete r.took; saveSeason();
+      olLoad=undefined; openRace(m.id, r.id); return;
+    }
+    olAfter(r,m,'Unloaded. The race is back as it was');
   }).catch(function(e){ olStopped(e,'Tap Unload again to finish.'); });
 }
 /* The phone takes the database's copy, as Reload does. */
@@ -8198,7 +8227,8 @@ $('copyChat').addEventListener('click',function(){ copyOut(buildChat(), this); }
 $('msCopyText').addEventListener('click',function(){ copyOut(buildMeetChat(), this); });
 $('msCopyCsv').addEventListener('click',function(){ copyOut(buildMeetCsv(), this); });
 $('msBack').addEventListener('click',function(){ show('results'); });
-$('olBack').addEventListener('click',function(){ show('results'); });
+$('olBack').addEventListener('click',function(){ show(olFrom); });
+$('armedLoad').addEventListener('click',openOffLoad);
 $('copyCsv').addEventListener('click',function(){ copyOut(buildCsv(), this); });
 $('rosterPull').addEventListener('click',pullRoster);
 $('rosterDone').addEventListener('click',function(){ goBack('rosterEdit'); });
