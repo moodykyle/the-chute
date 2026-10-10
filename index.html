@@ -153,6 +153,7 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
 .linkbtn.back.tohome{padding:8px 13px}
 .linkbtn.back.tohome .bh{display:block}
 .linkbtn.back.tohome .bc,.linkbtn.back.tohome .bl{display:none}
+.linkbtn.back.cancel .bc{display:none}
 /* Delete is the trash can top right of the event form, as far from Save as
    the screen allows. The first tap turns it into a red question. */
 .linkbtn.danger{color:var(--danger)}
@@ -311,6 +312,59 @@ select{min-height:47px}
 .seg2.fseg{padding:0;border:0}
 .seg2.fseg button{min-height:44px}
 .fpair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+/* 5.27: the event wizard. Fields not on this step are hidden by class, over
+   whatever the form's own logic shows, so that logic stays as it was. */
+.mform.wz .wzoff, .mform.wz .wzold, #mtypeField{display:none!important}
+.mform.wz .fgrp{border-bottom:0;padding-top:0}
+.mform.wz .fpair{grid-template-columns:minmax(0,1fr);gap:0}
+.mform.wz .fpair > div{margin-bottom:18px}
+.wzhead{padding:16px 16px 6px}
+.wzdots{display:flex;gap:7px;justify-content:center;margin-bottom:14px}
+.wzdots i{width:8px;height:8px;border-radius:50%;background:var(--rule)}
+.wzdots i.done{background:var(--ink-soft)} .wzdots i.on{background:var(--ink)}
+.wzstep{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft)}
+.wzttl{font-size:24px;font-weight:600;letter-spacing:-.01em;margin:4px 0}
+.wzlede{color:var(--ink-soft);font-size:15px;margin-bottom:6px}
+.hcards{display:flex;flex-direction:column;gap:10px;margin-bottom:6px}
+.hcard{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 12px;align-items:center;text-align:left;background:var(--chalk);border:1.5px solid var(--rule);border-radius:12px;padding:14px}
+.hcard b{font-weight:600;font-size:16px}
+.hcard small{grid-column:1;color:var(--ink-soft);font-size:13.5px;line-height:1.35}
+.hcard .rd{grid-row:1 / span 2;grid-column:2;width:22px;height:22px;border-radius:50%;border:2px solid var(--rule)}
+.hcard[aria-pressed="true"]{border-color:var(--red);background:#2a1a2b}
+.hcard[aria-pressed="true"] .rd{border-color:var(--red);background:radial-gradient(circle,var(--red) 0 5px,transparent 6px)}
+/* The finish-line choice sits right under its card, indented, as part of it. */
+.wzonly{display:none}
+.mform.wz .wzonly{display:block}
+.mform.wz #mbtnWrap{margin:-2px 0 4px 14px;padding:4px 0 2px 12px;border-left:2px solid var(--red)}
+.hsub{font-size:14px;color:var(--ink-soft);margin:2px 0 8px}
+.mform.wz #mtimeSeg{display:flex;flex-direction:column;gap:8px}
+.mform.wz #mtimeSeg button{display:block;width:100%;text-align:left;padding:12px 14px;min-height:0;border:1.5px solid var(--rule);border-radius:10px;background:var(--chalk);color:var(--ink)}
+.mform.wz #mtimeSeg button b{font-weight:600;font-size:15px}
+.mform.wz #mtimeSeg button small{color:var(--ink-soft);font-size:13px;line-height:1.35;margin-top:2px;font-weight:400}
+.mform.wz #mtimeSeg button[aria-pressed="true"]{border-color:var(--red);background:#2a1a2b;color:var(--ink)}
+.wzrev{margin:8px 16px 16px;background:var(--chalk);border:1px solid var(--rule);border-radius:12px;overflow:hidden}
+.wzrev .r{display:grid;grid-template-columns:90px minmax(0,1fr) auto;gap:10px;align-items:center;width:100%;text-align:left;padding:13px 14px;border-bottom:1px solid var(--rule)}
+.wzrev .r:last-child{border-bottom:0}
+.wzrev .k{color:var(--ink-soft);font-size:14px}
+.wzrev .v{font-size:15.5px;overflow-wrap:anywhere}
+.wzrev .v small{display:block;color:var(--ink-soft);font-size:13px}
+.wzrev .v.none{color:var(--ink-soft)}
+.wzrev .chev{color:var(--ink-soft)}
+.wzfoot{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px}
+.wzfoot .wzback{padding:0 20px;border-radius:10px;border:1px solid var(--rule);color:var(--ink);font-size:16px}
+.wzfoot.first{grid-template-columns:minmax(0,1fr)}
+.wzfoot.first .wzback{display:none}
+.ssheet{position:fixed;inset:0;z-index:60;display:none;align-items:flex-end;justify-content:center;background:rgba(5,12,22,.55)}
+.ssheet.on{display:flex}
+.sspan{width:100%;max-width:560px;background:#13263D;border-radius:18px 18px 0 0;border-top:1px solid var(--rule);padding:10px 16px calc(24px + env(safe-area-inset-bottom))}
+.ssgrab{width:40px;height:5px;border-radius:3px;background:#3c5371;margin:2px auto 14px}
+.sspan h3{font-size:20px;font-weight:600}
+.sspan p{color:var(--ink-soft);font-size:14.5px;margin:2px 0 14px}
+.ssit{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:12px;align-items:center;width:100%;text-align:left;background:var(--chalk);border:1px solid var(--rule);border-radius:14px;padding:14px;margin-bottom:10px}
+.ssic{width:44px;height:44px;border-radius:10px;background:#1d3a5a;display:grid;place-items:center;color:var(--danger)}
+.sst b{display:block;font-size:16.5px;font-weight:600}
+.sst small{color:var(--ink-soft);font-size:13.5px}
+.ssit .chev{color:var(--ink-soft);font-size:20px}
 .fpair input{min-width:0}
 /* A switch row: the words on the left, the switch on the right, the whole
    row the target. */
@@ -1154,6 +1208,15 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
 <section class="screen" id="meet">
   <div class="bar nav"><button class="linkbtn back" id="meetBack"><span class="bc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5 8 12l7 7"/></svg></span><span class="bl">Home</span><span class="bh" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7"/><path d="M6.5 9.5V20h4v-5.5h3V20h4V9.5"/></svg></span></button><h1 class="navmid nt" id="meetTitle">New event</h1><button class="linkbtn icon danger" id="meetDelete" aria-label="Delete event"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4.5" y1="7" x2="19.5" y2="7"/><path d="M9.5 7V4.5h5V7"/><path d="M6.5 7l1 12.5h9l1-12.5"/><line x1="10.5" y1="11" x2="10.5" y2="16"/><line x1="13.5" y1="11" x2="13.5" y2="16"/></svg></button></div>
   <div class="scroll mform">
+    <!-- 5.27: a wizard. One step at a time over the same fields; Next waits
+         for each step, and the last step is a review of everything. -->
+    <div class="wzhead" id="wzHead">
+      <div class="wzdots" id="wzDots"></div>
+      <div class="wzstep" id="wzStep"></div>
+      <h2 class="wzttl" id="wzTitle"></h2>
+      <p class="wzlede" id="wzLede"></p>
+    </div>
+    <div class="wzrev" id="wzReview"></div>
     <!-- 4.45: grouped. The event, then the race, then whether it counts. -->
     <div class="fgrp">
       <div class="field" id="mtypeField">
@@ -1206,20 +1269,22 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
         <div class="hint" id="mdist2Hint"></div>
       </div>
       <div class="field" id="mtimeRow">
-        <label for="mhow">How is it timed?</label>
-        <select id="mhow">
+        <label for="mhow" class="wzold">How is it timed?</label>
+        <div class="hcards" id="mhowCards"></div>
+        <select id="mhow" class="wzold">
           <option value="team">We time our runners only</option>
           <option value="whole">We time the whole race</option>
           <option value="chip_splits">Chip-timed: we record splits</option>
           <option value="chip">Chip-timed: we just load the results</option>
         </select>
-        <div class="hint" id="mtimeHint"></div>
+        <div class="hint wzold" id="mtimeHint"></div>
         <div id="mbtnWrap">
+          <div class="hsub wzonly">How do you record the finish line?</div>
           <div class="seg2 fseg" id="mtimeSeg">
-            <button type="button" id="mtField" data-mode="field" aria-pressed="false">One button</button>
-            <button type="button" id="mtBoth" data-mode="both" aria-pressed="true">Two buttons</button>
+            <button type="button" id="mtField" data-mode="field" aria-pressed="false"><b>One finish button</b><small class="wzonly">Tap everyone as they cross. Our runners are matched to their places afterward, or by a second coach.</small></button>
+            <button type="button" id="mtBoth" data-mode="both" aria-pressed="true"><b>Two finish buttons</b><small class="wzonly">One button for our runners, one for everyone else, so our places are marked as they cross. Runner names are recorded afterward, or by a second coach.</small></button>
           </div>
-          <div class="hint" id="mbtnHint"></div>
+          <div class="hint wzold" id="mbtnHint"></div>
         </div>
       </div>
       <div class="field" id="msplitRow">
@@ -1243,8 +1308,19 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
       </div>
     </div>
   </div>
-  <div class="foot"><button class="primary" id="meetSave">Save event</button></div>
+  <div class="foot wzfoot" id="wzFoot"><button type="button" class="wzback" id="wzBack">Back</button><button type="button" class="primary" id="wzNext">Next</button><button class="primary" id="meetSave">Save event</button></div>
 </section>
+
+<!-- 5.27: the + opens this first: a meet or a time trial. -->
+<div class="ssheet" id="startSheet" aria-hidden="true">
+  <div class="sspan" role="dialog" aria-label="Start something">
+    <div class="ssgrab"></div>
+    <h3>Start something</h3>
+    <p>Set up the next race, or a time trial at practice.</p>
+    <button type="button" class="ssit" id="startMeet"><span class="ssic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/></svg></span><span class="sst"><b>New meet</b><small>Racing other schools</small></span><span class="chev">&#8250;</span></button>
+    <button type="button" class="ssit" id="startTT"><span class="ssic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2"/><path d="M10 2h4"/></svg></span><span class="sst"><b>New time trial</b><small>Just our team, at practice</small></span><span class="chev">&#8250;</span></button>
+  </div>
+</div>
 
 <!-- ROSTER -->
 <section class="screen" id="rosterEdit">
@@ -1584,7 +1660,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.26';
+var BUILD='v5.27';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1896,10 +1972,11 @@ var HOW=[
   'The Chute grew out of my first season as an assistant coach on my daughter\u2019s middle school cross country team. One challenge was obvious right away: tracking individual performance in a meaningful way, without pen, paper, and hours of reconciling handwritten lists.',
   'The Chute puts timing and naming on your phone. One coach can run an event alone, or several can split the job. Every event ends with a clean performance report, and the season ends with a record worth keeping.']},
  {t:'Events', p:[
-  'Everything starts with an event, added with the + in the middle of the bar at the bottom. There are two kinds, chosen once when the event is created.',
+  'Everything starts with an event, added with the + in the middle of the bar at the bottom. Tap it and pick <b>New meet</b> or <b>New time trial</b>; the kind is chosen once, when the event is created.',
   '<b>A meet</b> holds a girls race and a boys race, each with its own clock and its own results, and is scored.',
   '<b>A time trial</b> holds one race with everyone in it, girls and boys together, and is not scored. It can also run two distances from the same start; see Time trials.',
-  'When you make an event you also answer <b>How is it timed?</b>, pick whether to <b>Record splits</b>, and <b>Live</b> or <b>Test</b>. Live or Test is never pre-picked, and Save waits until you choose, since a live event can\u2019t be made a test later. Tap an event on home to open it and see its races.']},
+  'Setting it up goes a step at a time: the basics, the distance, <b>How is it timed?</b>, splits, and <b>Live</b> or <b>Test</b>. <b>Next</b> waits until each step is filled in. The last step shows everything on one card; tap a line to change it, then <b>Create</b>. Live or Test is never pre-picked, since a live event can\u2019t be made a test later. Started one by mistake? <b>Cancel</b>, top left, leaves without saving; once anything is filled in it asks <b>Discard?</b> first.',
+  'To change an event later, tap <b>Edit</b> on it: it opens on that same card. Tap an event on home to open it and see its races.']},
  {t:'Timing a race', p:[
   'Open the event on home and tap <b>Start clock</b> on the race when the gun goes. The clock runs on the phone, so no signal is needed.',
   'Tap once for every runner you time. What the buttons are depends on <b>How is it timed?</b>, answered on the event.',
@@ -2114,6 +2191,11 @@ function navBack(id){
   b.classList.toggle('tohome', to===hm);
   b.querySelector('.bl').textContent=NAV_NAMES[to]||'Back';
   b.setAttribute('aria-label', to===hm ? 'Home' : 'Back to '+(NAV_NAMES[to]||''));
+  /* 5.27: the event wizard's way out says what it does. Nothing is saved
+     until Create or Save changes, so leaving is a cancel. */
+  var cx = id==='meet';
+  b.classList.toggle('cancel', cx);
+  if(cx){ b.classList.remove('tohome'); b.querySelector('.bl').textContent='Cancel'; b.setAttribute('aria-label','Cancel'); }
 }
 function show(id){
   /* A sheet is always about the screen that opened it. */
@@ -2832,13 +2914,15 @@ function formSplits(){
   var d=$('mdist').value, c=splitCands(d);
   return marksOf((splitPick||splitDefault(d)).filter(function(x){ return c.indexOf(x)>=0; }));
 }
-function editMeet(id){
+function editMeet(id,type){
   editingMeet=id;
   var m=id?findMeet(id):null;
-  if(!m) newType='meet';
+  if(!m) newType = type==='time_trial' ? 'time_trial' : 'meet';
   renderMeetType(m);
   $('mname').value=m?m.name:'';
-  $('mdate').value=m?m.date:todayStr();
+  /* 5.27: blank on a new event. Most are set up ahead of time, so today was
+     usually wrong, and the wizard waits for a date anyway. */
+  $('mdate').value=m?m.date:'';
   $('mvenue').value=m?m.venue:'';
   /* 4.82: on unless the event was taken off; never inherited. */
   $('mcharts').checked = !m || m.onCharts!==false;
@@ -2853,6 +2937,9 @@ function editMeet(id){
   formTest = m ? !!m.test : null;
   /* Never inherited either: Both is how every event starts. */
   setFormHow(m ? howOf(m) : 'both');
+  /* 5.27: the wizard asks; nothing is picked on a new meet until a card is.
+     What would be saved without the wizard is still Both, as before. */
+  formHowPicked=!!m;
   renderTiming();
   /* 4.39: off unless the event has splits; an event's own points, if they
      still fit its distance, otherwise the distance's defaults. */
@@ -2864,9 +2951,137 @@ function editMeet(id){
   formTestLocked=!!(m && !m.test && meetUploaded(m));
   renderTestPick();
   $('meetDelete').style.display=m?'':'none';
-  $('meetTitle').textContent = m ? 'Edit event' : 'New event';
+  $('meetTitle').textContent = m ? 'Edit event' : (newType==='time_trial' ? 'New time trial' : 'New meet');
   renderDist2();
+  /* 5.27: a new event starts at step 1; one that exists opens on the review,
+     where a tap on a line goes to that step. */
+  WZ.from=false; WZ.dirty=false;
+  WZ.i = m ? wzSteps().length-1 : 0;
+  wzRender(true);
   show('meet');
+}
+/* ---------- 5.27: the + sheet and the event wizard ----------
+   The wizard is the same form one step at a time: every field and every rule
+   in it are the ones the form always had. Next waits until the step is filled
+   in; the last step reviews everything and creates the event. */
+function openStart(){ $('startSheet').classList.add('on'); $('startSheet').setAttribute('aria-hidden','false'); }
+function closeStart(){ $('startSheet').classList.remove('on'); $('startSheet').setAttribute('aria-hidden','true'); }
+var HOW_CARDS=[
+  ['team','We time our runners only','Record each of our runners as they finish. No places or team score.'],
+  ['whole','We time the whole race','Tap every finisher, so our runners get their real places and our team gets its raw score.'],
+  ['chip_splits','Chip-timed: we record splits','We take splits on the course, then combine them with the official results when they\u2019re posted.'],
+  ['chip','Chip-timed: we just load the results','Nothing to time. Load the official results when they\u2019re posted.']
+];
+var WZ={i:0, from:false, dirty:false}, formHowPicked=false;
+var WZ_TEXT={
+  basics:['The basics','What, when and where.'],
+  dist:['Distance','How far they run.'],
+  timed:['How is it timed?','Pick the one that matches the meet.'],
+  splits:['Splits','Where a coach takes splits on the course.'],
+  results:['Live or test?','Live counts, for every coach. A test is for trying things out, and can be deleted.'],
+  review:['Check it over','Tap a line to change it.']
+};
+function wzTT(){ var m=editingMeet?findMeet(editingMeet):null; return m ? isTT(m) : newType==='time_trial'; }
+function wzSteps(){
+  var tt=wzTT(), st=['basics','dist'];
+  if(!tt) st.push('timed');
+  /* Splits has a step when there is something to decide: the switch, or which
+     points. Chip-timed with splits at a distance with one point has neither. */
+  /* Until the distance and the timing are answered, it is counted, so the
+     count only ever shrinks, when an answer rules it out. */
+  if(!tt && (!$('mdist').value || !formHowPicked || (splitCfgShown() && !(formHow==='chip_splits' && splitCands($('mdist').value).length<2)))) st.push('splits');
+  st.push('results','review');
+  return st;
+}
+function wzEls(){
+  return { basics:[$('mname').closest('.field'), $('mdate').closest('.fpair')],
+           dist:[$('mdist').closest('.field'), $('mdist2Row')],
+           timed:[$('mtimeRow')], splits:[$('msplitRow')],
+           results:[$('mmodeRow'), $('mchartRow')] };
+}
+function wzOk(k){
+  if(k==='basics') return !!$('mname').value.trim() && !!$('mdate').value;
+  if(k==='dist') return !!$('mdist').value && ($('mdist2Row').style.display==='none' || !$('mtwo').checked || !!$('mdist2').value);
+  if(k==='timed') return formHowPicked;
+  if(k==='results') return formTest!==null;
+  return true;
+}
+function wzKey(){ var st=wzSteps(); return st[Math.min(WZ.i, st.length-1)]; }
+function wzRender(moved){
+  var st=wzSteps();
+  if(WZ.i>=st.length) WZ.i=st.length-1;
+  var k=st[WZ.i], els=wzEls(), rev=k==='review', tt=wzTT(), form=$('meet').querySelector('.mform');
+  form.classList.add('wz');
+  Object.keys(els).forEach(function(s2){ els[s2].forEach(function(e){ if(e) e.classList.toggle('wzoff', s2!==k); }); });
+  $('wzDots').innerHTML=st.map(function(x,j){ return '<i class="'+(j<WZ.i?'done':j===WZ.i?'on':'')+'"></i>'; }).join('');
+  $('wzStep').textContent='Step '+(WZ.i+1)+' of '+st.length;
+  /* Editing goes review, line, review: steps and dots would only mislead. */
+  $('wzDots').style.display = $('wzStep').style.display = editingMeet ? 'none' : '';
+  $('wzTitle').textContent=WZ_TEXT[k][0];
+  $('wzLede').textContent = (k==='dist' && tt) ? 'How far they run. A time trial can have two.' : WZ_TEXT[k][1];
+  $('wzReview').style.display = rev ? '' : 'none';
+  if(rev) wzReview(st);
+  renderHowCards();
+  $('wzNext').style.display = rev ? 'none' : '';
+  $('meetSave').style.display = rev ? '' : 'none';
+  $('wzNext').disabled = !wzOk(k);
+  $('wzNext').textContent = WZ.from ? 'Done' : 'Next';
+  $('meetSave').textContent = editingMeet ? 'Save changes' : (tt ? 'Create time trial' : 'Create meet');
+  /* No Back on the first step, nor on the review of an event that exists:
+     its way out is Home, top left. */
+  $('wzFoot').classList.toggle('first', (WZ.i===0 && !WZ.from) || (rev && !!editingMeet));
+  if(moved) form.scrollTop=0;
+}
+function wzGo(i,from){ WZ.i=i; WZ.from=!!from; wzRender(true); }
+function wzNext(){
+  if(!wzOk(wzKey())) return;
+  var st=wzSteps();
+  if(WZ.from) wzGo(st.length-1,false); else wzGo(Math.min(WZ.i+1, st.length-1),false);
+}
+function wzBack(){
+  var st=wzSteps();
+  if(WZ.from) wzGo(st.length-1,false); else if(WZ.i>0) wzGo(WZ.i-1,false);
+}
+function wzReview(st){
+  var tt=wzTT(), rows=[], vn=$('mvenue').value.trim();
+  var d2=($('mdist2Row').style.display==='none' || !$('mtwo').checked) ? '' : $('mdist2').value;
+  rows.push(['basics', tt ? 'Time trial' : 'Meet', esc($('mname').value.trim())]);
+  rows.push(['basics','When', esc(fmtDate($('mdate').value,true))]);
+  rows.push(['basics','Where', vn ? esc(vn) : null]);
+  rows.push(['dist','Distance', esc($('mdist').value+(d2 ? ' and '+d2 : ''))]);
+  if(!tt){
+    var c=HOW_CARDS.filter(function(x){ return x[0]===formHow; })[0];
+    rows.push(['timed','Timed', c ? esc(c[1])+(formHow==='whole' ? '<small>'+(formButtons==='field' ? 'One finish button' : 'Two finish buttons')+'</small>' : '') : null]);
+    if(splitCfgShown()){
+      var sp=formSplits();
+      rows.push([st.indexOf('splits')>=0 ? 'splits' : 'timed','Splits', sp ? esc(sp.map(markLabel).join(', ')) : 'Off']);
+    }
+  }
+  rows.push(['results','Results', (formTest ? 'Test' : 'Live')+'<small>'+($('mcharts').checked ? 'On Season\u2019s charts' : 'Off Season\u2019s charts')+'</small>']);
+  $('wzReview').innerHTML=rows.map(function(r){
+    return '<button type="button" class="r" data-step="'+r[0]+'"><span class="k">'+r[1]+'</span><span class="v'+(r[2]==null?' none':'')+'">'+(r[2]==null?'Not set':r[2])+'</span><span class="chev">&#8250;</span></button>';
+  }).join('');
+  [].forEach.call($('wzReview').querySelectorAll('.r'),function(b){
+    b.addEventListener('click',function(){ var j=wzSteps().indexOf(this.getAttribute('data-step')); if(j>=0) wzGo(j,true); });
+  });
+}
+function renderHowCards(){
+  var box=$('mhowCards');
+  if(!box.querySelector('.hcard')) HOW_CARDS.forEach(function(c){
+    var b=document.createElement('button'); b.type='button'; b.className='hcard'; b.setAttribute('data-how',c[0]);
+    b.innerHTML='<b>'+esc(c[1])+'</b><small>'+esc(c[2])+'</small><span class="rd"></span>';
+    b.addEventListener('click',function(){
+      formHow=c[0]; formHowPicked=true; $('mhow').value=c[0]; WZ.dirty=true;
+      renderTiming(); renderSplitCfg(); wzRender(false);
+    });
+    box.appendChild(b);
+  });
+  [].forEach.call(box.querySelectorAll('.hcard'),function(b){ b.setAttribute('aria-pressed', String(formHowPicked && b.getAttribute('data-how')===formHow)); });
+  /* The finish-line choice belongs to "We time the whole race": it sits just
+     under that card, and only once that card is picked. */
+  var wc=box.querySelector('[data-how="whole"]'), bw=$('mbtnWrap');
+  if(wc && wc.nextSibling!==bw) box.insertBefore(bw, wc.nextSibling);
+  bw.classList.toggle('wzoff', !(formHowPicked && formHow==='whole'));
 }
 function commitMeet(){
   if(formTest===null) return;
@@ -5983,7 +6198,7 @@ function emptyState(){
   how.addEventListener('click',function(){ backTo='home'; show('howto'); });
   d.appendChild(how);
   var go=d.querySelector('#esGo');
-  go.addEventListener('click', runners ? function(){ editMeet(null); }
+  go.addEventListener('click', runners ? function(){ openStart(); }
                     : !signedIn() ? function(){ siFrom='home'; siPhase='email'; siMsg('',false); show('signin'); }
                                   : function(){ backTo='home'; show('rosterEdit'); });
   return d;
@@ -8291,7 +8506,13 @@ $('impGo').addEventListener('click',function(){
   $('impText').value='';
   renderBackup(); hintRoster();
 });
-$('meetBack').addEventListener('click',function(){ editingMeet=null; show(lastTab); });
+/* 5.27: Cancel. With nothing entered it just goes; once anything has been
+   filled in or changed it asks first, Discard?, so a stray tap can't throw
+   away a half-made event. */
+$('meetBack').addEventListener('click',function(){
+  function leave(){ editingMeet=null; WZ.dirty=false; show(lastTab); }
+  if(WZ.dirty) armTwoTap(this,'Discard?',leave); else leave();
+});
 $('meetSave').addEventListener('click',commitMeet);
 $('findIn').addEventListener('input',applyFind);
 $('nextBand').addEventListener('click',function(){
@@ -8392,7 +8613,20 @@ $('mtest').addEventListener('click',function(){
 ['mtField','mtBoth'].forEach(function(id){
   $(id).addEventListener('click',function(){ formButtons=this.getAttribute('data-mode'); renderTiming(); });
 });
-$('mhow').addEventListener('change',function(){ formHow=this.value; renderTiming(); renderSplitCfg(); });
+$('mhow').addEventListener('change',function(){ formHow=this.value; formHowPicked=true; renderTiming(); renderSplitCfg(); if(onScreen('meet')) wzRender(false); });
+/* 5.27: the wizard's buttons, the + sheet, and every field Next waits on. */
+$('wzNext').addEventListener('click',wzNext);
+$('wzBack').addEventListener('click',wzBack);
+$('startMeet').addEventListener('click',function(){ closeStart(); editMeet(null,'meet'); });
+$('startTT').addEventListener('click',function(){ closeStart(); editMeet(null,'time_trial'); });
+$('startSheet').addEventListener('click',function(e){ if(e.target===this) closeStart(); });
+['mname','mdate','mvenue','mdist','mdist2'].forEach(function(id){
+  $(id).addEventListener('input',function(){ if(onScreen('meet')){ WZ.dirty=true; wzRender(false); } });
+  $(id).addEventListener('change',function(){ if(onScreen('meet')){ WZ.dirty=true; wzRender(false); } });
+});
+['mtwo','msplit','mcharts'].forEach(function(id){ $(id).addEventListener('change',function(){ if(onScreen('meet')){ WZ.dirty=true; wzRender(false); } }); });
+['mlive','mtest','mtField','mtBoth'].forEach(function(id){ $(id).addEventListener('click',function(){ if(onScreen('meet')){ WZ.dirty=true; wzRender(false); } }); });
+$('msplitPts').addEventListener('change',function(){ WZ.dirty=true; });
 $('splitHome').addEventListener('click',function(){ closeSplit(); show('home'); });
 $('extraPurge').addEventListener('click',function(){
   var b=this;
@@ -8626,7 +8860,7 @@ function fillYears(){
   var l=document.querySelectorAll('.tabbar button');
   for(var i=0;i<l.length;i++) l[i].addEventListener('click',function(){
     var t=this.getAttribute('data-tab');
-    if(t==='plus') editMeet(null);
+    if(t==='plus') openStart();
     else if(t==='runners') show('runners');
     else if(t==='season') show('season');
     else if(t==='settings') show('settings');
