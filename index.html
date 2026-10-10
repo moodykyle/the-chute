@@ -337,7 +337,21 @@ select{min-height:47px}
 .mform.wz .wzonly{display:block}
 .mform.wz #mbtnWrap{margin:-2px 0 4px 14px;padding:4px 0 2px 12px;border-left:2px solid var(--red)}
 .hsub{font-size:14px;color:var(--ink-soft);margin:2px 0 8px}
-.mform.wz #mtimeSeg{display:flex;flex-direction:column;gap:8px}
+.mform.wz #mtimeSeg, .mform.wz #mmodeSeg{display:flex;flex-direction:column;gap:8px}
+/* 5.28: Live and Test as cards, the charts switch under Live. */
+.mform.wz #mmodeSeg > button{display:block;width:100%;text-align:left;padding:14px;min-height:0;border:1.5px solid var(--rule);border-radius:12px;background:var(--chalk);color:var(--ink)}
+.mform.wz #mmodeSeg > button b{font-weight:600;font-size:16px}
+.mform.wz #mmodeSeg > button small{color:var(--ink-soft);font-size:13.5px;line-height:1.35;margin-top:3px;font-weight:400}
+.mform.wz #mmodeSeg > button[aria-pressed="true"]{border-color:var(--red);background:#2a1a2b;color:var(--ink)}
+.mform.wz #mmodeSeg > button:disabled{opacity:.45}
+.mform.wz #mmodeSeg #mchartRow{margin:-2px 0 4px 14px;padding:2px 0 4px 12px;border-left:2px solid var(--red)}
+.mform.delon .wzhead, .mform.delon .wzrev{display:none}
+.mform.delon .delpanel{margin-top:20px}
+.delpanel{margin:8px 16px 4px;padding:14px;border:1.5px solid var(--danger);border-radius:12px;background:#2a1a22}
+.delpanel p{font-size:15px;line-height:1.45;margin-bottom:12px}
+.delbtns{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px}
+.delbtns .wzback{padding:0 18px;min-height:54px;border-radius:10px;border:1px solid var(--rule);color:var(--ink);font-size:16px}
+.delbtns.one{grid-template-columns:minmax(0,1fr)}
 .mform.wz #mtimeSeg button{display:block;width:100%;text-align:left;padding:12px 14px;min-height:0;border:1.5px solid var(--rule);border-radius:10px;background:var(--chalk);color:var(--ink)}
 .mform.wz #mtimeSeg button b{font-weight:600;font-size:15px}
 .mform.wz #mtimeSeg button small{color:var(--ink-soft);font-size:13px;line-height:1.35;margin-top:2px;font-weight:400}
@@ -1216,6 +1230,10 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
       <h2 class="wzttl" id="wzTitle"></h2>
       <p class="wzlede" id="wzLede"></p>
     </div>
+    <div class="delpanel" id="delPanel" style="display:none">
+      <p id="delMsg"></p>
+      <div class="delbtns"><button type="button" class="primary" id="delYes">Delete for everyone</button><button type="button" class="wzback" id="delNo">Keep it</button></div>
+    </div>
     <div class="wzrev" id="wzReview"></div>
     <!-- 4.45: grouped. The event, then the race, then whether it counts. -->
     <div class="fgrp">
@@ -1293,18 +1311,18 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
         <div class="hint" id="msplitHint"></div>
       </div>
       <div class="field" id="mchartRow">
-        <label class="swrow"><span>On the charts</span><input type="checkbox" class="sw" id="mcharts"></label>
-        <div class="hint">Draws this event on Season’s charts, for every coach. Off leaves it off the charts only; Results, Runners and PRs keep it.</div>
+        <label class="swrow"><span>Show on Season charts</span><input type="checkbox" class="sw" id="mcharts"></label>
+        <div class="hint">Season’s charts track the team over the year. Turn this off for a race that isn’t a fair comparison, like a short course or bad weather. Results and PRs still count.</div>
       </div>
     </div>
     <div class="fgrp">
       <div class="field" id="mmodeRow">
-        <label>Results</label>
-        <div class="seg2 fseg">
-          <button type="button" id="mlive" aria-pressed="false">Live</button>
-          <button type="button" id="mtest" aria-pressed="false">Test</button>
+        <label class="wzold">Results</label>
+        <div class="seg2 fseg" id="mmodeSeg">
+          <button type="button" id="mlive" aria-pressed="false"><b>Live</b><small class="wzonly" id="mliveSub">A real meet. Results count toward runner PRs, season bests and team stats. Only the head coach can delete it.</small></button>
+          <button type="button" id="mtest" aria-pressed="false"><b>Test</b><small class="wzonly">For trying out the app, or practicing timing and naming with the coaches. Results never count toward runner or team stats, and any coach can delete it.</small></button>
         </div>
-        <div class="hint" id="mtestHint"></div>
+        <div class="hint wzold" id="mtestHint"></div>
       </div>
     </div>
   </div>
@@ -1660,7 +1678,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.27';
+var BUILD='v5.28';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -2049,8 +2067,9 @@ var HOW=[
  {t:'Saving and sync', p:[
   'Everything is saved on the phone the moment it happens, so a race can be timed with no signal at all. When the phone is signed in and online, it\u2019s sent to the database, where every other phone can see it.',
   'The line above the copy buttons on results says where things stand. <b>Saved to the database</b> is what you want to see. <b>Not signed in</b> or <b>Offline</b> with a number waiting means the results are safe on this phone, but nobody else has them yet.',
-  'A <b>test event</b> syncs like any other, so two phones can rehearse together, and never counts toward records. You pick Live or Test each time you make an event. Deleting a test event removes it from every phone and the database.',
-  'A real event can\u2019t be turned into a test event. A real event with no results yet deletes like a test one, from every phone. One with results can\u2019t be deleted from the app: <b>Hide</b> takes it off home on that phone only. The database keeps the results, and they still count toward PRs. It\u2019s listed under <b>Hidden events</b> at the bottom of Settings, where <b>Show again</b> brings it back.',
+  'A <b>test event</b> is for trying out the app, or practicing timing and naming with the coaches. It syncs like any other, so phones can rehearse together, but its results never count toward runner or team stats. Any coach can delete it, from every phone and the database.',
+  'A <b>live event</b> is the real thing: its results count toward PRs, season bests and team stats, and it can\u2019t be turned into a test. One with no results yet deletes like a test. One with results can be deleted only by the head coach, after a warning, and its results go with it, from every phone. Events hidden before 5.28 are listed under <b>Hidden events</b> at the bottom of Settings, where <b>Show again</b> brings them back.',
+  '<b>Show on Season charts</b>, under Live, keeps a race that isn\u2019t a fair comparison, like a short course or bad weather, off Season\u2019s charts. Its results and PRs still count.',
   'Delete is the trash can at the top of the event form, and it always asks for a second tap.']},
  {t:'Roster', p:[
   'The roster loads when you sign in, and every signed-in phone keeps it current on its own. <b>Runners &gt; Roster &gt; Load roster from database</b> reloads it by hand.',
@@ -2173,6 +2192,20 @@ function setDigits(v){
   return was!==v;
 }
 function digitsName(v){ return v===1 ? 'Tenths' : 'Hundredths'; }
+/* 5.28: head coaches (0028) may delete a live event with results. The phone
+   asks the database who it is signed in as; the database also enforces it, so
+   this only decides what the trash can offers. Before 0028 nobody is. */
+var HEADKEY='chute.head.v1';
+var IS_HEAD=(function(){ try{ return localStorage.getItem(HEADKEY)==='1'; }catch(e){ return false; } })();
+function setHead(v){ IS_HEAD=!!v; try{ localStorage.setItem(HEADKEY, IS_HEAD?'1':'0'); }catch(e){} }
+function pullHead(){
+  if(!signedIn()){ setHead(false); return Promise.resolve(false); }
+  return sbFetch('/rest/v1/rpc/is_head_coach',{method:'POST', auth:true, body:{}}).then(function(res){
+    if(res && res.ok) setHead(res.data===true);
+    else if(res && res.status===404) setHead(false);
+    return IS_HEAD;
+  }, function(){ return IS_HEAD; });
+}
 
 /* ---------- dom ---------- */
 function $(id){ return document.getElementById(id); }
@@ -2957,6 +2990,9 @@ function editMeet(id,type){
      where a tap on a line goes to that step. */
   WZ.from=false; WZ.dirty=false;
   WZ.i = m ? wzSteps().length-1 : 0;
+  closeDelPanel();
+  /* Who may delete it is asked fresh when an event opens for editing. */
+  if(m && signedIn()) ensureFresh().then(function(ok){ return ok ? pullHead() : false; }, function(){});
   wzRender(true);
   show('meet');
 }
@@ -2978,7 +3014,7 @@ var WZ_TEXT={
   dist:['Distance','How far they run.'],
   timed:['How is it timed?','Pick the one that matches the meet.'],
   splits:['Splits','Where a coach takes splits on the course.'],
-  results:['Live or test?','Live counts, for every coach. A test is for trying things out, and can be deleted.'],
+  results:['Does this one count?','Pick one.'],
   review:['Check it over','Tap a line to change it.']
 };
 function wzTT(){ var m=editingMeet?findMeet(editingMeet):null; return m ? isTT(m) : newType==='time_trial'; }
@@ -3022,6 +3058,7 @@ function wzRender(moved){
   $('wzReview').style.display = rev ? '' : 'none';
   if(rev) wzReview(st);
   renderHowCards();
+  renderModeCards(tt);
   $('wzNext').style.display = rev ? 'none' : '';
   $('meetSave').style.display = rev ? '' : 'none';
   $('wzNext').disabled = !wzOk(k);
@@ -3057,13 +3094,21 @@ function wzReview(st){
       rows.push([st.indexOf('splits')>=0 ? 'splits' : 'timed','Splits', sp ? esc(sp.map(markLabel).join(', ')) : 'Off']);
     }
   }
-  rows.push(['results','Results', (formTest ? 'Test' : 'Live')+'<small>'+($('mcharts').checked ? 'On Season\u2019s charts' : 'Off Season\u2019s charts')+'</small>']);
+  rows.push(['results','Results', formTest ? 'Test' : 'Live<small>'+($('mcharts').checked ? 'On Season charts' : 'Off Season charts')+'</small>']);
   $('wzReview').innerHTML=rows.map(function(r){
     return '<button type="button" class="r" data-step="'+r[0]+'"><span class="k">'+r[1]+'</span><span class="v'+(r[2]==null?' none':'')+'">'+(r[2]==null?'Not set':r[2])+'</span><span class="chev">&#8250;</span></button>';
   }).join('');
   [].forEach.call($('wzReview').querySelectorAll('.r'),function(b){
     b.addEventListener('click',function(){ var j=wzSteps().indexOf(this.getAttribute('data-step')); if(j>=0) wzGo(j,true); });
   });
+}
+/* 5.28: Show on Season charts belongs to Live: under that card, and only
+   once Live is picked. A test never draws on the charts anyway. */
+function renderModeCards(tt){
+  var seg=$('mmodeSeg'), cr=$('mchartRow');
+  if($('mlive').nextSibling!==cr) seg.insertBefore(cr, $('mlive').nextSibling);
+  cr.classList.toggle('wzoff', formTest!==false);
+  $('mliveSub').textContent='A real '+(tt?'time trial':'meet')+'. Results count toward runner PRs, season bests and team stats. Only the head coach can delete it.';
 }
 function renderHowCards(){
   var box=$('mhowCards');
@@ -3323,7 +3368,7 @@ function refreshSession(){
 }
 /* Called before an authed read, never on boot. A cold start at a course with
    no signal must reach the clock without waiting on anything. */
-function signOut(){ saveAuth(null); }
+function signOut(){ saveAuth(null); setHead(false); }
 function ensureFresh(){
   if(!signedIn()) return Promise.resolve(false);
   if(AUTH.expires_at && AUTH.expires_at-Date.now()>60000) return Promise.resolve(true);
@@ -4204,7 +4249,8 @@ function pollTick(){
     if(!ok) throw new Error('signed out');
     return homeDue ? pullMeets().then(function(ch){
       return refreshRoster().then(function(rc){ if(rc) hintRoster(); return pullDigits(); })
-        .then(function(dc){ if(dc) digitsChanged(); return ch; });
+        .then(function(dc){ if(dc) digitsChanged(); return pullHead(); })
+        .then(function(){ return ch; });
     }) : false;
   }).then(function(ch){
     pulled=ch;
@@ -5791,7 +5837,8 @@ function afterSignin(){
   var jobs=Promise.all([
     autoRoster(),
     pullMeets().then(function(ch){ if(ch) saveSeason(); }),
-    pullDigits()
+    pullDigits(),
+    pullHead()
   ]).catch(function(){});
   var cap=new Promise(function(r){ setTimeout(r,SI_LOAD_MS); });
   return Promise.race([jobs,cap]).then(function(){
@@ -8582,29 +8629,52 @@ function armTwoTap(b,confirmText,act){
 $('meetDelete').addEventListener('click',function(){
   var dm=editingMeet?findMeet(editingMeet):null;
   /* From 4.31 a real event with no results can be deleted everywhere, like a
-     test one. One with results is only hidden here: 0012 refuses the delete
-     in the database whatever the app does, and roles will decide later who
-     may do more. What this phone knows can be incomplete, since a pulled race
-     may not be read yet, so a delete the database refuses falls back to hiding
-     (dropMeet). */
-  var hideOnly = !!(dm && !dm.test && meetUploaded(dm) && hasResults(dm));
+     test one (0012). 5.28: one with results can be deleted only by a head
+     coach (0028), after a warning that says what goes with it. Anyone else is
+     told so; Hide, which took it off one phone only, is gone. The database
+     decides in the end: a delete it refuses still falls back to hiding
+     (dropMeet), as before. */
+  var guarded = !!(dm && !dm.test && meetUploaded(dm) && hasResults(dm));
   function del(){
     if(editingMeet){
       if(dm && meetUploaded(dm)){
-        var list = hideOnly ? (SEASON.hiddenMeets=SEASON.hiddenMeets||[]) : (SEASON.goneMeets=SEASON.goneMeets||[]);
+        var list=(SEASON.goneMeets=SEASON.goneMeets||[]);
         if(list.indexOf(dm.id)<0) list.push(dm.id);
         if(!dm.test) (SEASON.hiddenInfo=SEASON.hiddenInfo||{})[dm.id]={name:dm.name, date:dm.date};
       }
-      if(!hideOnly) SEASON.meets=SEASON.meets.filter(function(m){ return m.id!==editingMeet; });
+      SEASON.meets=SEASON.meets.filter(function(m){ return m.id!==editingMeet; });
       saveSeason();
       if(S && S.meetId===editingMeet){ S=null; try{localStorage.removeItem(KEY);}catch(e){} }
     }
-    editingMeet=null; show('home');
+    editingMeet=null; WZ.dirty=false; closeDelPanel(); show('home');
   }
-  /* Every event takes two taps, test events too. What deleting does to each
-     is in How it works, so the button only has to ask. */
-  armTwoTap(this, hideOnly ? 'Hide?' : 'Delete?', del);
+  if(guarded){ openDelPanel(dm, del); return; }
+  /* Every other event takes two taps, test events too. */
+  armTwoTap(this, 'Delete?', del);
 });
+var DEL_ACT=null;
+function openDelPanel(m, act){
+  var n=(m.races||[]).reduce(function(a,r){ return a+(r.fin||[]).length+(r.splits||[]).length; },0);
+  DEL_ACT = IS_HEAD ? act : null;
+  $('delMsg').innerHTML = IS_HEAD
+    ? 'Delete <b>'+esc(m.name)+'</b> for everyone? '+(n ? 'Its '+n+' result'+(n===1?'':'s')+' go with it, ' : 'Its results go with it, ')+'from every phone and the database. This can\u2019t be undone.'
+    : 'Only the head coach can delete <b>'+esc(m.name)+'</b>. It\u2019s a live '+(isTT(m)?'time trial':'meet')+' with results.';
+  $('delYes').style.display = IS_HEAD ? '' : 'none';
+  $('delNo').textContent = IS_HEAD ? 'Keep it' : 'OK';
+  $('delPanel').querySelector('.delbtns').classList.toggle('one', !IS_HEAD);
+  $('delPanel').style.display='';
+  /* While it's open, the warning is all there is: the review card and the
+     heading under it go, so nothing else can be mistaken for its subject. */
+  $('meet').querySelector('.mform').classList.add('delon');
+  $('meet').querySelector('.mform').scrollTop=0;
+}
+function closeDelPanel(){
+  DEL_ACT=null;
+  if($('delPanel')) $('delPanel').style.display='none';
+  var f=$('meet') && $('meet').querySelector('.mform'); if(f) f.classList.remove('delon');
+}
+$('delYes').addEventListener('click',function(){ var a=DEL_ACT; closeDelPanel(); if(a) a(); });
+$('delNo').addEventListener('click',closeDelPanel);
 $('mlive').addEventListener('click',function(){ formTest=false; renderTestPick(); });
 $('mtest').addEventListener('click',function(){
   if(formTestLocked) return;
