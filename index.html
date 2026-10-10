@@ -1678,7 +1678,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.29';
+var BUILD='v5.30';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -2052,8 +2052,9 @@ var HOW=[
   'The bar along the bottom has <b>Events</b>, <b>Runners</b>, <b>Season</b> and <b>Settings</b>, with + in the middle for a new event. It isn\u2019t there while you time, name or take splits, so a thumb can\u2019t leave a race by accident.',
   '<b>Season</b> is how the season is going, for the girls or the boys. Across the top, the meets we\u2019ve been scored in, our best finish, and our record against other schools. <b>Charts</b> swipe left and right: our top 7\u2019s race times, the same as pace per mile so different distances compare, their place on the team race by race, how many of ours set a PR at each race, who\u2019s improved most this season, and our team score at each meet. An event with <b>Show on Season charts</b> off shows on none of them. <b>Head to head</b> lists every school we\u2019ve raced once their places are in <b>Meet scores</b>. Under that, the meets themselves; tap one for its Results.',
   '<b>Runners</b> ranks the team by season best at 2 miles, with how many races each has run. Like records, it counts real events the database has, hidden events included.',
-  'Tap a runner for their season: their best at each distance, how much they\u2019ve dropped at 2 miles, and every race with their place on the team, overall, and each mile where a splitter was out.']},
- {t:'Fixing mistakes Where a splitter was out, each race shows its mile, then the rest: the next mile, or <b>Remaining</b> as a pace per mile when the rest isn\u2019t a whole mile. <b>Split</b> is the last number less the first: + slower, \u2212 faster. <b>Mile split</b> under the bests is their fastest true mile from a split, never a 1 mile best.', p:[
+  'Tap a runner for their season: their best at each distance, how much they\u2019ve dropped at 2 miles, and every race with their place on the team, overall, and each mile where a splitter was out.',
+  'Where a splitter was out, each race shows its mile, then the rest: the next mile, or <b>Remaining</b> as a pace per mile when the rest isn\u2019t a whole mile. <b>Split</b> is the last number less the first: + slower, \u2212 faster. <b>Mile split</b> under the bests is their fastest true mile from a split, never a 1 mile best.']},
+ {t:'Fixing mistakes', p:[
   'Tapped times are never changed. They\u2019re the record of what happened; naming only decides whose they are. The three buttons at the bottom of Edit race handle everything else:',
   {ul:['<b>Missed finish</b> adds a place nobody tapped. Everyone behind it moves down one, and its time starts halfway between its neighbors, which you can change.',
        '<b>Shift all times</b> moves every time in the race by the same amount, for a clock started late or early. Places don\u2019t change.',
