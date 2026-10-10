@@ -1678,7 +1678,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.28';
+var BUILD='v5.29';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1998,8 +1998,8 @@ var HOW=[
  {t:'Timing a race', p:[
   'Open the event on home and tap <b>Start clock</b> on the race when the gun goes. The clock runs on the phone, so no signal is needed.',
   'Tap once for every runner you time. What the buttons are depends on <b>How is it timed?</b>, answered on the event.',
-  '<b>We time the whole race, two buttons.</b> Tap <b>{TEAM} Finisher</b> for our runners and <b>Field Finisher</b> for everyone else, so the score builds as you go. Without popsicle sticks or a second coach, this is how you know which places were ours when you name them afterward.',
-  '<b>We time the whole race, one button.</b> One big <b>Finisher</b> button for every runner, never looking away from the line. Our runners get their names afterward, from the finish sticks or from a second coach naming on their own phone; see Naming finishers.',
+  '<b>We time the whole race, two finish buttons.</b> Tap <b>{TEAM} Finisher</b> for our runners and <b>Field Finisher</b> for everyone else, so the score builds as you go. Without popsicle sticks or a second coach, this is how you know which places were ours when you name them afterward.',
+  '<b>We time the whole race, one finish button.</b> One big <b>Finisher</b> button for every runner, never looking away from the line. Our runners get their names afterward, from the finish sticks or from a second coach naming on their own phone; see Naming finishers.',
   '<b>We time our runners only.</b> For when the field is too big to tap. The clock screen lists the roster in the order they\u2019re likely to finish. Tap a name as that runner crosses, and the place, time and name land together. With nobody else timed, places are team places and there\u2019s no score; Results says <b>Team only</b>.',
   'On the Team clock nothing moves on its own: a tapped name stays where it is, showing its place and time. Can\u2019t find a name in time? Tap <b>Name later</b>, and that place goes on the very bottom to name when you can. When the list fills up, tap <b>Tidy</b> in a gap: every name already in moves down to <b>In</b>, and the ones still to come are back at the top.',
   'The count at the top shows how many runners are in, so you can check it against the chute. <b>Undo last</b> takes back a mis-tap. <b>End race</b> needs two taps, so a stray thumb can\u2019t stop the clock.',
@@ -2024,7 +2024,7 @@ var HOW=[
   'While a race is running, a naming phone shows how current it is, like <b>Updated 4s ago</b>. If it falls behind, names still save and catch up when the signal returns.',
   'Every phone needs the roster before race day, or it has no names to pick from. If it wasn\u2019t loaded when you first signed in, go to <b>Runners &gt; Roster &gt; Load roster from database</b>. A phone without one also gets a reminder with a <b>Load roster</b> button when it opens a race to name.',
   'A meet\u2019s girls and boys races each have their own clock, so two coaches can time overlapping races, one phone each.',
-  'Before the gun, each phone picks its job on the event card: <b>Start clock</b> or <b>Name runners</b>, whatever the Timing, so a second phone can always join. With Field, the namer\u2019s names mark our runners, and Edit race opens on <b>All</b>, since places are unnamed until the namer gets to them.']},
+  'Before the gun, each phone picks its job on the event card: <b>Start clock</b> or <b>Name runners</b>, however it\u2019s timed, so a second phone can always join. With one finish button, the namer\u2019s names mark our runners, and Edit race opens on <b>All</b>, since places are unnamed until the namer gets to them.']},
  {t:'Mile splits', p:[
   'A coach out on the course can take splits. On the event, turn on <b>Record splits</b>, and on a race with more than one mile, pick which. On the day, open the meet on home and tap <b>Record splits</b> on the race. It runs on its own phone, beside the timer and the namer, and changes nothing they do.',
   'The timer can take splits too, when the split point is beside the finish. <b>Splits</b> on the clock screen opens them, and the strip at the bottom goes back to the clock in one tap. It turns coral when the leaders are due. The winner is expected about a minute ahead of our fastest runner\u2019s best at the distance, and the warning comes a minute before that, so there\u2019s time to get back to the line. On a chip-timed event nobody is at the line, so there\u2019s no warning.',
@@ -2050,7 +2050,7 @@ var HOW=[
   'Records show on results as <b>PR \u22120:07.0</b>, the time taken off, and as (PR) in Copy Text. They can be turned off in <b>Settings &gt; Results display</b>. The CSV always includes them.']},
  {t:'Season and Runners', p:[
   'The bar along the bottom has <b>Events</b>, <b>Runners</b>, <b>Season</b> and <b>Settings</b>, with + in the middle for a new event. It isn\u2019t there while you time, name or take splits, so a thumb can\u2019t leave a race by accident.',
-  '<b>Season</b> is how the season is going, for the girls or the boys. Across the top, the meets we\u2019ve been scored in, our best finish, and our record against other schools. <b>Charts</b> swipe left and right: our top 7\u2019s race times, the same as pace per mile so different distances compare, their place on the team race by race, how many of ours set a PR at each race, who\u2019s improved most this season, and our team score at each meet. An event with <b>On the charts</b> off shows on none of them. <b>Head to head</b> lists every school we\u2019ve raced once their places are in <b>Meet scores</b>. Under that, the meets themselves; tap one for its Results.',
+  '<b>Season</b> is how the season is going, for the girls or the boys. Across the top, the meets we\u2019ve been scored in, our best finish, and our record against other schools. <b>Charts</b> swipe left and right: our top 7\u2019s race times, the same as pace per mile so different distances compare, their place on the team race by race, how many of ours set a PR at each race, who\u2019s improved most this season, and our team score at each meet. An event with <b>Show on Season charts</b> off shows on none of them. <b>Head to head</b> lists every school we\u2019ve raced once their places are in <b>Meet scores</b>. Under that, the meets themselves; tap one for its Results.',
   '<b>Runners</b> ranks the team by season best at 2 miles, with how many races each has run. Like records, it counts real events the database has, hidden events included.',
   'Tap a runner for their season: their best at each distance, how much they\u2019ve dropped at 2 miles, and every race with their place on the team, overall, and each mile where a splitter was out.']},
  {t:'Fixing mistakes Where a splitter was out, each race shows its mile, then the rest: the next mile, or <b>Remaining</b> as a pace per mile when the rest isn\u2019t a whole mile. <b>Split</b> is the last number less the first: + slower, \u2212 faster. <b>Mile split</b> under the bests is their fastest true mile from a split, never a 1 mile best.', p:[
@@ -2070,7 +2070,7 @@ var HOW=[
   'A <b>test event</b> is for trying out the app, or practicing timing and naming with the coaches. It syncs like any other, so phones can rehearse together, but its results never count toward runner or team stats. Any coach can delete it, from every phone and the database.',
   'A <b>live event</b> is the real thing: its results count toward PRs, season bests and team stats, and it can\u2019t be turned into a test. One with no results yet deletes like a test. One with results can be deleted only by the head coach, after a warning, and its results go with it, from every phone. Events hidden before 5.28 are listed under <b>Hidden events</b> at the bottom of Settings, where <b>Show again</b> brings them back.',
   '<b>Show on Season charts</b>, under Live, keeps a race that isn\u2019t a fair comparison, like a short course or bad weather, off Season\u2019s charts. Its results and PRs still count.',
-  'Delete is the trash can at the top of the event form, and it always asks for a second tap.']},
+  'Delete is the trash can at the top of an event\u2019s edit screen. A test event, or a live one with no results, takes a second tap. A live one with results only the head coach can delete, after a warning that names it.']},
  {t:'Roster', p:[
   'The roster loads when you sign in, and every signed-in phone keeps it current on its own. <b>Runners &gt; Roster &gt; Load roster from database</b> reloads it by hand.',
   'A runner added at the finish line joins the team roster on every phone once the phone that added them has signal. One added in a test event stays on that phone only.']},
