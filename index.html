@@ -1320,6 +1320,7 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
   <div class="scroll pad">
     <button class="srow" id="setAccount"><span class="sn">Account</span><span class="ss" id="subAccount"></span><span class="chev">&#8250;</span></button>
     <button class="srow" id="setResults"><span class="sn">Results display</span><span class="ss" id="subResults"></span><span class="chev">&#8250;</span></button>
+    <button class="srow" id="setTimes"><span class="sn">Times</span><span class="ss" id="subTimes"></span><span class="chev">&#8250;</span></button>
     <button class="srow" id="setBanquet"><span class="sn">Banquet page</span><span class="ss" id="subBanquet"></span><span class="chev">&#8250;</span></button>
     <button class="srow" id="setBackup"><span class="sn">Backup and restore</span><span class="ss" id="subBackup"></span><span class="chev">&#8250;</span></button>
     <button class="srow" id="setClock"><span class="sn">Clock check</span><span class="ss"></span><span class="chev">&#8250;</span></button>
@@ -1366,6 +1367,16 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
     <label class="trow"><span class="tt"><span class="tn">Displacer</span><span class="th">Marks your 6th and 7th finishers</span></span><input type="checkbox" class="sw" id="prefDisp"></label>
     <label class="trow"><span class="tt"><span class="tn">Gap to first</span><span class="th">Time behind the race winner, under each time</span></span><input type="checkbox" class="sw" id="prefGap"></label>
     <label class="trow"><span class="tt"><span class="tn">PR and SR</span><span class="th">Records on results and in Copy Text</span></span><input type="checkbox" class="sw" id="prefRec"></label>
+  </div>
+</section>
+
+<section class="screen" id="timesPref">
+  <div class="bar nav"><button class="linkbtn back" id="timesDone"><span class="bc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5 8 12l7 7"/></svg></span><span class="bl">Settings</span><span class="bh" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7"/><path d="M6.5 9.5V20h4v-5.5h3V20h4V9.5"/></svg></span></button><h1 class="navmid nt">Times</h1><span aria-hidden="true"></span></div>
+  <div class="scroll pad">
+    <p class="lede">How finished times print, for the whole team: every coach’s phone and the banquet page. The race clock doesn’t change.</p>
+    <div class="seg2" id="digSeg"><button type="button" id="dig1" aria-pressed="false">Tenths</button><button type="button" id="dig2" aria-pressed="true">Hundredths</button></div>
+    <p class="hint" id="digEg"></p>
+    <p class="hint" id="digMsg"></p>
   </div>
 </section>
 
@@ -1573,7 +1584,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.24';
+var BUILD='v5.26';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -1921,7 +1932,7 @@ var HOW=[
   'Before the gun, each phone picks its job on the event card: <b>Start clock</b> or <b>Name runners</b>, whatever the Timing, so a second phone can always join. With Field, the namer\u2019s names mark our runners, and Edit race opens on <b>All</b>, since places are unnamed until the namer gets to them.']},
  {t:'Mile splits', p:[
   'A coach out on the course can take splits. On the event, turn on <b>Record splits</b>, and on a race with more than one mile, pick which. On the day, open the meet on home and tap <b>Record splits</b> on the race. It runs on its own phone, beside the timer and the namer, and changes nothing they do.',
-  'The timer can take splits too, when the split point is beside the finish. <b>Splits</b> on the clock screen opens them, and the strip at the bottom goes back to the clock in one tap. It turns coral when the leaders are due. The winner is expected about a minute ahead of our fastest runner\u2019s best at the distance, and the warning comes a minute before that, so there\u2019s time to get back to the line.',
+  'The timer can take splits too, when the split point is beside the finish. <b>Splits</b> on the clock screen opens them, and the strip at the bottom goes back to the clock in one tap. It turns coral when the leaders are due. The winner is expected about a minute ahead of our fastest runner\u2019s best at the distance, and the warning comes a minute before that, so there\u2019s time to get back to the line. On a chip-timed event nobody is at the line, so there\u2019s no warning.',
   'Our runners are listed in the order they\u2019re likely to come by. Tap each one as they pass. The row stays where it is and shows the split, so nothing on the list ever moves on its own and the next runner is still under your thumb. When the split rows pile up, tap <b>Tidy</b> in a gap: everyone split so far moves to <b>Split</b> at the bottom and the ones still to come are back at the top. Tapped the wrong one? Tap it twice to take it back.',
   'A missed split is just missing. Splits show on Results beside the runner and in Copy CSV, once that runner has a name at the finish.']},
  {t:'Meets and scoring', p:[
@@ -1956,7 +1967,8 @@ var HOW=[
  {t:'Results and copying', p:[
   '<b>Copy Text</b> is written for a group chat or a parents\u2019 email: the score, the places, and every runner with their time. <b>Copy CSV</b> is for a spreadsheet. Both copy what\u2019s on screen, so pick the <b>Team</b>, <b>All</b>, <b>Girls</b> or <b>Boys</b> tab first.',
   'The line just above the copy buttons shows whether the results have reached the database. See Saving and sync.',
-  'Grade, displacers, gap to first and records can each be turned off in <b>Settings &gt; Results display</b>. Those choices are per phone.']},
+  'Grade, displacers, gap to first and records can each be turned off in <b>Settings &gt; Results display</b>. Those choices are per phone.',
+  '<b>Settings &gt; Times</b> picks <b>Tenths</b> or <b>Hundredths</b> for every finished time, for the whole team: every coach\u2019s phone and the banquet page follow it. A time entered to the second reads 7:50 either way. The race clock doesn\u2019t change.']},
  {t:'Saving and sync', p:[
   'Everything is saved on the phone the moment it happens, so a race can be timed with no signal at all. When the phone is signed in and online, it\u2019s sent to the database, where every other phone can see it.',
   'The line above the copy buttons on results says where things stand. <b>Saved to the database</b> is what you want to see. <b>Not signed in</b> or <b>Offline</b> with a number waiting means the results are safe on this phone, but nobody else has them yet.',
@@ -2061,11 +2073,29 @@ function fmt(ms,prec){
 function racePrec(fins){
   var all=(fins||[]).filter(function(f){ return f && f.ms!=null; });
   var timed=all.filter(function(f){ return !f.m; });
-  var use=timed.length ? timed : all, p=1;
-  if(!use.length) return 2;
-  use.forEach(function(f){ if(f.ms%100) p=2; });
-  return p;
+  var use=timed.length ? timed : all, p=0;
+  if(!use.length) return TDIG;
+  use.forEach(function(f){ p=Math.max(p, rawDigits(f.ms)); });
+  return Math.min(TDIG, p);
 }
+/* 5.26: tenths or hundredths is the team's choice (Settings > Times), kept on
+   the home team's row in the database (0027) so every coach's phone and the
+   banquet page print the same digits. Hundredths unless the team says tenths.
+   Whatever the choice, a time never prints more digits than it has: a time
+   entered to the second reads 7:50, not 7:50.00, and a race of them reads
+   that way in Results too. The running clock is not a finished time and
+   keeps its own digits. */
+var DIGKEY='chute.team.digits.v1';
+var TDIG=(function(){ var v=2; try{ v=+localStorage.getItem(DIGKEY)||2; }catch(e){} return (v===1||v===2) ? v : 2; })();
+function rawDigits(ms){ return ms%1000===0 ? 0 : (ms%100===0 ? 1 : 2); }
+function ft(ms){ return ms==null ? '' : fmt(ms, Math.min(TDIG, rawDigits(Math.abs(Math.round(ms))))); }
+function setDigits(v){
+  if(v!==1 && v!==2) return false;
+  var was=TDIG; TDIG=v;
+  try{ localStorage.setItem(DIGKEY,String(v)); }catch(e){}
+  return was!==v;
+}
+function digitsName(v){ return v===1 ? 'Tenths' : 'Hundredths'; }
 
 /* ---------- dom ---------- */
 function $(id){ return document.getElementById(id); }
@@ -2108,7 +2138,7 @@ function show(id){
   if(id==='season') renderSeason();
   if(id==='runners') renderRunners();
   if(id==='runner'){ markRunnerTab(); renderRunner(); }
-  if(S && ['rosterEdit','home','meet','backup','signin','settings','account','about','resPrefs','howto','season','runners','runner'].indexOf(id)<0 && id!=='split' && id!=='mscore' && id!=='offload' && id!=='clockchk') { S.screen=id; save(); }
+  if(S && ['rosterEdit','home','meet','backup','signin','settings','account','about','resPrefs','timesPref','howto','season','runners','runner'].indexOf(id)<0 && id!=='split' && id!=='mscore' && id!=='offload' && id!=='clockchk') { S.screen=id; save(); }
   if(id==='vhome') renderVHome();
   if(id==='banquet') renderBanquet();
   if(id==='home' && VIEW) renderHome();
@@ -2128,6 +2158,7 @@ function show(id){
   if(id==='about') renderAbout();
   if(id==='howto') renderHow();
   if(id==='resPrefs') renderResPrefs();
+  if(id==='timesPref') renderTimes(true);
   if(id==='timing'){ startClock(); renderDeck(); } else stopClock();
   if(wantAwake() && (id==='timing' || id==='recon')) keepAwake(); else if(id!=='split') releaseAwake();
   if(id==='split'){ renderSplit(); spStart(); keepAwake(); } else spStop();
@@ -2194,6 +2225,9 @@ function ownedLive(){
 var LEAD_WIN_MS=60000, LEAD_BACK_MS=60000, LEAD_PACE_MS=300000, dueMemo={};
 function leadersDue(m,r){
   if(!m || !r || r.division==='Mixed') return null;
+  /* 5.25: on a chip-timed event nobody times the finish, so there is no line
+     to get back to and nothing to warn about. */
+  if(chipOf(m)) return null;
   if(dueMemo[r.id]!==undefined) return dueMemo[r.id];
   var d=distMeters(m.dist), win=null;
   if(d){
@@ -2241,6 +2275,8 @@ function renderLive(){
     ? 'Clock left running \u00b7 '+fin.length+' in \u00b7 tap to end it'
     : late
     ? '<b>Leaders due</b> \u00b7 about '+fmt(due+LEAD_BACK_MS,0)+' \u00b7 tap to go back to the clock'
+    : chipOf(f.meet)
+    ? 'Running \u00b7 chip-timed \u00b7 '+sy+' \u00b7 tap to go back'
     : 'Running \u00b7 '+fin.length+' in, '+ours+' ours \u00b7 '+sy+' \u00b7 tap to go back';
   el.classList.toggle('due',late);
   /* One buzz as it turns, where the phone can. iPhone Safari cannot, so the
@@ -2427,8 +2463,8 @@ function placeNote(i,ms){
   if(!S) return '';
   var before=i>0?S.fin[i-1]:null, after=i<S.fin.length?S.fin[i]:null;
   var parts=[];
-  if(before) parts.push('after '+i+' at '+fmt(before.ms,1));
-  if(after) parts.push('before '+(i+2)+' at '+fmt(after.ms,1));
+  if(before) parts.push('after '+i+' at '+ft(before.ms));
+  if(after) parts.push('before '+(i+2)+' at '+ft(after.ms));
   var txt2=parts.length?'Goes '+parts.join(', '):'The only finish in the race';
   if(ms!=null && ((before&&ms<before.ms)||(after&&ms>after.ms)))
     txt2+='. That time is out of order for this place.';
@@ -2545,7 +2581,7 @@ function recOf(f,ctx){
   return null;
 }
 function recHtml(rec){
-  return rec ? '<span class="rec">'+rec.tag+' \u2212'+fmt(rec.by,1)+'</span>' : '';
+  return rec ? '<span class="rec">'+rec.tag+' \u2212'+ft(rec.by)+'</span>' : '';
 }
 /* A runner's best at a distance from every race but this one, for the naming
    sheet: the best guess at where they finish, and what they are chasing. */
@@ -3952,7 +3988,8 @@ function pollTick(){
   ensureFresh().then(function(ok){
     if(!ok) throw new Error('signed out');
     return homeDue ? pullMeets().then(function(ch){
-      return refreshRoster().then(function(rc){ if(rc) hintRoster(); return ch; });
+      return refreshRoster().then(function(rc){ if(rc) hintRoster(); return pullDigits(); })
+        .then(function(dc){ if(dc) digitsChanged(); return ch; });
     }) : false;
   }).then(function(ch){
     pulled=ch;
@@ -4671,7 +4708,7 @@ function spFind(r,x,mk,map){
 }
 function spTimeText(r,d){
   var ms=splitElapsed(r,d);
-  return ms==null ? 'Split' : fmt(ms,1);
+  return ms==null ? 'Split' : ft(ms);
 }
 function renderSplit(){
   var m=spMeet(), r=spRace();
@@ -5198,7 +5235,7 @@ function msRunners(k,res){
        the way the standings line writes them. */
     var rank=Object.keys(res.owner).map(Number).filter(function(q){ return res.owner[q]===k && res.adj[q]; }).sort(numAsc).indexOf(p);
     var what = !sc ? 'out' : rank<5 ? String(sc) : '('+sc+')';
-    h+='<div class="msline num"><span>'+p+'</span><span>'+(f?fmt(f.ms,1):'')+'</span><span class="msnm">'+esc(nm)+'</span><span>'+what+'</span></div>';
+    h+='<div class="msline num"><span>'+p+'</span><span>'+(f?ft(f.ms):'')+'</span><span class="msnm">'+esc(nm)+'</span><span>'+what+'</span></div>';
   });
   return h+'</div>';
 }
@@ -5538,7 +5575,8 @@ function afterSignin(){
   siBusy=true; siMsg('Loading the team...',false);
   var jobs=Promise.all([
     autoRoster(),
-    pullMeets().then(function(ch){ if(ch) saveSeason(); })
+    pullMeets().then(function(ch){ if(ch) saveSeason(); }),
+    pullDigits()
   ]).catch(function(){});
   var cap=new Promise(function(r){ setTimeout(r,SI_LOAD_MS); });
   return Promise.race([jobs,cap]).then(function(){
@@ -5569,6 +5607,7 @@ function buildExport(){
     app:'the-chute', schema:EXPORT_SCHEMA, version:BUILD,
     exportedAt:new Date().toISOString(),
     team:txt(TKEY), roster:{girls:txt(RKEY_G), boys:txt(RKEY_B)},
+    aids:aidMap(),
     season:SEASON
   }, null, 1);
 }
@@ -5626,6 +5665,25 @@ function mergeImport(d){
     else if(cur.trim()!==String(p[2]).trim()) rep.notes.push(p[3]+' roster on this device differs from the backup and was left alone');
   });
 
+  /* 5.25: runner ids. A finish named on another phone, or loaded, can carry
+     only the runner's database id, and this phone turns the id into a name
+     through its id map, which used to come only from signing in. So a phone
+     restored from a backup before it ever signed in showed those runners as
+     needing a name. The map now travels in the backup, and any backup also
+     teaches it from finishes and splits that carry both an id and a name. It
+     only fills gaps: an id this phone already has is never replaced. */
+  var am=aidMap(), added=0;
+  function learn(k,a){ if(k && a && !(k in am)){ am[k]=a; added++; } }
+  if(d.aids && typeof d.aids==='object') Object.keys(d.aids).forEach(function(k){ learn(k, d.aids[k]); });
+  d.season.meets.forEach(function(m){
+    (m.races||[]).forEach(function(r){
+      (r.fin||[]).concat(r.splits||[]).forEach(function(x){
+        if(x && x.a && x.n && (x.g==='F' || x.g==='M')) learn(histKey({g:x.g, name:x.n}), x.a);
+      });
+    });
+  });
+  if(added) saveAids(am);
+
   /* A backup from before 4.56 carries the old last-race list. It is ignored:
      last race now comes from the season restored above. */
   return rep;
@@ -5647,6 +5705,7 @@ function renderSettings(){
   var st=seasonStats();
   $('subBackup').textContent = st.meets ? st.meets+(st.meets===1?' meet':' meets') : 'Empty';
   $('subResults').textContent = resPrefsLine();
+  $('subTimes').textContent = digitsName(TDIG);
   $('subAbout').textContent = BUILD;
   $('subBanquet').textContent = BQ ? (BQ.enabled ? 'On' : 'Off') : '';
   hiddenMsg(''); renderHidden();
@@ -6233,7 +6292,7 @@ function chuteRow(i){
   d.className='row'+(f.h?' home':'')+(i===freshIdx?' fresh':'');
   d.innerHTML='<span class="pl num">'+(i+1)+'</span>'+
     '<span class="who'+cls+'">'+who+'</span>'+
-    '<span class="tm num">'+(f.m?'~':'')+fmt(f.ms,1)+'</span>';
+    '<span class="tm num">'+(f.m?'~':'')+ft(f.ms)+'</span>';
   /* Every row, not just ours. A finish filed in the wrong category is a real
      error and this is the only place to fix it without ending the race. */
   d.addEventListener('click',function(){ openSheet(i); });
@@ -6301,7 +6360,7 @@ function renderTeamList(){
     b.type='button';
     b.className='opt home spl'+(i>=0?' done':'');
     b.innerHTML='<span class="on">'+esc(x.name)+'</span><span class="og">'+
-      (i>=0 ? esc((i+1)+' \u00b7 '+fmt(S.fin[i].ms,1)) : (x.grade?esc(x.grade)+'th':''))+'</span>';
+      (i>=0 ? esc((i+1)+' \u00b7 '+ft(S.fin[i].ms)) : (x.grade?esc(x.grade)+'th':''))+'</span>';
     b.addEventListener('click',function(){
       if(fold[x.id] && !isHere(tr,x,tmap)){ setHere(tr,x,true,tmap); saveSeason(); }
       teamTap(b,x);
@@ -6449,7 +6508,7 @@ function renderRecon(){
     b.className='rrow'+(f.h?' home':'')+(f.h&&!nm?' todo':'')+(justArrived(f)?' arrive':'');
     b.innerHTML='<span class="pl num">'+(i+1)+'</span>'+
       '<span class="who'+cls+'">'+who+'</span>'+
-      '<span class="tm num">'+(f.m?'~':'')+fmt(f.ms,1)+'</span>';
+      '<span class="tm num">'+(f.m?'~':'')+ft(f.ms)+'</span>';
     b.addEventListener('click',function(){ openSheet(i); });
     c.appendChild(b);
   });
@@ -6502,7 +6561,7 @@ function openSheet(i){
   /* Measured, not assumed. Read while the deck is on screen, so offsetHeight is
      the real thing including the safe-area padding. */
   if(tim) $('sheet').style.setProperty('--deckh', $('deck').offsetHeight+'px');
-  $('sheetTitle').textContent='Place '+(i+1)+' \u00b7 '+fmt(S.fin[i].ms,1);
+  $('sheetTitle').textContent='Place '+(i+1)+' \u00b7 '+ft(S.fin[i].ms);
   var l=$('sheetList'); l.innerHTML='';
   /* A time trial is our runners only, so there is no field to move a place
      into and nothing to name it ours. A tap that should not have happened is
@@ -6617,8 +6676,8 @@ function openSheet(i){
     var p=lastOf(r,lctx), sub='';
     var pb=(rctx && rdist) ? bestAt(rosterKey(r,rctx.map),rdist,rctx) : null;
     if(S.fin[i].r===r.id) sub='currently assigned here';
-    else if(pb) sub='PR '+fmt(pb.ms,1)+(pb.date?', '+fmtDate(pb.date):'');
-    else if(p) sub=(p.date?fmtDate(p.date)+': ':'last race ')+fmt(p.ms,1)+(p.dl?' at '+p.dl:'')+', place '+p.place;
+    else if(pb) sub='PR '+ft(pb.ms)+(pb.date?', '+fmtDate(pb.date):'');
+    else if(p) sub=(p.date?fmtDate(p.date)+': ':'last race ')+ft(p.ms)+(p.dl?' at '+p.dl:'')+', place '+p.place;
     b.innerHTML='<span class="on">'+esc(r.name)+'</span>'+
       '<span class="og">'+esc([ttRace()?(r.g==='M'?'Boys':'Girls'):'', gradeTag(r)].filter(Boolean).join(' \u00b7 '))+'</span>'+
       (sub?'<small>'+esc(sub)+'</small>':'');
@@ -7545,7 +7604,7 @@ function splitsOnlyChat(){
   var w=String(rows.length).length;
   rows.forEach(function(p,i){
     var who=(p.name||'needs a name')+(p.grade?', '+p.grade+'th':'');
-    out+=String(i+1).padStart(w,' ')+'  '+(many ? who+'  '+splitWords(p.marks,p.list).join(', ') : fmt(p.ms,1)+'  '+who)+'\n';
+    out+=String(i+1).padStart(w,' ')+'  '+(many ? who+'  '+splitWords(p.marks,p.list).join(', ') : ft(p.ms)+'  '+who)+'\n';
   });
   return out+dnfChat();
 }
@@ -7650,7 +7709,7 @@ function renderTTResults(){
   /* Fastest across two distances would just name the fastest 800. */
   var stat = two ? groups.filter(function(g){ return g.dist!=null; })
                          .map(function(g){ return g.rows.length+' at '+g.label; }).join(', ')
-                 : (first!=null ? 'Fastest '+fmt(first,1) : '');
+                 : (first!=null ? 'Fastest '+ft(first) : '');
 
   var h='';
   h+='<div class="rhead">'+
@@ -7856,7 +7915,7 @@ function buildTTChat(){
     var tail = ttView==='all' ? (r.div&&r.dplace ? ' ('+(r.div==='M'?'B':'G')+' '+r.dplace+')' : '')
                               : ' ('+r.place+' overall)';
     var rec=recOf(r.f,rx);
-    out+=place+'  '+fmt(r.ms,1)+'  '+(r.name||'unnamed')+(rec?' ('+rec.tag+')':'')+tail+'\n';
+    out+=place+'  '+ft(r.ms)+'  '+(r.name||'unnamed')+(rec?' ('+rec.tag+')':'')+tail+'\n';
   });
   return out+dnfChat();
 }
@@ -7941,7 +8000,7 @@ function buildChat(full){
       var gm=Object.keys(got).map(Number).sort(function(a,b){ return a-b; });
       who += ', '+splitWords(got,gm).join(', ');
     }
-    out += String(i+1).padStart(w,' ')+'  '+fmt(f.ms,1)+'  '+who+'\n';
+    out += String(i+1).padStart(w,' ')+'  '+ft(f.ms)+'  '+who+'\n';
   });
   return out+dnfChat();
 }
@@ -8007,6 +8066,60 @@ function setResPref(k,on){
 function renderResPrefs(){
   var p=resPrefs();
   $('prefGrade').checked=p.grade; $('prefDisp').checked=p.disp; $('prefGap').checked=p.gap; $('prefRec').checked=p.rec;
+}
+/* 5.26: Settings > Times. Opening it reads the team's choice fresh; a tap
+   shows at once and saves to the team. If the save doesn't go through, the
+   screen goes back to what the team has and says so. Any signed-in coach. */
+var DIG_BUSY=false;
+function renderTimes(fresh){
+  $('dig1').setAttribute('aria-pressed', String(TDIG===1));
+  $('dig2').setAttribute('aria-pressed', String(TDIG===2));
+  $('digEg').textContent = TDIG===1
+    ? 'A 2-mile time reads 13:57.8. One entered to the second reads 7:50.'
+    : 'A 2-mile time reads 13:57.88. One entered to the second reads 7:50.';
+  if(fresh){
+    digMsg(signedIn() ? '' : 'Sign in to change it for the team.', !signedIn());
+    if(signedIn() && !DIG_BUSY) ensureFresh().then(function(ok){ return ok ? pullDigits() : false; }).then(function(ch){ if(ch) digitsChanged(); }, function(){});
+  }
+}
+function digMsg(t,warn){ var el=$('digMsg'); if(!el) return; el.className='hint'+(warn?' warn':''); el.textContent=t||''; }
+function pickDigits(v){
+  if(DIG_BUSY || v===TDIG) return;
+  if(!signedIn()){ digMsg('Sign in to change it for the team.',true); return; }
+  var was=TDIG; DIG_BUSY=true;
+  setDigits(v); digitsChanged(); digMsg('Saving for the team...',false);
+  function back(why){ DIG_BUSY=false; setDigits(was); digitsChanged(); digMsg(why,true); }
+  ensureFresh().then(function(ok){
+    if(!ok) throw new Error('signed out');
+    return sbFetch('/rest/v1/teams?is_home=is.true',{method:'PATCH', auth:true, prefer:'return=representation', body:{time_digits:v}});
+  }).then(function(res){
+    var row=res && res.ok && Array.isArray(res.data) ? res.data[0] : null;
+    if(!row || +row.time_digits!==v){
+      back(res && res.status===0 ? 'No signal, so the team still has '+digitsName(was).toLowerCase()+'. Try again.'
+        : 'Not saved. The team still has '+digitsName(was).toLowerCase()+'.');
+      return;
+    }
+    DIG_BUSY=false; digMsg('Saved. Other phones change on their next refresh.',false);
+  }, function(){ back('No signal, so the team still has '+digitsName(was).toLowerCase()+'. Try again.'); });
+}
+/* Read the team's choice. A database without 0027 answers with an error and
+   the phone keeps what it has, hundredths unless told otherwise. */
+function pullDigits(){
+  return sbFetch('/rest/v1/teams?select=time_digits&is_home=is.true',{auth:true}).then(function(res){
+    var v = res && res.ok && Array.isArray(res.data) && res.data[0] ? +res.data[0].time_digits : 0;
+    return (v===1 || v===2) && !DIG_BUSY ? setDigits(v) : false;
+  }, function(){ return false; });
+}
+/* Everything that prints a time redraws from scratch, so redraw what's up. */
+function digitsChanged(){
+  if(onScreen('timesPref')) renderTimes(false);
+  if(onScreen('settings')) renderSettings();
+  if(onScreen('home')) renderHome();
+  if(onScreen('results') && S) renderResults();
+  if(onScreen('runners')) renderRunners();
+  if(onScreen('runner')) renderRunner();
+  if(onScreen('season')) renderSeason();
+  if(onScreen('vhome') && typeof renderVHome==='function') renderVHome();
 }
 function resPrefsLine(){
   var p=resPrefs(), n=(p.grade?1:0)+(p.disp?1:0)+(p.gap?1:0)+(p.rec?1:0);
@@ -8102,6 +8215,10 @@ $('setClock').addEventListener('click',function(){ backTo='settings'; show('cloc
 $('ckDone').addEventListener('click',function(){ show('settings'); });
 $('howDone').addEventListener('click',function(){ goBack('howto'); });
 $('setResults').addEventListener('click',function(){ backTo='settings'; show('resPrefs'); });
+$('setTimes').addEventListener('click',function(){ backTo='settings'; show('timesPref'); });
+$('timesDone').addEventListener('click',function(){ goBack('timesPref'); });
+$('dig1').addEventListener('click',function(){ pickDigits(1); });
+$('dig2').addEventListener('click',function(){ pickDigits(2); });
 $('resPrefsDone').addEventListener('click',function(){ goBack('resPrefs'); });
 [['prefGrade','grade'],['prefDisp','disp'],['prefGap','gap'],['prefRec','rec']].forEach(function(p){
   $(p[0]).addEventListener('change',function(){ setResPref(p[1],this.checked); });
@@ -9059,7 +9176,7 @@ function renderRunners(){
     el.innerHTML='<span class="rk num">'+(x.best?rank:'')+'</span>'+
       '<span class="rb"><span class="rn">'+esc(x.r.name)+'</span><span class="rm">'+
         esc([gradeTag(x.r), x.n ? x.n+(x.n===1?' race':' races') : 'No races yet'].filter(Boolean).join(' \u00b7 '))+'</span></span>'+
-      '<span class="rt"><span class="t num">'+(x.best?fmt(x.best.ms,1):'')+'</span>'+
+      '<span class="rt"><span class="t num">'+(x.best?ft(x.best.ms):'')+'</span>'+
         (x.best?'<span class="l">'+esc(fmtDate(x.best.date))+'</span>':'')+'</span>'+CV_SVG;
     el.addEventListener('click',function(){ openRunner(x.r); });
     b.appendChild(el);
@@ -9157,18 +9274,18 @@ function renderRunner(){
     races.length ? races.length+(races.length===1 ? ' race' : ' races') : 'No races yet'].filter(Boolean).join(' \u00b7 '))+'</p>';
   var imp=improvement(races);
   /* 4.65: a headline in the coaches' word, then the two times that prove it. */
-  if(imp) h+='<div class="rnimp"><span class="ih">Dropped <b class="num">'+fmt(imp.by,1)+'</b> at 2 miles</span>'+
-    '<span class="is num">'+fmt(imp.a,1)+' on '+esc(fmtDate(imp.from))+' to '+fmt(imp.b,1)+' on '+esc(fmtDate(imp.to))+'</span></div>';
+  if(imp) h+='<div class="rnimp"><span class="ih">Dropped <b class="num">'+ft(imp.by)+'</b> at 2 miles</span>'+
+    '<span class="is num">'+ft(imp.a)+' on '+esc(fmtDate(imp.from))+' to '+ft(imp.b)+' on '+esc(fmtDate(imp.to))+'</span></div>';
   var bd={};
   races.forEach(function(x){ if(!bd[x.d] || x.f.ms<bd[x.d].f.ms) bd[x.d]=x; });
   var ds=Object.keys(bd).map(Number).sort(function(a,b){ return b-a; });
   if(ds.length){
     h+='<p class="hsect">'+esc(seasonYear())+' SEASON BESTS</p>';
     ds.forEach(function(d){ var x=bd[d];
-      h+='<div class="rnbest"><span class="d"><span class="k">'+esc(distLabel(d))+'</span><span class="w">'+esc(fmtDate(x.m.date)+' \u00b7 '+x.m.name)+'</span></span><span class="t num">'+fmt(x.f.ms,1)+'</span></div>'; });
+      h+='<div class="rnbest"><span class="d"><span class="k">'+esc(distLabel(d))+'</span><span class="w">'+esc(fmtDate(x.m.date)+' \u00b7 '+x.m.name)+'</span></span><span class="t num">'+ft(x.f.ms)+'</span></div>'; });
     /* 5.00: its own row, not a 1 mile best. */
     var bm=bestMileSplit(races);
-    if(bm) h+='<div class="rnbest rnmile"><span class="d"><span class="k">Mile split</span><span class="w">'+esc(fmtDate(bm.m.date)+' \u00b7 '+bm.m.name+', mile '+bm.mile)+'</span></span><span class="t num">'+fmt(bm.ms,1)+'</span></div>';
+    if(bm) h+='<div class="rnbest rnmile"><span class="d"><span class="k">Mile split</span><span class="w">'+esc(fmtDate(bm.m.date)+' \u00b7 '+bm.m.name+', mile '+bm.mile)+'</span></span><span class="t num">'+ft(bm.ms)+'</span></div>';
     /* 5.11: a past season's bests are their own section, by year, in the
        same rows as this season's: distance, then date and meet, then time. */
     var rk=rosterKey(r,aidMap()), past={};
@@ -9177,7 +9294,7 @@ function renderRunner(){
       h+='<p class="hsect">'+esc(y)+' SEASON BESTS</p>';
       past[y].sort(function(a,b){ return b.distance_m-a.distance_m; }).forEach(function(p){
         h+='<div class="rnbest rnprior"><span class="d"><span class="k">'+esc(distLabel(p.distance_m))+'</span><span class="w">'+
-          esc([fmtDate(p.meet_date), p.meet_name].filter(Boolean).join(' · '))+'</span></span><span class="t num">'+fmt(p.best_ms,1)+'</span></div>';
+          esc([fmtDate(p.meet_date), p.meet_name].filter(Boolean).join(' · '))+'</span></span><span class="t num">'+ft(p.best_ms)+'</span></div>';
       });
     });
     h+='<p class="hsect">RACES</p>';
@@ -9194,7 +9311,7 @@ function renderRunner(){
       '<span class="mkind'+(isTT(x.m) ? ' tt' : '')+'">'+(isTT(x.m) ? 'TIME TRIAL' : 'MEET')+'</span></span>'+
       '<span class="mbody"><span class="mn">'+esc(x.m.name)+'</span><span class="mmeta num">'+nw(line)+'</span>'+
       (sl.length ? '<span class="mmeta num rsplits">'+sl.join(' \u00b7 ')+'</span>' : '')+'</span>'+
-      '<span class="rtime"><span class="t num">'+fmt(x.f.ms,1)+'</span>'+(x.rec ? recHtml(x.rec) : '')+'</span></div></div>';
+      '<span class="rtime"><span class="t num">'+ft(x.f.ms)+'</span>'+(x.rec ? recHtml(x.rec) : '')+'</span></div></div>';
   });
   if(!races.length) h+='<p class="hint">No races this season yet. Test events never count.</p>';
   $('rnBody').innerHTML=h;
@@ -9261,6 +9378,8 @@ function vLoad(){
     if(!rs[0].ok || !rs[1].ok){ VSTATE='offline'; return false; }
     VPAGE=rs[0].data; VDATA=rs[1].data;
     if(!VPAGE || !VDATA){ VSTATE='off'; return false; }
+    /* 5.26: parents see the team's digits. A page from before 0027 has none. */
+    if(VPAGE.time_digits===1 || VPAGE.time_digits===2) setDigits(VPAGE.time_digits);
     SEASON={meets:[]};
     var rows=VDATA.roster||[], g=rosterLines(rows,'F'), b=rosterLines(rows,'M');
     saveAids(aidsFrom(VDATA.roster||[]));
