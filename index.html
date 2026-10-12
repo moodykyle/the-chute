@@ -1114,6 +1114,12 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
 #bqAdd:disabled{opacity:.4}
 .stiles.two{grid-template-columns:repeat(2,minmax(0,1fr));margin-top:0}
 .bqvis{margin:10px 0 4px}
+/* 5.33: VISITS shut at the bottom of the Banquet page, a row that opens in place. */
+.bqvhead{width:100%;background:none;border:0;margin:0;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent;padding-bottom:14px}
+.bqvhead .bqvn{font-size:18px;letter-spacing:.03em}
+.bqvhead .chev{margin-left:auto;width:14px;height:14px;transition:transform .15s}
+.bqvhead[aria-expanded="true"] .chev{transform:rotate(180deg)}
+#bqVisBody{padding-bottom:24px}
 .bqv{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--rule);font-size:15px}
 .bqv .num{color:var(--ink-soft)}
 </style>
@@ -1680,7 +1686,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.32';
+var BUILD='v5.33';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -9851,6 +9857,7 @@ function renderBanquet(){
     $('bqSignIn').addEventListener('click',function(){ acctBack='banquet'; show('account'); });
     return;
   }
+  BQ_VOPEN=false;
   b.innerHTML='<p class="hint">Reading the database\u2026</p>';
   var yr=seasonYear();
   bqCall('/rest/v1/viewer_page?select=id,season_year,code,enabled,message,signature&season_year=eq.'+yr).then(function(res){
@@ -9877,7 +9884,6 @@ function bqDraw(){
   h+='<div class="bqqr"><img id="bqQr" alt="QR code for the banquet page"></div>';
   h+='<div class="btnrow"><button type="button" id="bqOpen">Open the page</button><button type="button" id="bqNew">New link</button></div>';
   h+='<div class="hint" id="bqNote"></div>';
-  h+=bqVisits();
   h+='<p class="hsect">MESSAGE</p>';
   h+='<div class="field"><textarea id="bqMsg" spellcheck="true">'+esc(BQ_MSG)+'</textarea></div>';
   h+='<div class="field"><label for="bqSig">Signed</label><input type="text" id="bqSig" maxlength="120" value="'+esc(BQ.signature)+'"></div>';
@@ -9891,6 +9897,7 @@ function bqDraw(){
   });
   h+='</div><div class="btnrow"><button type="button" id="bqAdd"'+(n>=BQ_MAX ? ' disabled' : '')+'>Add photos</button></div>'+
      '<input type="file" id="bqPick" accept="image/*" multiple style="display:none">';
+  h+=bqVisits();
   b.innerHTML=h;
   bqQr(link);
   $('bqOn').addEventListener('change',function(){
@@ -9922,26 +9929,38 @@ function bqDraw(){
   });
   var rows=b.querySelectorAll('.bqph');
   for(var i=0;i<rows.length;i++) bqRow(rows[i]);
+  $('bqVisHead').addEventListener('click',function(){
+    BQ_VOPEN=!BQ_VOPEN; this.setAttribute('aria-expanded',BQ_VOPEN ? 'true' : 'false'); $('bqVisBody').hidden=!BQ_VOPEN;
+  });
   $('bqAdd').addEventListener('click',function(){ $('bqPick').click(); });
   $('bqPick').addEventListener('change',function(){ bqAdd(Array.prototype.slice.call(this.files||[])); this.value=''; });
 }
 /* 5.12: what the link's counts say: opens in all, opens by day, views by
-   screen. Opening it from here counts too. */
+   screen. Opening it from here counts too.
+   5.33: at the bottom of the page, one row that opens in place, shut each
+   time the page opens. The row carries the opens in all. */
 var BQ_SCREENS=[['home','Home'],['events','Events'],['results','Results'],['runners','Runners'],['runner','Runner pages'],['season','Season']];
+var BQ_VOPEN=false;
 function bqVisits(){
-  var h='<p class="hsect">VISITS</p>', opens=0, days={}, by={};
+  var h='', opens=0, days={}, by={};
   BQ_VIS.forEach(function(v){
     if(v.screen==='open'){ opens+=v.n; days[v.day]=(days[v.day]||0)+v.n; }
     else by[v.screen]=(by[v.screen]||0)+v.n;
   });
-  if(!opens) return h+'<div class="hint">No visits yet. Each time someone opens the link, it counts here.</div>';
-  h+='<div class="stiles two"><div class="stile"><span class="sv num">'+opens+'</span><span class="sk">Opened</span></div>'+
-     '<div class="stile"><span class="sv num">'+Object.keys(days).length+'</span><span class="sk">'+(Object.keys(days).length===1 ? 'Day' : 'Days')+'</span></div></div>';
-  h+='<div class="bqvis">'+Object.keys(days).sort().reverse().map(function(d){
-    return '<div class="bqv"><span>'+esc(fmtDate(d))+'</span><span class="num">'+days[d]+(days[d]===1 ? ' open' : ' opens')+'</span></div>'; }).join('')+'</div>';
-  h+='<div class="bqvis">'+BQ_SCREENS.map(function(s){
-    return '<div class="bqv"><span>'+s[1]+'</span><span class="num">'+(by[s[0]]||0)+'</span></div>'; }).join('')+'</div>';
-  return h+'<div class="hint">Visits, not people: someone who opens it three times counts three. Opening it from here counts too.</div>';
+  if(!opens) h+='<div class="hint">No visits yet. Each time someone opens the link, it counts here.</div>';
+  else {
+    h+='<div class="stiles two"><div class="stile"><span class="sv num">'+opens+'</span><span class="sk">Opened</span></div>'+
+       '<div class="stile"><span class="sv num">'+Object.keys(days).length+'</span><span class="sk">'+(Object.keys(days).length===1 ? 'Day' : 'Days')+'</span></div></div>';
+    h+='<div class="bqvis">'+Object.keys(days).sort().reverse().map(function(d){
+      return '<div class="bqv"><span>'+esc(fmtDate(d))+'</span><span class="num">'+days[d]+(days[d]===1 ? ' open' : ' opens')+'</span></div>'; }).join('')+'</div>';
+    h+='<div class="bqvis">'+BQ_SCREENS.map(function(s){
+      return '<div class="bqv"><span>'+s[1]+'</span><span class="num">'+(by[s[0]]||0)+'</span></div>'; }).join('')+'</div>';
+    h+='<div class="hint">Visits, not people: someone who opens it three times counts three. Opening it from here counts too.</div>';
+  }
+  return '<button type="button" class="hsect bqvhead" id="bqVisHead" aria-expanded="'+(BQ_VOPEN ? 'true' : 'false')+'" aria-controls="bqVisBody">'+
+    '<span>VISITS</span><span class="bqvn">\u00b7 '+opens+(opens===1 ? ' open' : ' opens')+'</span>'+
+    '<svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8 9.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>'+
+    '<div id="bqVisBody"'+(BQ_VOPEN ? '' : ' hidden')+'>'+h+'</div>';
 }
 function bqRow(el){
   var i=+el.getAttribute('data-i'), p=BQ_PH[i], img=el.querySelector('img'), cap=el.querySelector('input');
