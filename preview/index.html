@@ -1420,8 +1420,7 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
   </div>
   <div class="scroll pad">
     <button class="srow" id="setAccount"><span class="sn">Account</span><span class="ss" id="subAccount"></span><span class="chev">&#8250;</span></button>
-    <button class="srow" id="setResults"><span class="sn">Results display</span><span class="ss" id="subResults"></span><span class="chev">&#8250;</span></button>
-    <button class="srow" id="setTimes"><span class="sn">Times</span><span class="ss" id="subTimes"></span><span class="chev">&#8250;</span></button>
+    <button class="srow" id="setResults"><span class="sn">Results display</span><span class="ss"></span><span class="chev">&#8250;</span></button>
     <button class="srow" id="setBanquet"><span class="sn">Banquet page</span><span class="ss" id="subBanquet"></span><span class="chev">&#8250;</span></button>
     <button class="srow" id="setBackup"><span class="sn">Backup and restore</span><span class="ss" id="subBackup"></span><span class="chev">&#8250;</span></button>
     <button class="srow" id="setClock"><span class="sn">Clock check</span><span class="ss"></span><span class="chev">&#8250;</span></button>
@@ -1463,18 +1462,14 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
 <section class="screen" id="resPrefs">
   <div class="bar nav"><button class="linkbtn back" id="resPrefsDone"><span class="bc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5 8 12l7 7"/></svg></span><span class="bl">Settings</span><span class="bh" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7"/><path d="M6.5 9.5V20h4v-5.5h3V20h4V9.5"/></svg></span></button><h1 class="navmid nt">Results display</h1><span aria-hidden="true"></span></div>
   <div class="scroll pad">
-    <p class="lede">What the Results screen shows on this phone. Scores, Copy Text and CSV do not change.</p>
+    <p class="hsect">ON THIS PHONE</p>
+    <p class="hint">What the Results screen shows on this phone only. Scores, Copy Text and CSV don’t change.</p>
     <label class="trow"><span class="tt"><span class="tn">Grade</span><span class="th">Under each runner's name</span></span><input type="checkbox" class="sw" id="prefGrade"></label>
     <label class="trow"><span class="tt"><span class="tn">Displacer</span><span class="th">Marks your 6th and 7th finishers</span></span><input type="checkbox" class="sw" id="prefDisp"></label>
     <label class="trow"><span class="tt"><span class="tn">Gap to first</span><span class="th">Time behind the race winner, under each time</span></span><input type="checkbox" class="sw" id="prefGap"></label>
     <label class="trow"><span class="tt"><span class="tn">PR and SR</span><span class="th">Records on results and in Copy Text</span></span><input type="checkbox" class="sw" id="prefRec"></label>
-  </div>
-</section>
-
-<section class="screen" id="timesPref">
-  <div class="bar nav"><button class="linkbtn back" id="timesDone"><span class="bc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5 8 12l7 7"/></svg></span><span class="bl">Settings</span><span class="bh" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7"/><path d="M6.5 9.5V20h4v-5.5h3V20h4V9.5"/></svg></span></button><h1 class="navmid nt">Times</h1><span aria-hidden="true"></span></div>
-  <div class="scroll pad">
-    <p class="lede">How finished times print, for the whole team: every coach’s phone and the banquet page. The race clock doesn’t change.</p>
+    <p class="hsect">FOR THE WHOLE TEAM</p>
+    <p class="hint">How finished times print on every coach’s phone and the banquet page. The race clock doesn’t change.</p>
     <div class="seg2" id="digSeg"><button type="button" id="dig1" aria-pressed="false">Tenths</button><button type="button" id="dig2" aria-pressed="true">Hundredths</button></div>
     <p class="hint" id="digEg"></p>
     <p class="hint" id="digMsg"></p>
@@ -1686,7 +1681,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.33';
+var BUILD='v5.34';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -2072,7 +2067,7 @@ var HOW=[
   '<b>Copy Text</b> is written for a group chat or a parents\u2019 email: the score, the places, and every runner with their time. <b>Copy CSV</b> is for a spreadsheet. Both copy what\u2019s on screen, so pick the <b>Team</b>, <b>All</b>, <b>Girls</b> or <b>Boys</b> tab first.',
   'The line just above the copy buttons shows whether the results have reached the database. See Saving and sync.',
   'Grade, displacers, gap to first and records can each be turned off in <b>Settings &gt; Results display</b>. Those choices are per phone.',
-  '<b>Settings &gt; Times</b> picks <b>Tenths</b> or <b>Hundredths</b> for every finished time, for the whole team: every coach\u2019s phone and the banquet page follow it. A time entered to the second reads 7:50 either way. The race clock doesn\u2019t change.']},
+  '<b>Settings &gt; Results display</b> picks <b>Tenths</b> or <b>Hundredths</b> for every finished time, for the whole team: every coach\u2019s phone and the banquet page follow it. A time entered to the second reads 7:50 either way. The race clock doesn\u2019t change.']},
  {t:'Saving and sync', p:[
   'Everything is saved on the phone the moment it happens, so a race can be timed with no signal at all. When the phone is signed in and online, it\u2019s sent to the database, where every other phone can see it.',
   'The line above the copy buttons on results says where things stand. <b>Saved to the database</b> is what you want to see. <b>Not signed in</b> or <b>Offline</b> with a number waiting means the results are safe on this phone, but nobody else has them yet.',
@@ -2183,7 +2178,7 @@ function racePrec(fins){
   use.forEach(function(f){ p=Math.max(p, rawDigits(f.ms)); });
   return Math.min(TDIG, p);
 }
-/* 5.26: tenths or hundredths is the team's choice (Settings > Times), kept on
+/* 5.26: tenths or hundredths is the team's choice (Settings > Results display since 5.34), kept on
    the home team's row in the database (0027) so every coach's phone and the
    banquet page print the same digits. Hundredths unless the team says tenths.
    Whatever the choice, a time never prints more digits than it has: a time
@@ -2262,7 +2257,7 @@ function show(id){
   if(id==='season') renderSeason();
   if(id==='runners') renderRunners();
   if(id==='runner'){ markRunnerTab(); renderRunner(); }
-  if(S && ['rosterEdit','home','meet','backup','signin','settings','account','about','resPrefs','timesPref','howto','season','runners','runner'].indexOf(id)<0 && id!=='split' && id!=='mscore' && id!=='offload' && id!=='clockchk') { S.screen=id; save(); }
+  if(S && ['rosterEdit','home','meet','backup','signin','settings','account','about','resPrefs','howto','season','runners','runner'].indexOf(id)<0 && id!=='split' && id!=='mscore' && id!=='offload' && id!=='clockchk') { S.screen=id; save(); }
   if(id==='vhome') renderVHome();
   if(id==='banquet') renderBanquet();
   if(id==='home' && VIEW) renderHome();
@@ -2281,8 +2276,7 @@ function show(id){
   if(id==='account') renderAccount();
   if(id==='about') renderAbout();
   if(id==='howto') renderHow();
-  if(id==='resPrefs') renderResPrefs();
-  if(id==='timesPref') renderTimes(true);
+  if(id==='resPrefs'){ renderResPrefs(); renderTimes(true); }
   if(id==='timing'){ startClock(); renderDeck(); } else stopClock();
   if(wantAwake() && (id==='timing' || id==='recon')) keepAwake(); else if(id!=='split') releaseAwake();
   if(id==='split'){ renderSplit(); spStart(); keepAwake(); } else spStop();
@@ -5989,8 +5983,6 @@ function renderSettings(){
   $('subRoster').textContent = (g+b) ? (g+b)+' runners' : 'Not loaded';
   var st=seasonStats();
   $('subBackup').textContent = st.meets ? st.meets+(st.meets===1?' meet':' meets') : 'Empty';
-  $('subResults').textContent = resPrefsLine();
-  $('subTimes').textContent = digitsName(TDIG);
   $('subAbout').textContent = BUILD;
   $('subBanquet').textContent = BQ ? (BQ.enabled ? 'On' : 'Off') : '';
   hiddenMsg(''); renderHidden();
@@ -8352,7 +8344,7 @@ function renderResPrefs(){
   var p=resPrefs();
   $('prefGrade').checked=p.grade; $('prefDisp').checked=p.disp; $('prefGap').checked=p.gap; $('prefRec').checked=p.rec;
 }
-/* 5.26: Settings > Times. Opening it reads the team's choice fresh; a tap
+/* 5.26: Settings > Times; since 5.34 the team half of Results display. Opening it reads the team's choice fresh; a tap
    shows at once and saves to the team. If the save doesn't go through, the
    screen goes back to what the team has and says so. Any signed-in coach. */
 var DIG_BUSY=false;
@@ -8397,7 +8389,7 @@ function pullDigits(){
 }
 /* Everything that prints a time redraws from scratch, so redraw what's up. */
 function digitsChanged(){
-  if(onScreen('timesPref')) renderTimes(false);
+  if(onScreen('resPrefs')) renderTimes(false);
   if(onScreen('settings')) renderSettings();
   if(onScreen('home')) renderHome();
   if(onScreen('results') && S) renderResults();
@@ -8500,8 +8492,6 @@ $('setClock').addEventListener('click',function(){ backTo='settings'; show('cloc
 $('ckDone').addEventListener('click',function(){ show('settings'); });
 $('howDone').addEventListener('click',function(){ goBack('howto'); });
 $('setResults').addEventListener('click',function(){ backTo='settings'; show('resPrefs'); });
-$('setTimes').addEventListener('click',function(){ backTo='settings'; show('timesPref'); });
-$('timesDone').addEventListener('click',function(){ goBack('timesPref'); });
 $('dig1').addEventListener('click',function(){ pickDigits(1); });
 $('dig2').addEventListener('click',function(){ pickDigits(2); });
 $('resPrefsDone').addEventListener('click',function(){ goBack('resPrefs'); });
