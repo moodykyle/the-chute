@@ -255,6 +255,9 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
 .mcard.open .chev{transform:rotate(180deg)}
 .mpanel{padding:0 0 2px}
 .mpanel .morelink{border-bottom:none}
+.mfoot{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0 4px;border-top:1px solid var(--rule)}
+.mfoot .morelink.pill{width:auto;min-height:36px;padding:6px 14px;border:1px solid var(--rule);border-radius:999px;display:inline-flex;align-items:center;gap:7px}
+.mfoot .morelink.pill svg{width:15px;height:15px;flex:0 0 auto}
 .morelink{display:block;width:100%;text-align:left;padding:13px 0;font-size:14px;
   color:var(--tape);border-bottom:1px solid var(--rule);min-height:46px}
 
@@ -6267,6 +6270,8 @@ function emptyState(){
   return d;
 }
 
+var PILL_PEN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>';
+var PILL_SHARE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="M7 8l5-5 5 5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>';
 function meetCard(m,today){
   var open=(m.id===openMeet), fin=meetFinished(m);
   var card=document.createElement('div');
@@ -6283,18 +6288,23 @@ function meetCard(m,today){
   p.className='mpanel';
   m.races.forEach(function(r){ if(!VIEW || (raceState(r)==='done' && (r.fin||[]).length)) p.appendChild(raceRow(m,r)); });
   if(VIEW){ card.appendChild(p); return card; }
+  /* 5.36: Edit event and Share meet as two pills on one row, Edit on the
+     left. Share meet only once the meet is done. The label is its own span,
+     so Copied (no share sheet) leaves the icon alone. */
+  var foot=document.createElement('div'); foot.className='mfoot';
+  var edit=document.createElement('button');
+  edit.type='button'; edit.className='morelink pill';
+  edit.innerHTML=PILL_PEN+'<span>Edit event</span>';
+  edit.addEventListener('click',function(){ editMeet(m.id); });
+  foot.appendChild(edit);
   if(meetShareRaces(m).length){
     var sh=document.createElement('button');
-    sh.type='button'; sh.className='morelink'; sh.id='meetShare'; sh.textContent='Share meet';
-    sh.setAttribute('data-label','Share meet');
-    sh.addEventListener('click',function(){ shareOut(buildMeetShare(m.id), this); });
-    p.appendChild(sh);
+    sh.type='button'; sh.className='morelink pill'; sh.id='meetShare';
+    sh.innerHTML=PILL_SHARE+'<span data-label="Share meet">Share meet</span>';
+    sh.addEventListener('click',function(){ shareOut(buildMeetShare(m.id), this.lastChild); });
+    foot.appendChild(sh);
   }
-  var edit=document.createElement('button');
-  edit.className='morelink';
-  edit.textContent='Edit event';
-  edit.addEventListener('click',function(){ editMeet(m.id); });
-  p.appendChild(edit);
+  p.appendChild(foot);
   card.appendChild(p);
   return card;
 }
