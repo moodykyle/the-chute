@@ -255,6 +255,9 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
 .mcard.open .chev{transform:rotate(180deg)}
 .mpanel{padding:0 0 2px}
 .mpanel .morelink{border-bottom:none}
+.mfoot{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0 4px;border-top:1px solid var(--rule)}
+.mfoot .morelink.pill{width:auto;min-height:36px;padding:6px 14px;border:1px solid var(--rule);border-radius:999px;display:inline-flex;align-items:center;gap:7px}
+.mfoot .morelink.pill svg{width:15px;height:15px;flex:0 0 auto}
 .morelink{display:block;width:100%;text-align:left;padding:13px 0;font-size:14px;
   color:var(--tape);border-bottom:1px solid var(--rule);min-height:46px}
 
@@ -1463,11 +1466,11 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
   <div class="bar nav"><button class="linkbtn back" id="resPrefsDone"><span class="bc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5 8 12l7 7"/></svg></span><span class="bl">Settings</span><span class="bh" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7"/><path d="M6.5 9.5V20h4v-5.5h3V20h4V9.5"/></svg></span></button><h1 class="navmid nt">Results display</h1><span aria-hidden="true"></span></div>
   <div class="scroll pad">
     <p class="hsect">ON THIS PHONE</p>
-    <p class="hint">What the Results screen shows on this phone only. Scores, Copy Text and CSV don’t change.</p>
+    <p class="hint">What the Results screen shows on this phone only. Scores and what Share sends don’t change.</p>
     <label class="trow"><span class="tt"><span class="tn">Grade</span><span class="th">Under each runner's name</span></span><input type="checkbox" class="sw" id="prefGrade"></label>
     <label class="trow"><span class="tt"><span class="tn">Displacer</span><span class="th">Marks your 6th and 7th finishers</span></span><input type="checkbox" class="sw" id="prefDisp"></label>
     <label class="trow"><span class="tt"><span class="tn">Gap to first</span><span class="th">Time behind the race winner, under each time</span></span><input type="checkbox" class="sw" id="prefGap"></label>
-    <label class="trow"><span class="tt"><span class="tn">PR and SR</span><span class="th">Records on results and in Copy Text</span></span><input type="checkbox" class="sw" id="prefRec"></label>
+    <label class="trow"><span class="tt"><span class="tn">PR and SR</span><span class="th">Records on results and in Share Text</span></span><input type="checkbox" class="sw" id="prefRec"></label>
     <p class="hsect">FOR THE WHOLE TEAM</p>
     <p class="hint">How finished times print on every coach’s phone and the banquet page. The race clock doesn’t change.</p>
     <div class="seg2" id="digSeg"><button type="button" id="dig1" aria-pressed="false">Tenths</button><button type="button" id="dig2" aria-pressed="true">Hundredths</button></div>
@@ -1579,8 +1582,8 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
   <div id="resultActions">
     <div class="syncnote" id="resSync"><span id="resSyncText"></span><button type="button" class="synclink" id="resReload">Reload</button><button type="button" class="synclink" id="resLoad">Official results</button></div>
     <div class="copyrow">
-      <button type="button" id="copyChat">Copy Text - Team</button>
-      <button type="button" id="copyCsv">Copy CSV - Team</button>
+      <button type="button" id="copyChat">Share Text - Team</button>
+      <button type="button" id="copyCsv">Share CSV - Team</button>
     </div>
   </div>
 </section>
@@ -1591,8 +1594,8 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
   <div class="scroll" id="msBody"></div>
   <div id="msActions">
     <div class="copyrow">
-      <button type="button" id="msCopyText">Copy Text - Meet</button>
-      <button type="button" id="msCopyCsv">Copy CSV - Meet</button>
+      <button type="button" id="msCopyText">Share Text - Meet</button>
+      <button type="button" id="msCopyCsv">Share CSV - Meet</button>
     </div>
   </div>
 </section>
@@ -1681,7 +1684,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.34';
+var BUILD='v5.36';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -2032,13 +2035,13 @@ var HOW=[
   'A coach out on the course can take splits. On the event, turn on <b>Record splits</b>, and on a race with more than one mile, pick which. On the day, open the meet on home and tap <b>Record splits</b> on the race. It runs on its own phone, beside the timer and the namer, and changes nothing they do.',
   'The timer can take splits too, when the split point is beside the finish. <b>Splits</b> on the clock screen opens them, and the strip at the bottom goes back to the clock in one tap. It turns coral when the leaders are due. The winner is expected about a minute ahead of our fastest runner\u2019s best at the distance, and the warning comes a minute before that, so there\u2019s time to get back to the line. On a chip-timed event nobody is at the line, so there\u2019s no warning.',
   'Our runners are listed in the order they\u2019re likely to come by. Tap each one as they pass. The row stays where it is and shows the split, so nothing on the list ever moves on its own and the next runner is still under your thumb. When the split rows pile up, tap <b>Tidy</b> in a gap: everyone split so far moves to <b>Split</b> at the bottom and the ones still to come are back at the top. Tapped the wrong one? Tap it twice to take it back.',
-  'A missed split is just missing. Splits show on Results beside the runner and in Copy CSV, once that runner has a name at the finish.']},
+  'A missed split is just missing. Splits show on Results beside the runner and in Share CSV, once that runner has a name at the finish.']},
  {t:'Meets and scoring', p:[
   'A team score is the sum of the places of its first five finishers. Low score wins. The sixth and seventh are <b>displacers</b>: they don\u2019t score, but they push other teams\u2019 runners back a place.',
   'Results show the score, the five places that make it, and the pack: the average time of the five, and the spread from first to fifth.',
   'The score is built from every place in the race, not only ours, which is why every runner has to be tapped. With <b>We time our runners only</b>, only ours are timed, so there\u2019s no score.',
   'On its own, the app scores ours against every place in the race. For the real score, runners past a school\u2019s seventh and unattached runners come out first and the rest move up, so it can be lower. A school with fewer than five has no score, and its runners come out too: they\u2019re listed under their school but don\u2019t push anyone back.',
-  '<b>Meet scores</b>, on Results, scores the whole meet that way. Enter each school\u2019s places from the meet\u2019s sheet, or paste the sheet in one go; ours come from the race. It shows every school\u2019s score and place beside its score by place (the five places as they stand, the way it\u2019s scored by hand), flags a place two schools claim, and copies the lot for the head coach. Before any school is in, the score on Results is by place. Once schools are in, Results leads with the top three and our place, and on Meet scores our row opens to its places, average and spread.',
+  '<b>Meet scores</b>, on Results, scores the whole meet that way. Enter each school\u2019s places from the meet\u2019s sheet, or paste the sheet in one go; ours come from the race. It shows every school\u2019s score and place beside its score by place (the five places as they stand, the way it\u2019s scored by hand), flags a place two schools claim, and shares the lot for the head coach: <b>Share Text - Meet</b> and <b>Share CSV - Meet</b> work like the buttons on Results. Before any school is in, the score on Results is by place. Once schools are in, Results leads with the top three and our place, and on Meet scores our row opens to its places, average and spread.',
   'The <b>Team</b> tab and <b>All</b> tab above the list of finishers switch between our runners and every place in the race.',
   'A runner who started and dropped out, or was expected and never started, can be listed with <b>Didn\u2019t finish</b> in Edit race, on any phone. They show under the placed runners, on Edit race and Results, as DNF or DNS and never change the score, places or PRs. To take one off, tap it in Edit race.']},
  {t:'Time trials', p:[
@@ -2050,7 +2053,7 @@ var HOW=[
   'A <b>PR</b> is a runner\u2019s fastest ever at one exact distance. An <b>SR</b> is their fastest this season. Only one shows at a time, and a PR wins, since it\u2019s always a season best too.',
   'Each result is judged against earlier races only, so an old result keeps the flag it earned that day. A runner\u2019s first time at a distance sets the mark but earns nothing, since there was nothing to beat, and matching a best doesn\u2019t count.',
   'Distances never mix: an 800 only competes with other 800s, and a track mile isn\u2019t a 1600. Time trials count; test events never do. Only results saved to the database count, so every phone shows the same records.',
-  'Records show on results as <b>PR \u22120:07.0</b>, the time taken off, and as (PR) in Copy Text. They can be turned off in <b>Settings &gt; Results display</b>. The CSV always includes them.']},
+  'Records show on results as <b>PR \u22120:07.0</b>, the time taken off, and as (PR) in Share Text. They can be turned off in <b>Settings &gt; Results display</b>. The CSV always includes them.']},
  {t:'Season and Runners', p:[
   'The bar along the bottom has <b>Events</b>, <b>Runners</b>, <b>Season</b> and <b>Settings</b>, with + in the middle for a new event. It isn\u2019t there while you time, name or take splits, so a thumb can\u2019t leave a race by accident.',
   '<b>Season</b> is how the season is going, for the girls or the boys. Across the top, the meets we\u2019ve been scored in, our best finish, and our record against other schools. <b>Charts</b> swipe left and right: our top 7\u2019s race times, the same as pace per mile so different distances compare, their place on the team race by race, how many of ours set a PR at each race, who\u2019s improved most this season, and our team score at each meet. An event with <b>Show on Season charts</b> off shows on none of them. <b>Head to head</b> lists every school we\u2019ve raced once their places are in <b>Meet scores</b>. Under that, the meets themselves; tap one for its Results.',
@@ -2064,7 +2067,8 @@ var HOW=[
        '<b>Reopen clock</b> is for an End race tapped by mistake. Hours later it asks first, since a missed finish or a wrong name can be fixed without the clock running.']},
   'A place added with Missed finish can have its time adjusted or be deleted from its name selector.']},
  {t:'Results and copying', p:[
-  '<b>Copy Text</b> is written for a group chat or a parents\u2019 email: the score, the places, and every runner with their time. <b>Copy CSV</b> is for a spreadsheet. Both copy what\u2019s on screen, so pick the <b>Team</b>, <b>All</b>, <b>Girls</b> or <b>Boys</b> tab first.',
+  '<b>Share Text</b> opens the phone\u2019s share sheet with results written for a group chat or a parents\u2019 email: the score, the places, and every runner with their time. <b>Share CSV</b> sends a spreadsheet file named for the race. Both send what\u2019s on screen, so pick the <b>Team</b>, <b>All</b>, <b>Girls</b> or <b>Boys</b> tab first. Once other schools are in Meet scores, Share Text leads with the team scores. Copy is in the share sheet; on a computer with no share sheet, both buttons copy instead.',
+  '<b>Share meet</b>, on a finished meet\u2019s card on Home, sends the girls and the boys in one message: each race\u2019s team scores, then ours.',
   'The line just above the copy buttons shows whether the results have reached the database. See Saving and sync.',
   'Grade, displacers, gap to first and records can each be turned off in <b>Settings &gt; Results display</b>. Those choices are per phone.',
   '<b>Settings &gt; Results display</b> picks <b>Tenths</b> or <b>Hundredths</b> for every finished time, for the whole team: every coach\u2019s phone and the banquet page follow it. A time entered to the second reads 7:50 either way. The race clock doesn\u2019t change.']},
@@ -6266,6 +6270,8 @@ function emptyState(){
   return d;
 }
 
+var PILL_PEN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>';
+var PILL_SHARE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="M7 8l5-5 5 5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>';
 function meetCard(m,today){
   var open=(m.id===openMeet), fin=meetFinished(m);
   var card=document.createElement('div');
@@ -6282,11 +6288,23 @@ function meetCard(m,today){
   p.className='mpanel';
   m.races.forEach(function(r){ if(!VIEW || (raceState(r)==='done' && (r.fin||[]).length)) p.appendChild(raceRow(m,r)); });
   if(VIEW){ card.appendChild(p); return card; }
+  /* 5.36: Edit event and Share meet as two pills on one row, Edit on the
+     left. Share meet only once the meet is done. The label is its own span,
+     so Copied (no share sheet) leaves the icon alone. */
+  var foot=document.createElement('div'); foot.className='mfoot';
   var edit=document.createElement('button');
-  edit.className='morelink';
-  edit.textContent='Edit event';
+  edit.type='button'; edit.className='morelink pill';
+  edit.innerHTML=PILL_PEN+'<span>Edit event</span>';
   edit.addEventListener('click',function(){ editMeet(m.id); });
-  p.appendChild(edit);
+  foot.appendChild(edit);
+  if(meetShareRaces(m).length){
+    var sh=document.createElement('button');
+    sh.type='button'; sh.className='morelink pill'; sh.id='meetShare';
+    sh.innerHTML=PILL_SHARE+'<span data-label="Share meet">Share meet</span>';
+    sh.addEventListener('click',function(){ shareOut(buildMeetShare(m.id), this.lastChild); });
+    foot.appendChild(sh);
+  }
+  p.appendChild(foot);
   card.appendChild(p);
   return card;
 }
@@ -7274,10 +7292,10 @@ function renderResults(){
   /* The scope is named on the button rather than left to the segment above,
      because the copy is the thing you cannot take back once it is pasted. */
   var scope=resFull?'All':'Team';
-  [['copyChat','Copy Text - '],['copyCsv','Copy CSV - ']].forEach(function(p){
+  [['copyChat','Share Text - '],['copyCsv','Share CSV - ']].forEach(function(p){
     var b=$(p[0]), t=p[1]+scope;
     b.setAttribute('data-label',t);
-    if(b.textContent!=='Copied' && b.textContent!=='Select the text below') b.textContent=t;
+    if(b.textContent!=='Copied' && b.textContent!=='Select the text below' && b.textContent!=='Saved') b.textContent=t;
   });
   $('resSegOurs').addEventListener('click',function(){ resFull=false; renderResults(); });
   $('resSegAll').addEventListener('click',function(){ resFull=true; renderResults(); });
@@ -7314,10 +7332,10 @@ function renderSplitsOnly(){
   resNote=['No finishes were timed in this race. These are our runners at the split, in the order they went through it, with the time on our clock there.',
            'When the official results are loaded, the finishes, places and score appear here, with each split beside its runner.'];
   $('splInfo').addEventListener('click',function(){ infoOpen('About this race',resNote); });
-  [['copyChat','Copy Text - '],['copyCsv','Copy CSV - ']].forEach(function(q){
+  [['copyChat','Share Text - '],['copyCsv','Share CSV - ']].forEach(function(q){
     var b=$(q[0]), t=q[1]+'Team';
     b.setAttribute('data-label',t);
-    if(b.textContent!=='Copied' && b.textContent!=='Select the text below') b.textContent=t;
+    if(b.textContent!=='Copied' && b.textContent!=='Select the text below' && b.textContent!=='Saved') b.textContent=t;
   });
 }
 /* 5.18: Load official results in the app. The SQL load, moved onto the phone.
@@ -8036,10 +8054,10 @@ function renderTTResults(){
   if(unnamed) resNote.push('<b>'+unnamed+(unnamed===1?' place still needs':' places still need')+' a name.</b> Times are already recorded; naming only decides whose they are.');
   $('ttInfo').addEventListener('click',function(){ infoOpen('About this time trial',resNote); });
   var scope = ttView==='all' ? 'All' : (ttView==='F' ? 'Girls' : 'Boys');
-  [['copyChat','Copy Text - '],['copyCsv','Copy CSV - ']].forEach(function(p){
+  [['copyChat','Share Text - '],['copyCsv','Share CSV - ']].forEach(function(p){
     var b=$(p[0]), t=p[1]+scope;
     b.setAttribute('data-label',t);
-    if(b.textContent!=='Copied' && b.textContent!=='Select the text below') b.textContent=t;
+    if(b.textContent!=='Copied' && b.textContent!=='Select the text below' && b.textContent!=='Saved') b.textContent=t;
   });
   [['ttAll','all'],['ttGirls','F'],['ttBoys','M']].forEach(function(p){
     $(p[0]).addEventListener('click',function(){ ttView=p[1]; renderTTResults(); });
@@ -8239,9 +8257,24 @@ function buildChat(full){
   var st=startTime();
   out+=fmtDate(S.date,true)+(st?', '+st:'')+'\n';
   out+='\n';
-
+  return out+chatBody(full);
+}
+/* 5.36: the race's team scores, once other schools are in Meet scores. School
+   and score only; the scorers and the schools short of five stay on Meet
+   scores' own text, which is for the head coach. Nothing until a second
+   school scores, so a race without them reads as it always did. */
+function chatStandings(mr){
+  if(!mr || !mr.res || mr.res.maac.length<2) return '';
+  var out='Team scores\n';
+  mr.res.maac.forEach(function(t){ out+=t.place+'. '+schoolLabel(t.school)+' '+t.score+'\n'; });
+  return out+'\n';
+}
+/* Everything under the race header: the standings, us, and every runner. */
+function chatBody(full){
+  if(full===undefined) full=resFull;
+  var p=ourPlaces(), top5=p.slice(0,5), tonly=teamOnlyS();
+  var cmr=sMeetResult(), cdisp=null, out=tonly ? '' : chatStandings(cmr);
   out+=S.team+'\n';
-  var cmr=sMeetResult(), cdisp=null;
   if(cmr && cmr.score!=null){
     out+='Team Score '+cmr.score+' ('+cmr.scorers.join(' + ')+')\n';
     out+=placeLine(cmr)+' teams\n';
@@ -8282,6 +8315,62 @@ function buildChat(full){
   return out+dnfChat();
 }
 
+/* 5.36: Share meet. The girls and the boys in one message, from the meet's
+   card on Home: the meet once at the top, then each race under its own
+   heading with its team scores and ours, Team view. Each race is read on a
+   copy of its finishes, so nothing in the season changes and the race on
+   screen, if any, is left as it was. */
+function meetShareRaces(m){
+  if(!m || isTT(m)) return [];
+  var rs=(m.races||[]).filter(function(r){ return r.division==='Girls' || r.division==='Boys'; });
+  if(rs.length<2 || !meetFinished(m)) return [];
+  if(!rs.every(function(r){ return (r.fin||[]).length && !splitsOnlyRace(r); })) return [];
+  return rs.slice().sort(function(a,b){ return a.division===b.division ? 0 : a.division==='Girls' ? -1 : 1; });
+}
+function buildMeetShare(mid){
+  var m=findMeet(mid), rs=meetShareRaces(m); if(!rs.length) return '';
+  var keep=S, keepFull=resFull, out=m.name+'\n'+[fmtDate(m.date,true), distsText(m)].filter(Boolean).join(', ')+'\n';
+  try{
+    resFull=false;
+    rs.forEach(function(r){
+      S={meetId:m.id, raceId:r.id, name:m.name+', '+r.division, date:m.date, division:r.division,
+         team:txt(TKEY)||'Peachtree MS', roster:buildRoster(), t0Wall:r.t0Wall, t0Mono:null,
+         endedMs:(r.endedMs===undefined?null:r.endedMs),
+         fin:(r.fin||[]).map(function(f){ var c={}; for(var k in f) c[k]=f[k]; return c; }),
+         shift:r.shift||0, screen:'results'};
+      relinkFinishes(S.fin,S.roster);
+      var st=startTime(), tonly=teamOnlyS();
+      out+='\n'+r.division.toUpperCase()+'\n'+
+           [tonly ? S.fin.length+' ran, team only' : S.fin.length+' in the field', st].filter(Boolean).join(', ')+'\n\n'+
+           chatBody(false);
+    });
+  } finally { S=keep; resFull=keepFull; }
+  return out;
+}
+/* Meet scores' file: the race and the date, peachtree-ms-home-meet-girls-meet-scores-2026-09-24.csv */
+function msFileName(){
+  var slug = String(S.name||'results').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'') || 'results';
+  return [slug, 'meet-scores', S.date].filter(Boolean).join('-')+'.csv';
+}
+/* 5.35: Results' two buttons share instead of copy. The phone's share sheet
+   (Messages, Mail, the team chat, and Copy, which iPhones list there) with the
+   text, or with the CSV as a file named for the race. Closing the sheet is the
+   coach's choice and does nothing. With no share sheet, or one that can't take
+   a file, the button copies as it always did. */
+function shareOut(text,btn,file){
+  var f=null;
+  if(file){ try{ f=new File([text],file,{type:'text/csv'}); }catch(e){ f=null; } }
+  var data = f ? {files:[f], title:file} : {text:text};
+  var can = navigator.share && (!f || (navigator.canShare && navigator.canShare(data)));
+  if(!can){ copyOut(text,btn); return; }
+  navigator.share(data).catch(function(e){ if(!e || e.name!=='AbortError') copyOut(text,btn); });
+}
+/* The race, the tab and the date: peachtree-ms-home-meet-girls-team-2026-09-24.csv */
+function resFileName(){
+  var scope = ttRace() ? (ttView==='all' ? 'all' : (ttView==='F' ? 'girls' : 'boys')) : (splitsOnlyRace(currentRace()) || !resFull ? 'team' : 'all');
+  var slug = String(S.name||'results').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'') || 'results';
+  return [slug, scope, S.date].filter(Boolean).join('-')+'.csv';
+}
 function copyOut(text,btn){
   var label=btn.textContent;
   function done(ok){
@@ -8720,12 +8809,12 @@ $('extraPurge').addEventListener('click',function(){
     renderExtras();
   });
 });
-$('copyChat').addEventListener('click',function(){ copyOut(buildChat(), this); });
-$('msCopyText').addEventListener('click',function(){ copyOut(buildMeetChat(), this); });
-$('msCopyCsv').addEventListener('click',function(){ copyOut(buildMeetCsv(), this); });
+$('copyChat').addEventListener('click',function(){ shareOut(buildChat(), this); });
+$('msCopyText').addEventListener('click',function(){ shareOut(buildMeetChat(), this); });
+$('msCopyCsv').addEventListener('click',function(){ shareOut(buildMeetCsv(), this, msFileName()); });
 $('msBack').addEventListener('click',function(){ show('results'); });
 $('olBack').addEventListener('click',function(){ show(olFrom); });
-$('copyCsv').addEventListener('click',function(){ copyOut(buildCsv(), this); });
+$('copyCsv').addEventListener('click',function(){ shareOut(buildCsv(), this, resFileName()); });
 $('rosterPull').addEventListener('click',pullRoster);
 $('rosterDone').addEventListener('click',function(){ goBack('rosterEdit'); });
 $('backSetup').addEventListener('click',function(){ show('home'); });
