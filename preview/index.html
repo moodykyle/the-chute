@@ -1122,7 +1122,17 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
 .bqvhead .bqvn{font-size:18px;letter-spacing:.03em}
 .bqvhead .chev{margin-left:auto;width:14px;height:14px;transition:transform .15s}
 .bqvhead[aria-expanded="true"] .chev{transform:rotate(180deg)}
-#bqVisBody{padding-bottom:24px}
+#bqVisBody,.usbody{padding-bottom:24px}
+/* 5.38: USAGE on About: one header, then App and Banquet page as rows like
+   About's own, each opening in place. */
+.usrow{display:flex;align-items:center;gap:12px;width:100%;background:none;border:0;border-bottom:1px solid var(--rule);
+  margin:0;padding:13px 2px;font:inherit;font-size:16px;color:var(--ink);text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.usrow .uc{margin-left:auto;font-size:14px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.usrow .chev{flex:0 0 auto;width:14px;height:14px;color:var(--ink-soft);transition:transform .15s}
+.usrow[aria-expanded="true"] .chev{transform:rotate(180deg)}
+#aboutUsage{margin-top:32px}
+.usbody{padding:4px 0 18px}
+.usbody .btnrow{margin-top:14px}
 .bqv{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--rule);font-size:15px}
 .bqv .num{color:var(--ink-soft)}
 </style>
@@ -1684,7 +1694,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.37';
+var BUILD='v5.38';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -2086,7 +2096,8 @@ var HOW=[
   '<b>Settings &gt; Backup and restore</b> copies the whole season as text or saves it as a file, and can read one back in. The database is the main copy of everything now, so this is a safety net rather than something to do every week.']},
  {t:'Banquet page', p:[
   '<b>Settings &gt; Banquet page</b> is a link parents open with no sign-in: Events, Runners and Season for the whole team, read only, starting on a thank-you page from the coaches with up to 40 photos. Nothing on it edits, times or opens Settings, and test events, DNFs and who\u2019s here never reach it.',
-  'It works only while <b>Link on</b> is switched on. <b>Share QR code</b> sends the code as a picture for a poster or an email. <b>New link</b> replaces the address, and the old one stops opening.']},
+  'It works only while <b>Link on</b> is switched on. <b>Share QR code</b> sends the code as a picture for a poster or an email. <b>New link</b> replaces the address, and the old one stops opening.',
+  '<b>Settings &gt; About</b> shows <b>Usage</b> for every coach: how often the app is opened and by how many coaches, and how often the banquet page is opened and on how many phones. A phone is counted by a random code its browser keeps, nothing else; <b>Forget phone codes</b> deletes the codes and keeps the counts.']},
  {t:'Troubleshooting', p:[
   '<b>The build on About doesn\u2019t match what was deployed.</b> The phone is running an old saved copy. Delete the home screen icon and add it again; a reload won\u2019t do it.',
   '<b>A naming phone says No update for 30s.</b> It has lost touch with the database. The timer isn\u2019t affected, and names catch up once the signal comes back.',
@@ -2244,6 +2255,7 @@ function show(id){
   /* 5.02: the viewer has its four tabs, the runner page, Results and Meet scores. */
   if(VIEW && VIEW_IDS.indexOf(id)<0) id='vhome';
   if(VIEW) vCount(VSCREEN[id]);
+  else if(id!==aLast){ aLast=id; aCount((ASCREEN||{})[id]); }
   navBack(id);
   var all=document.querySelectorAll('.screen');
   for(var i=0;i<all.length;i++) all[i].classList.toggle('on', all[i].id===id);
@@ -2319,6 +2331,29 @@ function wantAwake(){
 }
 document.addEventListener('visibilitychange',function(){
   if(document.visibilityState==='visible' && (wantAwake() || onScreen('split'))) keepAwake();
+});
+
+/* 5.38: the app's own usage (0030). An open when the app starts signed in, or
+   comes back on screen after half an hour away; a view each time a coach
+   lands on a screen. Counted as the coach's account, and About shows numbers,
+   never who. Sent and forgotten: with no signal nothing is counted, and
+   nothing ever waits on it. */
+var ASCREEN={home:'events', results:'results', runners:'runners', runner:'runner', season:'season', settings:'settings',
+  meet:'event', timing:'clock', recon:'naming', split:'splits', mscore:'meetscores'};
+var aLast=null, aHidAt=0, AOPEN_GAP=30*60000, AOPEN_WAIT=3000;
+function aCount(screen){
+  if(VIEW || !screen || !signedIn()) return;
+  try{
+    ensureFresh().then(function(ok){
+      if(ok) sbFetch('/rest/v1/rpc/app_visit',{method:'POST', auth:true, body:{p_screen:screen}});
+    }).catch(function(){});
+  }catch(e){}
+}
+document.addEventListener('visibilitychange',function(){
+  if(VIEW) return;
+  if(document.hidden){ aHidAt=Date.now(); return; }
+  if(aHidAt && Date.now()-aHidAt>=AOPEN_GAP) aCount('open');
+  aHidAt=0;
 });
 
 /* ---------- clock ---------- */
@@ -6046,7 +6081,9 @@ function renderAbout(){
     row('Races timed', String(st.timed))+
     row('Finishers recorded', String(st.fin))+
     row('Stored locally', Math.round(bytes/1024)+' KB')+
-    '<p class="hint" style="margin-top:16px">If Check for updates finds nothing and the build still isn\u2019t what you deployed, delete the home screen icon and add it again.</p>';
+    '<p class="hint" style="margin-top:16px">If Check for updates finds nothing and the build still isn\u2019t what you deployed, delete the home screen icon and add it again.</p>'+
+    '<div id="aboutUsage"></div>';
+  renderUsage();
   $('updCheck').addEventListener('click',function(){
     var btn=this, msg=$('updMsg');
     btn.disabled=true; msg.textContent='Checking\u2026';
@@ -6062,6 +6099,108 @@ function renderAbout(){
       else if(st==='same') msg.textContent='You\u2019re on the latest version.';
       else if(st==='offline') msg.textContent='No connection. Try again when you have signal.';
       else msg.textContent='Couldn\u2019t reach the server. Try again shortly.';
+    });
+  });
+}
+/* 5.38: USAGE on About (0030), for every coach. Two rows, each shut until
+   tapped: the app (opens and coaches) and the banquet page (opens and
+   phones). Numbers only: no account and no phone code reaches a screen.
+   VISITS moved here from the Banquet page. */
+var US_APP=null, US_BQ=null, US_OPEN={app:false, bq:false};
+var US_APP_SCREENS=[['events','Events'],['results','Results'],['runners','Runners'],['runner','Runner pages'],['season','Season'],
+  ['settings','Settings'],['event','Event setup'],['clock','Clock'],['naming','Naming'],['splits','Splits'],['meetscores','Meet scores']];
+function usPl(n,one,many){ return n+' '+(n===1 ? one : many); }
+function usErr(res){
+  if(res.offline) return 'No connection. Usage needs signal.';
+  if(res.status===404) return 'The database needs an update before usage shows here.';
+  return authMessage(res);
+}
+function renderUsage(){
+  var u=$('aboutUsage'); if(!u) return;
+  US_OPEN={app:false, bq:false}; US_APP=null; US_BQ=null;
+  if(!signedIn()){ u.innerHTML='<p class="hsect">USAGE</p><div class="hint">Sign in to see how the app and the banquet page are used.</div>'; return; }
+  u.innerHTML='<p class="hsect">USAGE</p><div class="hint">Reading the database…</div>';
+  var yr=seasonYear();
+  Promise.all([
+    bqCall('/rest/v1/rpc/app_usage',{method:'POST', body:{}}),
+    bqCall('/rest/v1/viewer_page?select=id&season_year=eq.'+yr).then(function(r){
+      var pg=r.ok && Array.isArray(r.data) ? r.data[0] : null;
+      if(!pg) return {ok:false, none:r.ok, offline:r.offline, status:r.status, data:r.data};
+      return bqCall('/rest/v1/rpc/viewer_usage',{method:'POST', body:{p_page:pg.id}}).then(function(x){ x.page=pg.id; return x; });
+    })
+  ]).then(function(rs){ US_APP=rs[0]; US_BQ=rs[1]; drawUsage(); });
+}
+function usHead(key,label,count){
+  return '<button type="button" class="usrow" id="usHead-'+key+'" aria-expanded="'+(US_OPEN[key] ? 'true' : 'false')+'" aria-controls="usBody-'+key+'">'+
+    '<span>'+label+'</span><span class="uc">'+(count==null ? '' : usPl(count,'open','opens'))+'</span>'+
+    '<svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8 9.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>';
+}
+function usTiles(a,ak,b,bk){
+  return '<div class="stiles two"><div class="stile"><span class="sv num">'+a+'</span><span class="sk">'+ak+'</span></div>'+
+    '<div class="stile"><span class="sv num">'+b+'</span><span class="sk">'+bk+'</span></div></div>';
+}
+function usRow(k,v){ return '<div class="bqv"><span>'+esc(k)+'</span><span class="num">'+esc(v)+'</span></div>'; }
+function usApp(){
+  var r=US_APP, d=r && r.ok ? r.data : null;
+  if(!d) return usHead('app','App',null)+'<div class="usbody" id="usBody-app"'+(US_OPEN.app ? '' : ' hidden')+'><div class="hint">'+esc(usErr(r||{}))+'</div></div>';
+  var by={}, h='';
+  (d.screens||[]).forEach(function(s){ by[s.screen]=s; });
+  if(!d.opens && !(d.days||[]).length) h+='<div class="hint">Nothing counted yet. Each time a coach opens the app, it counts here.</div>';
+  else {
+    h+=usTiles(d.opens||0,(d.opens===1 ? 'Open' : 'Opens'),d.coaches||0,(d.coaches===1 ? 'Coach' : 'Coaches'));
+    h+='<div class="bqvis">'+(d.days||[]).map(function(x){
+      return usRow(fmtDate(x.day), usPl(x.opens||0,'open','opens')+' · '+usPl(x.coaches||0,'coach','coaches')); }).join('')+'</div>';
+    h+='<div class="bqvis">'+US_APP_SCREENS.map(function(s){
+      var x=by[s[0]]||{views:0, coaches:0};
+      return usRow(s[1], usPl(x.views,'view','views')+' · '+usPl(x.coaches,'coach','coaches')); }).join('')+'</div>';
+    h+='<div class="hint">An open is the app starting, or coming back after half an hour away. Coaches are sign-in accounts, never named here. Nothing is counted without signal.</div>';
+  }
+  return usHead('app','App',d.opens||0)+'<div class="usbody" id="usBody-app"'+(US_OPEN.app ? '' : ' hidden')+'>'+h+'</div>';
+}
+function usBq(){
+  var r=US_BQ, d=r && r.ok ? r.data : null, h='';
+  if(!d){
+    var why=r && r.none ? 'There is no banquet page for '+seasonYear()+' in the database yet.' : usErr(r||{});
+    return usHead('bq','Banquet page',null)+'<div class="usbody" id="usBody-bq"'+(US_OPEN.bq ? '' : ' hidden')+'><div class="hint">'+esc(why)+'</div></div>';
+  }
+  var by={};
+  (d.screens||[]).forEach(function(s){ by[s.screen]=s; });
+  if(!d.opens) h+='<div class="hint">No visits yet. Each time someone opens the link, it counts here.</div>';
+  else {
+    h+=usTiles(d.opens,(d.opens===1 ? 'Open' : 'Opens'),d.phones||0,(d.phones===1 ? 'Phone' : 'Phones'));
+    h+='<div class="bqvis">'+(d.days||[]).map(function(x){
+      /* a day before phones were counted shows its opens alone, not 0 phones */
+      return usRow(fmtDate(x.day), usPl(x.opens||0,'open','opens')+(d.since && x.day>=d.since ? ' · '+usPl(x.phones||0,'phone','phones') : '')); }).join('')+'</div>';
+    h+='<div class="bqvis">'+BQ_SCREENS.map(function(s){
+      var x=by[s[0]]||{views:0, phones:0};
+      return usRow(s[1], usPl(x.views,'view','views')+' · '+usPl(x.phones,'phone','phones')); }).join('')+'</div>';
+    h+='<div class="hint">'+(d.since ? 'Phones are counted from '+esc(fmtDate(d.since))+'. ' : 'Phones are counted from 5.38 on. ')+
+       'A phone is one browser: cleared storage or private browsing counts as a new one. Opening the link yourself counts too.</div>';
+  }
+  if(d.codes) h+='<div class="hint">'+usPl(d.codes,'phone code','phone codes')+' in the database. Forgetting them keeps every count; a phone that visits again counts as new.</div>'+
+    '<div class="btnrow"><button type="button" id="usForget">Forget phone codes</button></div>';
+  else if(d.phones) h+='<div class="hint">No phone codes held. The counts above are kept.</div>';
+  h+='<div class="hint" id="usNote"></div>';
+  return usHead('bq','Banquet page',d.opens||0)+'<div class="usbody" id="usBody-bq"'+(US_OPEN.bq ? '' : ' hidden')+'>'+h+'</div>';
+}
+function drawUsage(){
+  var u=$('aboutUsage'); if(!u) return;
+  u.innerHTML='<p class="hsect">USAGE</p>'+usApp()+usBq();
+  ['app','bq'].forEach(function(k){
+    $('usHead-'+k).addEventListener('click',function(){
+      US_OPEN[k]=!US_OPEN[k]; this.setAttribute('aria-expanded',US_OPEN[k] ? 'true' : 'false'); $('usBody-'+k).hidden=!US_OPEN[k];
+    });
+  });
+  var f=$('usForget');
+  if(f) armTwoTapOn(f,'Forget them?',function(){
+    bqCall('/rest/v1/rpc/viewer_forget_phones',{method:'POST', body:{p_page:US_BQ.page}}).then(function(res){
+      if(!res.ok){ var n=$('usNote'); if(n){ n.textContent='Not forgotten. '+usErr(res); n.style.color='var(--danger)'; } return; }
+      var k=typeof res.data==='number' ? res.data : 0;
+      bqCall('/rest/v1/rpc/viewer_usage',{method:'POST', body:{p_page:US_BQ.page}}).then(function(x){
+        if(x.ok){ x.page=US_BQ.page; US_BQ=x; }
+        drawUsage();
+        var n=$('usNote'); if(n) n.textContent='Forgot '+usPl(k,'phone code','phone codes')+'. The counts are kept.';
+      });
     });
   });
 }
@@ -9895,11 +10034,33 @@ function vCarousel(ph){
    loads, one view each time a parent lands on a screen. Counts only, sent and
    forgotten; nothing is kept on the phone. */
 var VSCREEN={vhome:'home', home:'events', results:'results', runners:'runners', runner:'runner', season:'season'};
+/* 5.38: and phones (0030). The first visit makes a random code for this
+   browser and keeps it here, so the database can count each phone once a day
+   and screen. Nothing else about the phone goes with it, and no screen ever
+   reads it back. A database without 0030 answers 404 for the three-argument
+   call; the page then counts the 0023 way for the rest of the visit. */
+var VPHONE_KEY='chute.vphone', VCOUNT_OLD=false;
+var UUID_RE=/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+function vPhone(){
+  try{
+    var st=window.localStorage, p=st.getItem(VPHONE_KEY);
+    if(p && UUID_RE.test(p)) return p;
+    p=uid(); st.setItem(VPHONE_KEY,p);
+    return st.getItem(VPHONE_KEY)===p ? p : null;
+  }catch(e){ return null; }
+}
+function vSend(body){
+  return fetch(SB_URL+'/rest/v1/rpc/viewer_visit',{method:'POST', keepalive:true,
+    headers:{'apikey':SB_KEY,'Content-Type':'application/json'}, body:JSON.stringify(body)});
+}
 function vCount(screen){
   if(!VIEW || VSTATE!=='ok' || !screen) return;
+  var ph=VCOUNT_OLD ? null : vPhone(), body={p_code:VIEW, p_screen:screen};
+  if(ph) body.p_phone=ph;
   try{
-    fetch(SB_URL+'/rest/v1/rpc/viewer_visit',{method:'POST', keepalive:true,
-      headers:{'apikey':SB_KEY,'Content-Type':'application/json'}, body:JSON.stringify({p_code:VIEW, p_screen:screen})}).catch(function(){});
+    vSend(body).then(function(r){
+      if(r && r.status===404 && body.p_phone){ VCOUNT_OLD=true; delete body.p_phone; return vSend(body); }
+    }).catch(function(){});
   }catch(e){}
 }
 function viewerBoot(){
@@ -9920,7 +10081,7 @@ function viewerBoot(){
    share, a new link that kills the old one, the coaches' message, and up to
    40 photos (20 before 5.37). Straight to the database, not through the outbox: it is set up
    once, at a desk, and a save that fails says so. */
-var BQ=null, BQ_PH=[], BQ_VIS=[], BQ_MSG='', BQ_BUSY=false, BQ_MAX=40;  /* 5.37: 40, with migration 0029 (was 20) */
+var BQ=null, BQ_PH=[], BQ_MSG='', BQ_BUSY=false, BQ_MAX=40;  /* 5.37: 40, with migration 0029 (was 20) */
 function bqCall(path,opts){
   return ensureFresh().then(function(ok){
     if(!ok) return {ok:false, status:401, data:null};
@@ -9936,19 +10097,16 @@ function renderBanquet(){
     $('bqSignIn').addEventListener('click',function(){ acctBack='banquet'; show('account'); });
     return;
   }
-  BQ_VOPEN=false;
   b.innerHTML='<p class="hint">Reading the database\u2026</p>';
   var yr=seasonYear();
   bqCall('/rest/v1/viewer_page?select=id,season_year,code,enabled,message,signature&season_year=eq.'+yr).then(function(res){
     if(!res.ok || !Array.isArray(res.data)){ b.innerHTML='<p class="hint">'+esc(res.offline ? 'No connection. The banquet page needs signal to set up.' : authMessage(res))+'</p>'; return null; }
     BQ=res.data[0]||null;
     if(!BQ){ b.innerHTML='<p class="hint">There is no banquet page for '+esc(yr)+' in the database yet.</p>'; return null; }
-    return Promise.all([bqCall('/rest/v1/viewer_photos?select=id,position,caption,created_at&page_id=eq.'+BQ.id+'&order=position.asc,created_at.asc'),
-      bqCall('/rest/v1/viewer_visits?select=day,screen,n&page_id=eq.'+BQ.id+'&order=day.desc')]);
+    return Promise.all([bqCall('/rest/v1/viewer_photos?select=id,position,caption,created_at&page_id=eq.'+BQ.id+'&order=position.asc,created_at.asc')]);
   }).then(function(rs){
     if(!rs) return;
     var res=rs[0];
-    BQ_VIS=(rs[1].ok && Array.isArray(rs[1].data)) ? rs[1].data : [];
     BQ_PH=(res.ok && Array.isArray(res.data)) ? res.data : [];
     BQ_MSG=BQ.message.replace(/\r\n?/g,'\n');
     bqDraw();
@@ -9976,7 +10134,7 @@ function bqDraw(){
   });
   h+='</div><div class="btnrow"><button type="button" id="bqAdd"'+(n>=BQ_MAX ? ' disabled' : '')+'>Add photos</button></div>'+
      '<input type="file" id="bqPick" accept="image/*" multiple style="display:none">';
-  h+=bqVisits();
+  h+='<div class="hint" style="margin-top:24px">Visits are on <b>Settings &gt; About</b>, under Usage.</div>';
   b.innerHTML=h;
   bqQr(link);
   $('bqOn').addEventListener('change',function(){
@@ -10008,9 +10166,6 @@ function bqDraw(){
   });
   var rows=b.querySelectorAll('.bqph');
   for(var i=0;i<rows.length;i++) bqRow(rows[i]);
-  $('bqVisHead').addEventListener('click',function(){
-    BQ_VOPEN=!BQ_VOPEN; this.setAttribute('aria-expanded',BQ_VOPEN ? 'true' : 'false'); $('bqVisBody').hidden=!BQ_VOPEN;
-  });
   $('bqAdd').addEventListener('click',function(){ $('bqPick').click(); });
   $('bqPick').addEventListener('change',function(){ bqAdd(Array.prototype.slice.call(this.files||[])); this.value=''; });
 }
@@ -10019,28 +10174,6 @@ function bqDraw(){
    5.33: at the bottom of the page, one row that opens in place, shut each
    time the page opens. The row carries the opens in all. */
 var BQ_SCREENS=[['home','Home'],['events','Events'],['results','Results'],['runners','Runners'],['runner','Runner pages'],['season','Season']];
-var BQ_VOPEN=false;
-function bqVisits(){
-  var h='', opens=0, days={}, by={};
-  BQ_VIS.forEach(function(v){
-    if(v.screen==='open'){ opens+=v.n; days[v.day]=(days[v.day]||0)+v.n; }
-    else by[v.screen]=(by[v.screen]||0)+v.n;
-  });
-  if(!opens) h+='<div class="hint">No visits yet. Each time someone opens the link, it counts here.</div>';
-  else {
-    h+='<div class="stiles two"><div class="stile"><span class="sv num">'+opens+'</span><span class="sk">Opened</span></div>'+
-       '<div class="stile"><span class="sv num">'+Object.keys(days).length+'</span><span class="sk">'+(Object.keys(days).length===1 ? 'Day' : 'Days')+'</span></div></div>';
-    h+='<div class="bqvis">'+Object.keys(days).sort().reverse().map(function(d){
-      return '<div class="bqv"><span>'+esc(fmtDate(d))+'</span><span class="num">'+days[d]+(days[d]===1 ? ' open' : ' opens')+'</span></div>'; }).join('')+'</div>';
-    h+='<div class="bqvis">'+BQ_SCREENS.map(function(s){
-      return '<div class="bqv"><span>'+s[1]+'</span><span class="num">'+(by[s[0]]||0)+'</span></div>'; }).join('')+'</div>';
-    h+='<div class="hint">Visits, not people: someone who opens it three times counts three. Opening it from here counts too.</div>';
-  }
-  return '<button type="button" class="hsect bqvhead" id="bqVisHead" aria-expanded="'+(BQ_VOPEN ? 'true' : 'false')+'" aria-controls="bqVisBody">'+
-    '<span>VISITS</span><span class="bqvn">\u00b7 '+opens+(opens===1 ? ' open' : ' opens')+'</span>'+
-    '<svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8 9.5 4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>'+
-    '<div id="bqVisBody"'+(BQ_VOPEN ? '' : ' hidden')+'>'+h+'</div>';
-}
 function bqRow(el){
   var i=+el.getAttribute('data-i'), p=BQ_PH[i], img=el.querySelector('img'), cap=el.querySelector('input');
   bqCall('/rest/v1/viewer_photos?select=image&id=eq.'+p.id).then(function(res){
@@ -10149,6 +10282,9 @@ function bqShareQr(){
 }
 
 if(VIEW) viewerBoot();
+/* 5.38: the start's open, a moment after boot so it never sits in front of
+   anything the start needs. */
+else setTimeout(function(){ aCount('open'); },AOPEN_WAIT);
 })();
 </script>
 </body>
