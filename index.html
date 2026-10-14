@@ -1684,7 +1684,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.36';
+var BUILD='v5.37';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -2085,7 +2085,7 @@ var HOW=[
  {t:'Backup and restore', p:[
   '<b>Settings &gt; Backup and restore</b> copies the whole season as text or saves it as a file, and can read one back in. The database is the main copy of everything now, so this is a safety net rather than something to do every week.']},
  {t:'Banquet page', p:[
-  '<b>Settings &gt; Banquet page</b> is a link parents open with no sign-in: Events, Runners and Season for the whole team, read only, starting on a thank-you page from the coaches with up to 20 photos. Nothing on it edits, times or opens Settings, and test events, DNFs and who\u2019s here never reach it.',
+  '<b>Settings &gt; Banquet page</b> is a link parents open with no sign-in: Events, Runners and Season for the whole team, read only, starting on a thank-you page from the coaches with up to 40 photos. Nothing on it edits, times or opens Settings, and test events, DNFs and who\u2019s here never reach it.',
   'It works only while <b>Link on</b> is switched on. <b>Share QR code</b> sends the code as a picture for a poster or an email. <b>New link</b> replaces the address, and the old one stops opening.']},
  {t:'Troubleshooting', p:[
   '<b>The build on About doesn\u2019t match what was deployed.</b> The phone is running an old saved copy. Delete the home screen icon and add it again; a reload won\u2019t do it.',
@@ -9918,9 +9918,9 @@ function viewerBoot(){
 /* ---------- 5.02: the banquet page, for coaches ----------
    Settings, Banquet page: the link on or off, its address and a QR code to
    share, a new link that kills the old one, the coaches' message, and up to
-   20 photos. Straight to the database, not through the outbox: it is set up
+   40 photos (20 before 5.37). Straight to the database, not through the outbox: it is set up
    once, at a desk, and a save that fails says so. */
-var BQ=null, BQ_PH=[], BQ_VIS=[], BQ_MSG='', BQ_BUSY=false, BQ_MAX=20;
+var BQ=null, BQ_PH=[], BQ_VIS=[], BQ_MSG='', BQ_BUSY=false, BQ_MAX=40;  /* 5.37: 40, with migration 0029 (was 20) */
 function bqCall(path,opts){
   return ensureFresh().then(function(ok){
     if(!ok) return {ok:false, status:401, data:null};
@@ -10062,7 +10062,7 @@ function bqRow(el){
   });
 }
 function armTwoTapOn(btn,text,act){ btn.addEventListener('click',function(){ armTwoTap(btn,text,act); }); }
-/* Positions run 1 to n with no gaps, so the next photo always fits under 20. */
+/* Positions run 1 to n with no gaps, so the next photo always fits under BQ_MAX. */
 function bqRenumber(){
   var work=[];
   BQ_PH.forEach(function(p,i){ if(p.position!==i+1){ p.position=i+1; work.push(p); } });
