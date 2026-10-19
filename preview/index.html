@@ -9579,13 +9579,31 @@ function runnerColors(){
 var ORDER_EXTRA=['#A5B4FC','#F9A8D4','#C4B5FD','#FDE68A','#86EFAC','#FDBA74','#67E8F9','#D9F99D','#CBD5E1','#F0ABFC'];
 /* 5.39: a race most of the season's top 7 sat out (resting before a
    championship, say) is left off this chart, since its seven would be a
-   different team. Needs at least 4 of the 7 fastest by season best. Every
-   other chart keeps it. */
+   different team. Needs at least 4 of the 7 fastest at 2 miles on these
+   charts. Every other chart keeps it. The seven are worked out from the
+   races' own finishes, keyed as the dots are, so a phone without the
+   runner id list still matches them (the first 5.39 used the Runners list,
+   which on such a phone matched nobody and left the chart empty). With
+   fewer than 4 runners timed at 2 miles there is no seven to go by, and no
+   race is left out. */
 var ORDER_MIN_TOP=4;
+function orderTop(list,map){
+  var best={};
+  list.forEach(function(rc){
+    oursIn(rc.m,rc.r,SEA_DIV).forEach(function(f){
+      if(finDist(f,rc.m)!==MAIN_D) return;
+      var k=recKey(f,map); if(!k || f.ms==null) return;
+      if(best[k]==null || f.ms<best[k]) best[k]=f.ms;
+    });
+  });
+  var keys=Object.keys(best).sort(function(a,b){ return best[a]-best[b]; }).slice(0,7), top={};
+  keys.forEach(function(k){ top[k]=1; });
+  return keys.length>=ORDER_MIN_TOP ? top : null;
+}
 function orderCard(list){
-  var map=aidMap(), top={};
-  runnersList(SEA_DIV).filter(function(x){ return x.best; }).slice(0,7).forEach(function(x){ top[rosterKey(x.r,map)]=1; });
+  var map=aidMap(), top=orderTop(list,map);
   var races=list.slice().reverse().filter(function(rc){
+    if(!top) return true;
     var n=0, had={};
     oursIn(rc.m,rc.r,SEA_DIV).forEach(function(f){ var k=recKey(f,map); if(top[k] && !had[k]){ had[k]=1; n++; } });
     return n>=ORDER_MIN_TOP;
