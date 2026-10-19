@@ -1694,7 +1694,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.38';
+var BUILD='v5.39';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -2066,7 +2066,7 @@ var HOW=[
   'Records show on results as <b>PR \u22120:07.0</b>, the time taken off, and as (PR) in Share Text. They can be turned off in <b>Settings &gt; Results display</b>. The CSV always includes them.']},
  {t:'Season and Runners', p:[
   'The bar along the bottom has <b>Events</b>, <b>Runners</b>, <b>Season</b> and <b>Settings</b>, with + in the middle for a new event. It isn\u2019t there while you time, name or take splits, so a thumb can\u2019t leave a race by accident.',
-  '<b>Season</b> is how the season is going, for the girls or the boys. Across the top, the meets we\u2019ve been scored in, our best finish, and our record against other schools. <b>Charts</b> swipe left and right: our top 7\u2019s race times, the same as pace per mile so different distances compare, their place on the team race by race, how many of ours set a PR at each race, who\u2019s improved most this season, and our team score at each meet. An event with <b>Show on Season charts</b> off shows on none of them. <b>Head to head</b> lists every school we\u2019ve raced once their places are in <b>Meet scores</b>. Under that, the meets themselves; tap one for its Results.',
+  '<b>Season</b> is how the season is going, for the girls or the boys. Across the top, the meets we\u2019ve been scored in, our best finish, and our record against other schools. <b>Charts</b> swipe left and right: our top 7\u2019s race times, the same as pace per mile so different distances compare, their place on the team race by race (leaving out a race most of the top 7 sat out), how many of ours set a PR at each race, who\u2019s improved most this season, and our team score at each meet. An event with <b>Show on Season charts</b> off shows on none of them. <b>Head to head</b> lists every school we\u2019ve raced once their places are in <b>Meet scores</b>. Under that, the meets themselves; tap one for its Results.',
   '<b>Runners</b> ranks the team by season best at 2 miles, with how many races each has run. Like records, it counts real events the database has, hidden events included.',
   'Tap a runner for their season: their best at each distance, how much they\u2019ve dropped at 2 miles, and every race with their place on the team, overall, and each mile where a splitter was out.',
   'Where a splitter was out, each race shows its mile, then the rest: the next mile, or <b>Remaining</b> as a pace per mile when the rest isn\u2019t a whole mile. <b>Split</b> is the last number less the first: + slower, \u2212 faster. <b>Mile split</b> under the bests is their fastest true mile from a split, never a 1 mile best.']},
@@ -9577,8 +9577,19 @@ function runnerColors(){
    under it. Before 4.80 it drew the seven by season best wherever they placed,
    so a runner who made the seven but wasn't one of them never showed. */
 var ORDER_EXTRA=['#A5B4FC','#F9A8D4','#C4B5FD','#FDE68A','#86EFAC','#FDBA74','#67E8F9','#D9F99D','#CBD5E1','#F0ABFC'];
+/* 5.39: a race most of the season's top 7 sat out (resting before a
+   championship, say) is left off this chart, since its seven would be a
+   different team. Needs at least 4 of the 7 fastest by season best. Every
+   other chart keeps it. */
+var ORDER_MIN_TOP=4;
 function orderCard(list){
-  var races=list.slice().reverse(), map=aidMap();
+  var map=aidMap(), top={};
+  runnersList(SEA_DIV).filter(function(x){ return x.best; }).slice(0,7).forEach(function(x){ top[rosterKey(x.r,map)]=1; });
+  var races=list.slice().reverse().filter(function(rc){
+    var n=0, had={};
+    oursIn(rc.m,rc.r,SEA_DIV).forEach(function(f){ var k=recKey(f,map); if(top[k] && !had[k]){ had[k]=1; n++; } });
+    return n>=ORDER_MIN_TOP;
+  });
   if(races.length<2) return chartCard('Top 7, place on the team','',chartWait('Draws once the team has run two races.'));
   var all=runnersList(SEA_DIV), byKey={};
   all.forEach(function(x){ byKey[rosterKey(x.r,map)]=x.r.name; });
