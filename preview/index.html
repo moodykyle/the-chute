@@ -4431,11 +4431,28 @@ function renderRosterPull(){
     : 'Sign in to load the roster';
   rosterPullMsg('',false);
 }
+/* 5.39: a time trial read before this phone had a roster kept finishes with
+   an id and no name, and in a time trial nothing else says girl or boy, so
+   Season counted nobody from it until its Results was opened (seen on the
+   user's phone in Safari, which keeps its own storage). Once a roster lands,
+   every such finish takes its runner. Only finishes with no name are
+   touched, and nothing is marked to send: the database already has the id. */
+function fillUnnamed(){
+  var map=aidMap(), byA={}, n=0;
+  buildRoster().forEach(function(r){ var a=map[histKey(r)]; if(a && !(a in byA)) byA[a]=r; });
+  SEASON.meets.forEach(function(m){ (m.races||[]).forEach(function(r){ (r.fin||[]).forEach(function(f){
+    if(f.n!=null || !f.a || !byA[f.a]) return;
+    var x=byA[f.a]; f.n=x.name; f.g=x.g; f.r=x.id; n++;
+  }); }); });
+  if(n) saveSeason();
+  return n;
+}
 function writeRoster(g,b,n){
   try{ localStorage.setItem(RKEY_G,g); localStorage.setItem(RKEY_B,b); }catch(e){}
   $('rosterG').value=g; $('rosterB').value=b;
   hintRoster();
   if(S){ S.roster=buildRoster(); relinkFinishes(S.fin,S.roster); }
+  fillUnnamed();
   rosterPullMsg(n+' runners loaded from the database.',false);
 }
 function applyPulledRoster(rows){
@@ -4450,6 +4467,7 @@ function applyPulledRoster(rows){
   var current=rosterNames();
   var same=incoming.length===current.length && incoming.every(function(n,i){ return n===current[i]; });
   if(same){
+    fillUnnamed();
     rosterPullMsg(incoming.length+' runners, already matching what is on this device.',false);
     return;
   }
@@ -4572,7 +4590,7 @@ function quietRoster(rows){
   if(g===txt(RKEY_G) && b===txt(RKEY_B)) return false;
   try{ localStorage.setItem(RKEY_G,g); localStorage.setItem(RKEY_B,b); }catch(e){ return false; }
   $('rosterG').value=g; $('rosterB').value=b;
-  relinkAll();
+  relinkAll(); fillUnnamed();
   return true;
 }
 function refreshRoster(){
