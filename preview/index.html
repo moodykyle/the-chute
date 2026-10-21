@@ -1036,7 +1036,8 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
    a ribbon top right (the header rule: an action for the page, top right). */
 .rnhead{display:flex;flex-direction:column;align-items:center}
 #rnGrade:empty{display:none}
-.rncertbtn{padding:8px 12px}
+/* 5.42: coral, the only colour in the header, so the eye finds it. */
+.rncertbtn{padding:8px 12px;color:var(--tape);border-color:var(--tape);background:rgba(242,102,78,.12)}
 .rncertbtn svg{width:22px;height:22px;display:block}
 #rnBody>.hsect:first-child{margin-top:8px}
 .rnimps{margin-top:18px}
@@ -1718,7 +1719,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.41';
+var BUILD='v5.42';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
