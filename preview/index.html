@@ -1032,6 +1032,14 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 #runner .bar.nav{grid-template-columns:minmax(max-content,1fr) minmax(0,auto) minmax(max-content,1fr)}
 #rnName{max-width:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rnsum{font-size:14px;color:var(--ink-soft);margin:4px 0 2px}
+/* 5.41: the grade under the name, and the certificate as the page's action,
+   a ribbon top right (the header rule: an action for the page, top right). */
+.rnhead{display:flex;flex-direction:column;align-items:center}
+#rnGrade:empty{display:none}
+.rncertbtn{padding:8px 12px}
+.rncertbtn svg{width:22px;height:22px;display:block}
+#rnBody>.hsect:first-child{margin-top:8px}
+.rnimps{margin-top:18px}
 /* 5.40: the season certificate, a picture in a sheet. */
 .rncert{margin:12px 0 4px}
 #certSheet .sheet-in{max-width:900px}
@@ -1197,7 +1205,7 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
 
 <!-- A RUNNER'S SEASON, 4.61 -->
 <section class="screen" id="runner">
-  <div class="bar nav"><button class="linkbtn back" id="rnBack"><span class="bc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5 8 12l7 7"/></svg></span><span class="bl">Runners</span><span class="bh" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7"/><path d="M6.5 9.5V20h4v-5.5h3V20h4V9.5"/></svg></span></button><h1 class="navmid nt" id="rnName"></h1><span aria-hidden="true"></span></div>
+  <div class="bar nav"><button class="linkbtn back" id="rnBack"><span class="bc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5 8 12l7 7"/></svg></span><span class="bl">Runners</span><span class="bh" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7"/><path d="M6.5 9.5V20h4v-5.5h3V20h4V9.5"/></svg></span></button><h1 class="navmid rnhead"><span class="nt" id="rnName"></span><span class="ns" id="rnGrade"></span></h1><span id="rnAct"></span></div>
   <nav class="vtop" aria-label="Sections"><button type="button" data-tab="vhome">Home</button><button type="button" data-tab="home">Events</button><button type="button" data-tab="runners" aria-current="page">Runners</button><button type="button" data-tab="season">Season</button></nav>
   <div class="scroll pad" id="rnBody"></div>
   <nav class="tabbar" aria-label="Sections">
@@ -1710,7 +1718,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.40';
+var BUILD='v5.41';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -9883,25 +9891,28 @@ function improvement(races){
 function renderRunner(){
   var r=RN; if(!r) return;
   var races=runnerRaces(r), h='';
+  /* 5.41: the name with the grade under it in the header, and no summary
+     line: girls or boys and how many races are plain from the page. */
   $('rnName').textContent=r.name;
-  h+='<p class="rnsum">'+esc([gradeTag(r) ? gradeTag(r)+' grade' : '', r.g==='M' ? 'Boys' : 'Girls',
-    races.length ? races.length+(races.length===1 ? ' race' : ' races') : 'No races yet'].filter(Boolean).join(' \u00b7 '))+'</p>';
-  /* 5.40: the season certificate, for coaches always, on the link when on. */
-  if(races.length && certAllowed()) h+='<div class="btnrow rncert"><button type="button" id="rnCert">Season certificate</button></div>';
+  $('rnGrade').textContent=gradeTag(r) ? gradeTag(r)+' grade' : '';
+  /* 5.40: the season certificate, for coaches always, on the link when on.
+     5.41: a ribbon top right rather than a button at the top of the page. */
+  $('rnAct').innerHTML=(races.length && certAllowed()) ? '<button type="button" class="linkbtn rncertbtn" id="rnCert" aria-label="Season certificate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="9" r="5.5"/><path d="M8.5 13.5 7 21l5-2.5L17 21l-1.5-7.5"/></svg></button>' : '';
   var imp=improvement(races);
-  /* 4.65: a headline in the coaches' word, then the two times that prove it. */
-  if(imp) h+='<div class="rnimp"><span class="ih">Dropped <b class="num">'+ft(imp.by)+'</b> at 2 miles</span>'+
-    '<span class="is num">'+ft(imp.a)+' on '+esc(fmtDate(imp.from))+' to '+ft(imp.b)+' on '+esc(fmtDate(imp.to))+'</span></div>';
   var bd={};
   races.forEach(function(x){ if(!bd[x.d] || x.f.ms<bd[x.d].f.ms) bd[x.d]=x; });
-  var ds=Object.keys(bd).map(Number).sort(function(a,b){ return b-a; });
+  /* 5.41: 2 miles first, the team's race; then the mile and Mile split side
+     by side; then everything else, longest first. */
+  var rank=function(d){ return d===MAIN_D ? 0 : (d>=1600 && d<=1610 ? 1 : 2); };
+  var ds=Object.keys(bd).map(Number).sort(function(a,b){ return rank(a)-rank(b) || b-a; });
   if(ds.length){
     h+='<p class="hsect">'+esc(seasonYear())+' SEASON BESTS</p>';
+    /* 5.00: Mile split is its own row, not a 1 mile best. 5.41: after the mile. */
+    var bm=bestMileSplit(races), split=bm ? '<div class="rnbest rnmile"><span class="d"><span class="k">Mile split</span><span class="w">'+esc(fmtDate(bm.m.date)+' \u00b7 '+bm.m.name+', mile '+bm.mile)+'</span></span><span class="t num">'+ft(bm.ms)+'</span></div>' : '';
     ds.forEach(function(d){ var x=bd[d];
+      if(split && rank(d)===2){ h+=split; split=''; }
       h+='<div class="rnbest"><span class="d"><span class="k">'+esc(distLabel(d))+'</span><span class="w">'+esc(fmtDate(x.m.date)+' \u00b7 '+x.m.name)+'</span></span><span class="t num">'+ft(x.f.ms)+'</span></div>'; });
-    /* 5.00: its own row, not a 1 mile best. */
-    var bm=bestMileSplit(races);
-    if(bm) h+='<div class="rnbest rnmile"><span class="d"><span class="k">Mile split</span><span class="w">'+esc(fmtDate(bm.m.date)+' \u00b7 '+bm.m.name+', mile '+bm.mile)+'</span></span><span class="t num">'+ft(bm.ms)+'</span></div>';
+    h+=split;
     /* 5.11: a past season's bests are their own section, by year, in the
        same rows as this season's: distance, then date and meet, then time. */
     var rk=rosterKey(r,aidMap()), past={};
@@ -9929,6 +9940,18 @@ function renderRunner(){
       (sl.length ? '<span class="mmeta num rsplits">'+sl.join(' \u00b7 ')+'</span>' : '')+'</span>'+
       '<span class="rtime"><span class="t num">'+ft(x.f.ms)+'</span>'+(x.rec ? recHtml(x.rec) : '')+'</span></div></div>';
   });
+  /* 5.41: improvement closes the page: this season's drop at 2 miles (4.65's
+     headline, moved from the top), and against last season's best when there
+     is one, as the certificate counts it. */
+  var two=null; races.forEach(function(x){ if(x.d===MAIN_D && (!two || x.f.ms<two.f.ms)) two=x; });
+  var rk2=rosterKey(r,aidMap()), last=null;
+  priorBests().forEach(function(p){ if('a:'+p.athlete_id===rk2 && p.distance_m===MAIN_D && (!last || p.season_year>last.season_year)) last=p; });
+  var ims='';
+  if(imp) ims+='<div class="rnimp"><span class="ih">Dropped <b class="num">'+ft(imp.by)+'</b> at 2 miles</span>'+
+    '<span class="is num">'+ft(imp.a)+' on '+esc(fmtDate(imp.from))+' to '+ft(imp.b)+' on '+esc(fmtDate(imp.to))+'</span></div>';
+  if(two && last && two.f.ms<last.best_ms) ims+='<div class="rnimp rnimp25"><span class="ih"><b class="num">'+ft(last.best_ms-two.f.ms)+'</b> faster than '+esc(String(last.season_year))+' at 2 miles</span>'+
+    '<span class="is num">'+ft(last.best_ms)+' on '+esc(fmtDate(last.meet_date,true))+' to '+ft(two.f.ms)+' on '+esc(fmtDate(two.m.date))+'</span></div>';
+  if(ims) h+='<div class="rnimps">'+ims+'</div>';
   if(!races.length) h+='<p class="hint">No races this season yet. Test events never count.</p>';
   $('rnBody').innerHTML=h;
   var cb=$('rnCert'); if(cb) cb.addEventListener('click',function(){ openCert(RN); });
