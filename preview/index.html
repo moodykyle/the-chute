@@ -1796,7 +1796,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.52';
+var BUILD='v5.53';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -10979,14 +10979,32 @@ function bqScale(im,max,q,limit){
 }
 /* 5.52: the two small copies beside the photo (0036): a thumbnail for the
    Banquet page, a slideshow copy for parents. */
-function bqCopies(im){ return {thumb:bqScale(im,240,0.72,60000), slide:bqScale(im,960,0.74,300000)}; }
+/* 5.53: lighter, from the real photos: a thumbnail 160 on its long side,
+   about 12 KB; a slideshow copy 720, about 100 KB. */
+var BQ_THUMB_PX=160;
+function bqCopies(im){ return {thumb:bqScale(im,BQ_THUMB_PX,0.6,16000), slide:bqScale(im,720,0.62,140000)}; }
 /* 5.52: photos added before 0036 get their copies here, one at a time, while
    the Banquet page is open: fetch the full photo, make both copies, save,
    show the thumbnail. Once done for a photo, done for every phone. */
+/* 5.53: a photo needs its copies made when it has none, or when its
+   thumbnail is larger than today's (5.52 made them at 240), since its
+   slideshow copy was made with it. */
+function bqStale(p){
+  var t=BQ_THUMB && BQ_THUMB[p.id];
+  if(!t) return Promise.resolve(true);
+  return new Promise(function(ok){ var im=new Image(); im.onload=function(){ ok(Math.max(im.naturalWidth,im.naturalHeight)>BQ_THUMB_PX+8); }; im.onerror=function(){ ok(true); }; im.src=t; });
+}
 function bqPrep(){
   if(!BQ_THUMB || BQ_PREP) return;
-  var todo=BQ_PH.filter(function(p){ return !BQ_THUMB[p.id]; });
-  if(!todo.length) return;
+  BQ_PREP=true;
+  Promise.all(BQ_PH.map(bqStale)).then(function(st){
+    BQ_PREP=false;
+    var todo=BQ_PH.filter(function(p,i){ return st[i]; });
+    if(todo.length) bqPrepRun(todo);
+  });
+}
+function bqPrepRun(todo){
+  if(BQ_PREP) return;
   BQ_PREP=true;
   var n=todo.length, k=0, note=function(){ var e=$('bqPrep'); if(e) e.textContent=k<n ? 'Preparing photos, '+k+' of '+n+'…' : ''; };
   note();
