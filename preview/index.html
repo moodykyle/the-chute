@@ -1796,7 +1796,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.53';
+var BUILD='v5.54';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -10554,7 +10554,7 @@ function renderVHome(){
   if(ph.length){
     h+='<div class="vcar" id="vCar">'+ph.map(function(p){ return '<figure class="vslide"><img alt=""></figure>'; }).join('')+'</div>';
     h+='<div class="vcap"><span class="c" id="vCapT"></span><span class="n num" id="vCapN"></span></div>';
-    h+='<div class="vdots" id="vDots">'+ph.map(function(){ return '<i></i>'; }).join('')+'</div>';
+    /* 5.54: no dots under the photos; "3 of 50" says where you are */
   }
   h+='<div class="vbody"><div class="vhead"><img class="vlogo" src="'+VLOGO+'" alt="">'+
      '<div><h2 class="vtitle">'+esc(team)+'<br>Cross Country</h2><p class="vsub">The '+esc(String(VPAGE.season_year))+' season</p></div></div>';
@@ -10601,8 +10601,6 @@ function vFull(id){
 function vMark(ph){
   $('vCapT').textContent=ph[vAt] ? ph[vAt].caption||'' : '';
   $('vCapN').textContent=ph.length>1 ? (vAt+1)+' of '+ph.length : '';
-  var d=$('vDots').children;
-  for(var i=0;i<d.length;i++) d[i].classList.toggle('on', i===vAt);
   vPhoto(ph,vAt); if(vAt+1<ph.length) vPhoto(ph,vAt+1);
 }
 function vCarousel(ph){
