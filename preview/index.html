@@ -1072,10 +1072,8 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 @media (orientation:landscape){
   .cvfoot{left:auto;align-items:flex-end;padding-right:calc(env(safe-area-inset-right) + 12px)}
   #cvShare{min-width:0}
-  .cvhint{display:none}
 }
-.cvhint{font-size:13px;color:var(--ink-soft);text-align:center;background:rgba(5,8,15,.75);padding:4px 10px;border-radius:8px}
-.cvhint[hidden]{display:none}
+
 .rnimp{margin:12px 0 4px;padding:12px 14px;border-radius:10px;background:var(--chalk);font-size:15px;line-height:1.4}
 .rnimp{display:flex;flex-direction:column;gap:3px}
 .rnimp .ih{font-size:16px;font-weight:500}
@@ -1735,7 +1733,7 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
 <div class="cview" id="certView" role="dialog" aria-label="Season certificate">
   <div class="cvbar"><button class="linkbtn" id="cvClose">Close</button></div>
   <div class="cvstage" id="cvStage"><img id="cvImg" alt="Season certificate"></div>
-  <div class="cvfoot"><div class="cvhint" id="cvHint">Pinch or double-tap to zoom. Turn your phone sideways to see it larger.</div>
+  <div class="cvfoot">
     <div class="btnrow"><button type="button" class="go" id="cvShare">Share</button></div></div>
 </div>
 
@@ -1769,7 +1767,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.47';
+var BUILD='v5.48';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -2172,7 +2170,7 @@ var HOW=[
  {t:'Banquet page', p:[
   '<b>Settings &gt; End of season &gt; Banquet page</b> is a link parents open with no sign-in: Events, Runners and Season for the whole team, read only, starting on a thank-you page from the coaches with up to 40 photos. Nothing on it edits, times or opens Settings, and test events, DNFs and who\u2019s here never reach it.',
   'It works only while <b>Link on</b> is switched on. <b>Share QR code</b> sends the code as a picture for a poster or an email. <b>New link</b> replaces the address, and the old one stops opening.',
-  'Every runner\u2019s page has a <b>Season certificate</b>: one page with the runner\u2019s name, the <b>Certificate message</b>, their fastest mile, best 2 miles and how much they improved, and the season\u2019s races. Tap the picture to see it full screen and zoom in. <b>Share</b> sends it as a picture, to email, print or keep. <b>Settings &gt; End of season &gt; Runner certificate</b> says where it shows, for the whole team: <b>In the app</b> for coaches, <b>On the banquet page</b> for parents.',
+  'Every runner\u2019s page has a <b>Season certificate</b>: one page with the runner\u2019s name, the <b>Certificate message</b>, their fastest mile, best 2 miles and how much they improved, and the season\u2019s races. Tapping the picture shows it full screen, to zoom in. <b>Share</b> sends it as a picture, to email, print or keep. <b>Settings &gt; End of season &gt; Runner certificate</b> says where it shows, for the whole team: <b>In the app</b> for coaches, <b>On the banquet page</b> for parents.',
   '<b>Settings &gt; About</b> shows <b>Usage</b> for every coach: how often the app is opened and by how many coaches, and how often the banquet page is opened and on how many phones, and how often certificates are opened and shared. A phone is counted by a random code its browser keeps, nothing else; <b>Forget phone codes</b> deletes the codes and keeps the counts.']},
  {t:'Troubleshooting', p:[
   '<b>The build on About doesn\u2019t match what was deployed.</b> The phone is running an old saved copy. Delete the home screen icon and add it again; a reload won\u2019t do it.',
@@ -10272,7 +10270,7 @@ function openCert(r){
       CERT_URL=b ? URL.createObjectURL(b) : cv.toDataURL('image/png');
       $('certImg').src=CERT_URL;
       $('certShare').disabled=false;
-      $('certNote').textContent='Tap the picture to see it full screen. Share sends it as a picture: to Mail, Messages, Photos or a printer.';
+      $('certNote').textContent='';   /* 5.48: no instructions; a picture is tapped by instinct */
     },'image/png');
   });
 }
@@ -10294,7 +10292,7 @@ $('certClose').addEventListener('click',function(){ $('certSheet').classList.rem
    pinch, drag, double-tap in and out, up to 4x, never past the edges. Turning
    the phone sideways fills the screen, since the page is landscape. */
 var CV={s:1, x:0, y:0, fit:1, w:2200, h:1700, pts:{}, pinch:null, pan:null, tap:0, tapX:0, tapY:0, moved:false};
-var CV_HINT='chute.cview.hint.v1', CV_MAX=4;
+var CV_MAX=4;
 function cvStage(){ var e=$('cvStage'); return {w:e.clientWidth||1, h:e.clientHeight||1}; }
 function cvClamp(){
   var st=cvStage(), k=CV.fit*CV.s, w=CV.w*k, h=CV.h*k;
@@ -10309,15 +10307,29 @@ function cvZoomAt(s,px,py){
   var k0=CV.fit*CV.s, cx=(px-CV.x)/k0, cy=(py-CV.y)/k0;
   CV.s=s; var k=CV.fit*s; CV.x=px-cx*k; CV.y=py-cy*k; cvApply();
 }
+/* 5.48: the whole page, fitted to the screen as it is now. Any change in the
+   screen's size (a turn, a toolbar) snaps back to this, zoom or not. */
+function cvSnap(){
+  if(!$('certView').classList.contains('on')) return;
+  var st=cvStage(); CV.sw=st.w; CV.sh=st.h;
+  CV.s=1; CV.pts={}; CV.pinch=null; CV.pan=null; cvFit(); cvApply();
+}
+function cvResized(){
+  if(!$('certView').classList.contains('on')) return;
+  var st=cvStage();
+  if(Math.abs(st.w-CV.sw)>1 || Math.abs(st.h-CV.sh)>1) cvSnap();
+}
 function openCView(){
   if(!CERT_URL) return;
   var v=$('certView'), im=$('cvImg');
   CV.s=1; CV.pts={}; CV.pinch=null; CV.pan=null;
   v.classList.add('on');
-  var go=function(){ CV.w=im.naturalWidth||2200; CV.h=im.naturalHeight||1700; cvFit(); cvApply(); };
+  CV.sw=0; CV.sh=0;
+  var go=function(){ CV.w=im.naturalWidth||2200; CV.h=im.naturalHeight||1700; cvSnap(); };
   if(im.getAttribute('src')!==CERT_URL){ im.onload=go; im.src=CERT_URL; } else go();
-  var seen=false; try{ seen=localStorage.getItem(CV_HINT)==='1'; localStorage.setItem(CV_HINT,'1'); }catch(e){}
-  $('cvHint').hidden=seen;
+  /* 5.48: and again once the screen has settled; a phone opened sideways can
+     report its size before the turn has finished. */
+  requestAnimationFrame(function(){ requestAnimationFrame(cvSnap); });
 }
 function closeCView(){ $('certView').classList.remove('on'); }
 (function(){
@@ -10326,7 +10338,6 @@ function closeCView(){ $('certView').classList.remove('on'); }
   function two(){ var k=Object.keys(CV.pts); return k.length>=2 ? [CV.pts[k[0]], CV.pts[k[1]]] : null; }
   st.addEventListener('pointerdown',function(e){
     try{ st.setPointerCapture(e.pointerId); }catch(x){}
-    $('cvHint').hidden=true;
     CV.pts[e.pointerId]=pt(e); CV.moved=false;
     var t=two();
     if(t){ CV.pinch={d:Math.hypot(t[0].x-t[1].x, t[0].y-t[1].y)||1, s:CV.s}; CV.pan=null; }
@@ -10357,7 +10368,12 @@ function closeCView(){ $('certView').classList.remove('on'); }
     } else { CV.tap=now; CV.tapX=p.x; CV.tapY=p.y; }
   }
   st.addEventListener('pointerup',up); st.addEventListener('pointercancel',up);
-  window.addEventListener('resize',function(){ if($('certView').classList.contains('on')){ cvFit(); cvApply(); } });
+  /* 5.48: the viewer's own size is the truth, read after layout. resize and
+     orientationchange can fire mid-turn on an iPhone with the old size. */
+  if(window.ResizeObserver) new ResizeObserver(cvResized).observe(st);
+  window.addEventListener('resize',function(){ setTimeout(cvResized,60); setTimeout(cvResized,350); });
+  window.addEventListener('orientationchange',function(){ setTimeout(cvResized,350); setTimeout(cvResized,800); });
+  if(window.visualViewport) window.visualViewport.addEventListener('resize',function(){ setTimeout(cvResized,60); });
   $('certImg').addEventListener('click',openCView);
   $('cvClose').addEventListener('click',closeCView);
   $('cvShare').addEventListener('click',shareCert);
