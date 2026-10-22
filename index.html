@@ -1796,7 +1796,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.50';
+var BUILD='v5.51';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -2197,7 +2197,7 @@ var HOW=[
  {t:'Backup and restore', p:[
   '<b>Settings &gt; Backup and restore</b> copies the whole season as text or saves it as a file, and can read one back in. The database is the main copy of everything now, so this is a safety net rather than something to do every week.']},
  {t:'Banquet page', p:[
-  '<b>Settings &gt; End of season &gt; Banquet page</b> is a link parents open with no sign-in: Events, Runners and Season for the whole team, read only, starting on a thank-you page from the coaches with up to 40 photos. A parent can tap a photo to see it full screen, swipe through the rest, zoom in and share it. Nothing on it edits, times or opens Settings, and test events, DNFs and who\u2019s here never reach it.',
+  '<b>Settings &gt; End of season &gt; Banquet page</b> is a link parents open with no sign-in: Events, Runners and Season for the whole team, read only, starting on a thank-you page from the coaches with up to 60 photos. A parent can tap a photo to see it full screen, swipe through the rest, zoom in and share it. Nothing on it edits, times or opens Settings, and test events, DNFs and who\u2019s here never reach it.',
   'It works only while <b>Link on</b> is switched on. <b>Share QR code</b> sends the code as a picture for a poster or an email. <b>New link</b> replaces the address, and the old one stops opening.',
   'Every runner\u2019s page has a <b>Season certificate</b>: one page with the runner\u2019s name, the <b>Certificate message</b>, their fastest mile, best 2 miles and how much they improved, and the season\u2019s races. Tapping the picture shows it full screen, to zoom in. <b>Share</b> sends it as a picture, to email, print or keep. <b>Settings &gt; End of season &gt; Runner certificate</b> says where it shows, for the whole team: <b>In the app</b> for coaches, <b>On the banquet page</b> for parents.',
   '<b>Settings &gt; About</b> shows <b>Usage</b> for every coach: how often the app is opened and by how many coaches, and how often the banquet page is opened and on how many phones, and how often certificates are opened and shared. A phone is counted by a random code its browser keeps, nothing else; <b>Forget phone codes</b> deletes the codes and keeps the counts.']},
@@ -10659,7 +10659,7 @@ function viewerBoot(){
    share, a new link that kills the old one, the coaches' message, and up to
    40 photos (20 before 5.37). Straight to the database, not through the outbox: it is set up
    once, at a desk, and a save that fails says so. */
-var BQ=null, BQ_PH=[], BQ_MSG='', BQ_BUSY=false, BQ_MAX=40, BQ_FRAME=null;  /* 5.37: 40, with migration 0029 (was 20) */
+var BQ=null, BQ_PH=[], BQ_MSG='', BQ_BUSY=false, BQ_MAX=60, BQ_FRAME=null;  /* 5.37: 40, with migration 0029 (was 20); 5.51: 60, with 0035 */
 function bqCall(path,opts){
   return ensureFresh().then(function(ok){
     if(!ok) return {ok:false, status:401, data:null};
