@@ -1124,6 +1124,15 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
 .vcar::-webkit-scrollbar{display:none}
 .vslide{flex:0 0 100%;min-width:0;scroll-snap-align:start;scroll-snap-stop:always;margin:0}
 .vslide img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;background:var(--chalk)}
+/* 5.50: a coach frames each photo (0034): fill the frame on a chosen spot, or
+   show the whole photo over a blurred copy of itself. */
+.vslide,.frbox{position:relative;overflow:hidden}
+.vslide.whole img,.frbox.whole img{position:relative;z-index:1;object-fit:contain;background:transparent}
+.vslide.whole::before,.frbox.whole::before{content:'';position:absolute;inset:-24px;background:inherit;background-size:cover;background-position:center;filter:blur(18px) brightness(.85)}
+.bqph img{cursor:pointer}
+.frbox{width:100%;aspect-ratio:4/3;border-radius:8px;background-color:var(--field);touch-action:none;margin:12px 0 8px}
+.frbox img{display:block;width:100%;height:100%;object-fit:cover;user-select:none;-webkit-user-drag:none;pointer-events:none}
+.frbox:not(.whole){cursor:grab}
 .vcap{display:flex;align-items:center;gap:10px;padding:8px 16px 0;min-height:28px}
 .vcap .c{flex:1;min-width:0;font-size:13px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .vcap .n{flex:0 0 auto;font-size:13px;color:var(--ink-soft)}
@@ -1743,6 +1752,20 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
     <div class="btnrow"><button type="button" class="go" id="cvShare">Share</button></div></div>
 </div>
 
+<!-- PHOTO FRAMING, 5.50 -->
+<div class="sheet" id="frameSheet">
+  <div class="sheet-in">
+    <div class="bar"><h1>Frame photo</h1><button class="linkbtn" id="frCancel">Cancel</button></div>
+    <div class="scroll pad">
+      <div class="seg2 fseg"><button type="button" id="frFill" aria-pressed="true">Fill the frame</button><button type="button" id="frWhole" aria-pressed="false">Show the whole photo</button></div>
+      <div class="frbox" id="frBox"><img id="frImg" alt=""></div>
+      <div class="hint" id="frHint">Drag the photo to choose what shows.</div>
+      <div class="btnrow" style="margin-top:14px"><button type="button" class="go" id="frSave">Save</button></div>
+      <div class="hint" id="frNote"></div>
+    </div>
+  </div>
+</div>
+
 <div class="sheet" id="sheet">
   <div class="sheet-in">
     <div class="bar"><h1 id="sheetTitle">Place</h1><button class="linkbtn" id="sheetClose">Close</button></div>
@@ -1773,7 +1796,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.49';
+var BUILD='v5.50';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -10538,12 +10561,20 @@ function renderVHome(){
   b.innerHTML=h;
   if(ph.length) vCarousel(ph);
 }
+/* 5.50: the coach's framing (0034); a page from before it frames from the centre. */
+function frStyle(fig,img,p,src){
+  var whole=p && p.fit==='whole';
+  fig.classList.toggle('whole', !!whole);
+  img.style.objectPosition=(p && p.focus_x!=null ? p.focus_x : 50)+'% '+(p && p.focus_y!=null ? p.focus_y : 50)+'%';
+  fig.style.backgroundImage = whole && src ? 'url("'+src+'")' : '';
+}
 function vPhoto(ph,i){
   var img=document.querySelectorAll('#vCar img')[i];
   if(!img || img.getAttribute('data-want')) return;
   img.setAttribute('data-want','1');
+  frStyle(img.parentNode,img,ph[i],null);
   vRpc('viewer_photo',{p_code:VIEW, p_id:ph[i].id}).then(function(r){
-    if(r.ok && typeof r.data==='string') img.src=r.data; else img.removeAttribute('data-want');
+    if(r.ok && typeof r.data==='string'){ img.src=r.data; frStyle(img.parentNode,img,ph[i],r.data); } else img.removeAttribute('data-want');
   });
 }
 function vMark(ph){
@@ -10628,7 +10659,7 @@ function viewerBoot(){
    share, a new link that kills the old one, the coaches' message, and up to
    40 photos (20 before 5.37). Straight to the database, not through the outbox: it is set up
    once, at a desk, and a save that fails says so. */
-var BQ=null, BQ_PH=[], BQ_MSG='', BQ_BUSY=false, BQ_MAX=40;  /* 5.37: 40, with migration 0029 (was 20) */
+var BQ=null, BQ_PH=[], BQ_MSG='', BQ_BUSY=false, BQ_MAX=40, BQ_FRAME=null;  /* 5.37: 40, with migration 0029 (was 20) */
 function bqCall(path,opts){
   return ensureFresh().then(function(ok){
     if(!ok) return {ok:false, status:401, data:null};
@@ -10650,10 +10681,14 @@ function renderBanquet(){
     if(!res.ok || !Array.isArray(res.data)){ b.innerHTML='<p class="hint">'+esc(res.offline ? 'No connection. The banquet page needs signal to set up.' : authMessage(res))+'</p>'; return null; }
     BQ=res.data[0]||null;
     if(!BQ){ b.innerHTML='<p class="hint">There is no banquet page for '+esc(yr)+' in the database yet.</p>'; return null; }
-    return Promise.all([bqCall('/rest/v1/viewer_photos?select=id,position,caption,created_at&page_id=eq.'+BQ.id+'&order=position.asc,created_at.asc')]);
+    return Promise.all([bqCall('/rest/v1/viewer_photos?select=id,position,caption,created_at&page_id=eq.'+BQ.id+'&order=position.asc,created_at.asc'),
+      /* 5.50: read on its own, so a database before 0034 costs only the framing. */
+      bqCall('/rest/v1/viewer_photos?select=id,focus_x,focus_y,fit&page_id=eq.'+BQ.id)]);
   }).then(function(rs){
     if(!rs) return;
-    var res=rs[0];
+    var res=rs[0], fr=rs[1];
+    BQ_FRAME = fr && fr.ok && Array.isArray(fr.data) ? {} : null;
+    if(BQ_FRAME) fr.data.forEach(function(x){ BQ_FRAME[x.id]=x; });
     BQ_PH=(res.ok && Array.isArray(res.data)) ? res.data : [];
     BQ_MSG=BQ.message.replace(/\r\n?/g,'\n');
     bqDraw();
@@ -10672,7 +10707,9 @@ function bqDraw(){
   h+='<div class="field"><textarea id="bqMsg" spellcheck="true">'+esc(BQ_MSG)+'</textarea></div>';
   h+='<div class="field"><label for="bqSig">Signed</label><input type="text" id="bqSig" maxlength="120" value="'+esc(BQ.signature)+'"></div>';
   h+='<div class="btnrow"><button type="button" class="go" id="bqSave">Save message</button></div>';
-  h+='<p class="hsect">PHOTOS</p><div class="hint">'+n+' of '+BQ_MAX+'. The first is the one parents see first.</div><div class="bqphotos">';
+  h+='<p class="hsect">PHOTOS</p><div class="hint">'+n+' of '+BQ_MAX+'. The first is the one parents see first.</div>';
+  if(n) h+='<div class="hint">'+(BQ_FRAME ? 'Tap a photo to choose how it sits in the slideshow.' : 'Framing photos needs a database update. Until then each one is shown from its centre.')+'</div>';
+  h+='<div class="bqphotos">';
   BQ_PH.forEach(function(p,i){
     h+='<div class="bqph" data-i="'+i+'"><img alt=""><input type="text" maxlength="80" placeholder="Caption" value="'+esc(p.caption)+'">'+
        '<button type="button" class="bqup"'+(i ? '' : ' disabled')+' aria-label="Move up">\u25b2</button>'+
@@ -10727,6 +10764,9 @@ function bqRow(el){
   bqCall('/rest/v1/viewer_photos?select=image&id=eq.'+p.id).then(function(res){
     if(res.ok && res.data && res.data[0]) img.src=res.data[0].image;
   });
+  /* 5.50: the thumbnail shows the photo as the slideshow will, and opens framing */
+  if(BQ_FRAME){ var f=BQ_FRAME[p.id]; img.style.objectPosition=f ? f.focus_x+'% '+f.focus_y+'%' : ''; img.style.objectFit=f && f.fit==='whole' ? 'contain' : '';
+    img.addEventListener('click',function(){ if(img.getAttribute('src')) openFrame(p, img); }); }
   cap.addEventListener('change',function(){
     var v=cap.value.trim();
     bqCall('/rest/v1/viewer_photos?id=eq.'+p.id,{method:'PATCH', body:{caption:v}}).then(function(res){
@@ -10818,6 +10858,66 @@ function csDraw(){
     });
   });
 }
+/* 5.50: framing one photo. Fill the frame shows it as the slideshow does,
+   cropped to 4:3, and dragging moves which part is in view (only along the
+   side that overflows). Show the whole photo puts it all in the frame over a
+   blurred copy. Save writes the three columns (0034); every parent sees it. */
+var FR=null;
+function frDraw(){
+  var box=$('frBox'), img=$('frImg'), whole=FR.fit==='whole';
+  $('frFill').setAttribute('aria-pressed', whole ? 'false' : 'true');
+  $('frWhole').setAttribute('aria-pressed', whole ? 'true' : 'false');
+  frStyle(box,img,FR,img.getAttribute('src'));
+  $('frHint').textContent = whole ? 'The whole photo shows, with a soft copy of it filling the sides.' :
+    (FR.ox || FR.oy ? 'Drag the photo to choose what shows.' : 'This photo already fills the frame exactly.');
+}
+/* How far the photo overflows the frame, in pixels, across and down. */
+function frOver(){
+  var box=$('frBox'), img=$('frImg'), bw=box.clientWidth, bh=box.clientHeight, iw=img.naturalWidth||1, ih=img.naturalHeight||1;
+  var k=Math.max(bw/iw, bh/ih); return {x:iw*k-bw, y:ih*k-bh};
+}
+function openFrame(p,thumb){
+  var f=(BQ_FRAME && BQ_FRAME[p.id]) || {focus_x:50, focus_y:50, fit:'fill'};
+  FR={id:p.id, focus_x:f.focus_x, focus_y:f.focus_y, fit:f.fit, thumb:thumb};
+  $('frNote').textContent=''; $('frSave').disabled=false;
+  var img=$('frImg');
+  img.onload=function(){ var o=frOver(); FR.ox=o.x>1; FR.oy=o.y>1; frDraw(); };
+  img.src=thumb.getAttribute('src');
+  $('frameSheet').classList.add('on');
+  requestAnimationFrame(function(){ if(img.complete) img.onload(); });
+}
+(function(){
+  var box=$('frBox'), drag=null;
+  $('frFill').addEventListener('click',function(){ FR.fit='fill'; frDraw(); });
+  $('frWhole').addEventListener('click',function(){ FR.fit='whole'; frDraw(); });
+  $('frCancel').addEventListener('click',function(){ $('frameSheet').classList.remove('on'); });
+  box.addEventListener('pointerdown',function(e){
+    if(!FR || FR.fit==='whole') return;
+    try{ box.setPointerCapture(e.pointerId); }catch(x){}
+    drag={x:e.clientX, y:e.clientY, fx:FR.focus_x, fy:FR.focus_y, o:frOver()}; e.preventDefault();
+  });
+  box.addEventListener('pointermove',function(e){
+    if(!drag) return;
+    /* object-position p% puts the photo at (frame - photo) * p%, so a drag of
+       d pixels moves p by d / (frame - photo): the opposite way, as a finger expects. */
+    if(drag.o.x>1) FR.focus_x=Math.round(Math.max(0, Math.min(100, drag.fx - (e.clientX-drag.x)/drag.o.x*100)));
+    if(drag.o.y>1) FR.focus_y=Math.round(Math.max(0, Math.min(100, drag.fy - (e.clientY-drag.y)/drag.o.y*100)));
+    frDraw(); e.preventDefault();
+  });
+  function end(){ drag=null; }
+  box.addEventListener('pointerup',end); box.addEventListener('pointercancel',end);
+  $('frSave').addEventListener('click',function(){
+    var btn=this, body={focus_x:FR.focus_x, focus_y:FR.focus_y, fit:FR.fit}, f=FR;
+    btn.disabled=true;
+    bqCall('/rest/v1/viewer_photos?id=eq.'+f.id,{method:'PATCH', body:body}).then(function(res){
+      btn.disabled=false;
+      if(!res.ok){ $('frNote').textContent='Not saved. '+(res.offline ? 'No connection.' : authMessage(res)); return; }
+      BQ_FRAME[f.id]={id:f.id, focus_x:f.focus_x, focus_y:f.focus_y, fit:f.fit};
+      f.thumb.style.objectPosition=f.focus_x+'% '+f.focus_y+'%'; f.thumb.style.objectFit=f.fit==='whole' ? 'contain' : '';
+      $('frameSheet').classList.remove('on'); bqNote('Framing saved.');
+    });
+  });
+})();
 function armTwoTapOn(btn,text,act){ btn.addEventListener('click',function(){ armTwoTap(btn,text,act); }); }
 /* Positions run 1 to n with no gaps, so the next photo always fits under BQ_MAX. */
 function bqRenumber(){
