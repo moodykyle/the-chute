@@ -1055,7 +1055,27 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 /* 5.40: the season certificate, a picture in a sheet. */
 .rncert{margin:12px 0 4px}
 #certSheet .sheet-in{max-width:900px}
-#certImg{display:block;width:100%;height:auto;aspect-ratio:11/8.5;background:#fff;border-radius:6px;margin:4px 0 10px}
+#certImg{display:block;width:100%;height:auto;aspect-ratio:11/8.5;background:#fff;border-radius:6px;margin:4px 0 10px;cursor:zoom-in}
+/* 5.47: the certificate full screen, zoomed by its own pinch and double-tap. */
+.cview{position:fixed;inset:0;z-index:40;background:#05080f;display:none;flex-direction:column}
+.cview.on{display:flex}
+/* The picture has the whole screen; Close and Share float over it, so turning
+   the phone sideways makes it as large as the screen allows. */
+.cvstage{position:absolute;inset:0;overflow:hidden;touch-action:none}
+.cvbar{position:absolute;top:0;right:0;z-index:1;padding:calc(env(safe-area-inset-top) + 10px) calc(env(safe-area-inset-right) + 12px) 10px 12px}
+#cvImg{position:absolute;left:0;top:0;transform-origin:0 0;max-width:none;user-select:none;-webkit-user-select:none;-webkit-user-drag:none;pointer-events:none;background:#fff}
+.cvfoot{position:absolute;left:0;right:0;bottom:0;z-index:1;display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px 16px calc(env(safe-area-inset-bottom) + 14px);pointer-events:none}
+.cvfoot>*{pointer-events:auto}
+#certView .btnrow{margin:0}
+#cvShare{min-width:160px;flex:0 0 auto}
+/* Sideways the picture fills the height: Share moves to the corner, no hint. */
+@media (orientation:landscape){
+  .cvfoot{left:auto;align-items:flex-end;padding-right:calc(env(safe-area-inset-right) + 12px)}
+  #cvShare{min-width:0}
+  .cvhint{display:none}
+}
+.cvhint{font-size:13px;color:var(--ink-soft);text-align:center;background:rgba(5,8,15,.75);padding:4px 10px;border-radius:8px}
+.cvhint[hidden]{display:none}
 .rnimp{margin:12px 0 4px;padding:12px 14px;border-radius:10px;background:var(--chalk);font-size:15px;line-height:1.4}
 .rnimp{display:flex;flex-direction:column;gap:3px}
 .rnimp .ih{font-size:16px;font-weight:500}
@@ -1712,6 +1732,13 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
   </div>
 </div>
 
+<div class="cview" id="certView" role="dialog" aria-label="Season certificate">
+  <div class="cvbar"><button class="linkbtn" id="cvClose">Close</button></div>
+  <div class="cvstage" id="cvStage"><img id="cvImg" alt="Season certificate"></div>
+  <div class="cvfoot"><div class="cvhint" id="cvHint">Pinch or double-tap to zoom. Turn your phone sideways to see it larger.</div>
+    <div class="btnrow"><button type="button" class="go" id="cvShare">Share</button></div></div>
+</div>
+
 <div class="sheet" id="sheet">
   <div class="sheet-in">
     <div class="bar"><h1 id="sheetTitle">Place</h1><button class="linkbtn" id="sheetClose">Close</button></div>
@@ -1742,7 +1769,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.46';
+var BUILD='v5.47';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -2145,7 +2172,7 @@ var HOW=[
  {t:'Banquet page', p:[
   '<b>Settings &gt; End of season &gt; Banquet page</b> is a link parents open with no sign-in: Events, Runners and Season for the whole team, read only, starting on a thank-you page from the coaches with up to 40 photos. Nothing on it edits, times or opens Settings, and test events, DNFs and who\u2019s here never reach it.',
   'It works only while <b>Link on</b> is switched on. <b>Share QR code</b> sends the code as a picture for a poster or an email. <b>New link</b> replaces the address, and the old one stops opening.',
-  'Every runner\u2019s page has a <b>Season certificate</b>: one page with the runner\u2019s name, the <b>Certificate message</b>, their fastest mile, best 2 miles and how much they improved, and the season\u2019s races. <b>Share</b> sends it as a picture, to email, print or keep. <b>Settings &gt; End of season &gt; Runner certificate</b> says where it shows, for the whole team: <b>In the app</b> for coaches, <b>On the banquet page</b> for parents.',
+  'Every runner\u2019s page has a <b>Season certificate</b>: one page with the runner\u2019s name, the <b>Certificate message</b>, their fastest mile, best 2 miles and how much they improved, and the season\u2019s races. Tap the picture to see it full screen and zoom in. <b>Share</b> sends it as a picture, to email, print or keep. <b>Settings &gt; End of season &gt; Runner certificate</b> says where it shows, for the whole team: <b>In the app</b> for coaches, <b>On the banquet page</b> for parents.',
   '<b>Settings &gt; About</b> shows <b>Usage</b> for every coach: how often the app is opened and by how many coaches, and how often the banquet page is opened and on how many phones, and how often certificates are opened and shared. A phone is counted by a random code its browser keeps, nothing else; <b>Forget phone codes</b> deletes the codes and keeps the counts.']},
  {t:'Troubleshooting', p:[
   '<b>The build on About doesn\u2019t match what was deployed.</b> The phone is running an old saved copy. Delete the home screen icon and add it again; a reload won\u2019t do it.',
@@ -10245,7 +10272,7 @@ function openCert(r){
       CERT_URL=b ? URL.createObjectURL(b) : cv.toDataURL('image/png');
       $('certImg').src=CERT_URL;
       $('certShare').disabled=false;
-      $('certNote').textContent='Share sends it as a picture: to Mail, Messages, Photos or a printer.';
+      $('certNote').textContent='Tap the picture to see it full screen. Share sends it as a picture: to Mail, Messages, Photos or a printer.';
     },'image/png');
   });
 }
@@ -10262,6 +10289,80 @@ function shareCert(){
   var a=document.createElement('a'); a.href=CERT_URL; a.download=CERT_NAME; document.body.appendChild(a); a.click(); a.remove();
 }
 $('certClose').addEventListener('click',function(){ $('certSheet').classList.remove('on'); });
+/* 5.47: the certificate full screen. The app can't be pinched (the viewport
+   is locked so it never zooms by accident), so the viewer zooms on its own:
+   pinch, drag, double-tap in and out, up to 4x, never past the edges. Turning
+   the phone sideways fills the screen, since the page is landscape. */
+var CV={s:1, x:0, y:0, fit:1, w:2200, h:1700, pts:{}, pinch:null, pan:null, tap:0, tapX:0, tapY:0, moved:false};
+var CV_HINT='chute.cview.hint.v1', CV_MAX=4;
+function cvStage(){ var e=$('cvStage'); return {w:e.clientWidth||1, h:e.clientHeight||1}; }
+function cvClamp(){
+  var st=cvStage(), k=CV.fit*CV.s, w=CV.w*k, h=CV.h*k;
+  CV.x = w<=st.w ? (st.w-w)/2 : Math.min(0, Math.max(st.w-w, CV.x));
+  CV.y = h<=st.h ? (st.h-h)/2 : Math.min(0, Math.max(st.h-h, CV.y));
+}
+function cvApply(){ cvClamp(); $('cvImg').style.transform='translate('+CV.x+'px,'+CV.y+'px) scale('+(CV.fit*CV.s)+')'; }
+function cvFit(){ var st=cvStage(); CV.fit=Math.min(st.w/CV.w, st.h/CV.h); }
+/* Zoom to s, keeping the screen point (px,py) over the same spot of the page. */
+function cvZoomAt(s,px,py){
+  s=Math.max(1, Math.min(CV_MAX, s));
+  var k0=CV.fit*CV.s, cx=(px-CV.x)/k0, cy=(py-CV.y)/k0;
+  CV.s=s; var k=CV.fit*s; CV.x=px-cx*k; CV.y=py-cy*k; cvApply();
+}
+function openCView(){
+  if(!CERT_URL) return;
+  var v=$('certView'), im=$('cvImg');
+  CV.s=1; CV.pts={}; CV.pinch=null; CV.pan=null;
+  v.classList.add('on');
+  var go=function(){ CV.w=im.naturalWidth||2200; CV.h=im.naturalHeight||1700; cvFit(); cvApply(); };
+  if(im.getAttribute('src')!==CERT_URL){ im.onload=go; im.src=CERT_URL; } else go();
+  var seen=false; try{ seen=localStorage.getItem(CV_HINT)==='1'; localStorage.setItem(CV_HINT,'1'); }catch(e){}
+  $('cvHint').hidden=seen;
+}
+function closeCView(){ $('certView').classList.remove('on'); }
+(function(){
+  var st=$('cvStage');
+  function pt(e){ var r=st.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; }
+  function two(){ var k=Object.keys(CV.pts); return k.length>=2 ? [CV.pts[k[0]], CV.pts[k[1]]] : null; }
+  st.addEventListener('pointerdown',function(e){
+    try{ st.setPointerCapture(e.pointerId); }catch(x){}
+    $('cvHint').hidden=true;
+    CV.pts[e.pointerId]=pt(e); CV.moved=false;
+    var t=two();
+    if(t){ CV.pinch={d:Math.hypot(t[0].x-t[1].x, t[0].y-t[1].y)||1, s:CV.s}; CV.pan=null; }
+    else CV.pan={x:CV.pts[e.pointerId].x, y:CV.pts[e.pointerId].y, ox:CV.x, oy:CV.y};
+    e.preventDefault();
+  });
+  st.addEventListener('pointermove',function(e){
+    if(!CV.pts[e.pointerId]) return;
+    var p=pt(e), was=CV.pts[e.pointerId]; CV.pts[e.pointerId]=p;
+    if(Math.abs(p.x-was.x)+Math.abs(p.y-was.y)>2) CV.moved=true;
+    var t=two();
+    if(t && CV.pinch){
+      var d=Math.hypot(t[0].x-t[1].x, t[0].y-t[1].y)||1;
+      cvZoomAt(CV.pinch.s*d/CV.pinch.d, (t[0].x+t[1].x)/2, (t[0].y+t[1].y)/2);
+    } else if(CV.pan){ CV.x=CV.pan.ox+(p.x-CV.pan.x); CV.y=CV.pan.oy+(p.y-CV.pan.y); cvApply(); }
+    e.preventDefault();
+  });
+  function up(e){
+    var p=CV.pts[e.pointerId]; delete CV.pts[e.pointerId];
+    if(Object.keys(CV.pts).length<2) CV.pinch=null;
+    var rest=Object.keys(CV.pts);
+    CV.pan = rest.length===1 ? {x:CV.pts[rest[0]].x, y:CV.pts[rest[0]].y, ox:CV.x, oy:CV.y} : null;
+    if(e.type!=='pointerup' || !p || CV.moved || rest.length) return;
+    var now=Date.now();
+    if(now-CV.tap<320 && Math.abs(p.x-CV.tapX)<30 && Math.abs(p.y-CV.tapY)<30){
+      CV.tap=0;
+      if(CV.s>1.05){ CV.s=1; cvApply(); } else cvZoomAt(2.5, p.x, p.y);
+    } else { CV.tap=now; CV.tapX=p.x; CV.tapY=p.y; }
+  }
+  st.addEventListener('pointerup',up); st.addEventListener('pointercancel',up);
+  window.addEventListener('resize',function(){ if($('certView').classList.contains('on')){ cvFit(); cvApply(); } });
+  $('certImg').addEventListener('click',openCView);
+  $('cvClose').addEventListener('click',closeCView);
+  $('cvShare').addEventListener('click',shareCert);
+})();
+
 $('certShare').addEventListener('click',shareCert);
 $('rnBack').addEventListener('click',function(){ show(backTo==='vhome' ? 'vhome' : 'runners'); });
 /* ---------- 5.02: the banquet link ----------
