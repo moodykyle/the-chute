@@ -1796,7 +1796,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.51';
+var BUILD='v5.54';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -10375,13 +10375,18 @@ function cvPhotoAt(i){
   i=(i+ph.length)%ph.length; vAt=i; CV.mode='photo';
   $('cvCapT').textContent=ph[i].caption||'';
   $('cvCapN').textContent=ph.length>1 ? (i+1)+' of '+ph.length : '';
-  var img=document.querySelectorAll('#vCar img')[i], src=img && img.getAttribute('src');
+  var img=document.querySelectorAll('#vCar img')[i], src=VFULL[ph[i].id] || (img && img.getAttribute('src'));
   cvShow(src||'');
+  /* 5.52: the slideshow copy at once, then the full photo, kept to scale */
+  if(!VSLIDE_OLD && !VFULL[ph[i].id]) vFull(ph[i].id).then(function(full){
+    if(!full || CV.mode!=='photo' || vAt!==i) return;
+    var im=$('cvImg'); im.onload=function(){ var nw=im.naturalWidth||CV.w, nh=im.naturalHeight||CV.h, r=CV.w/nw; CV.w=nw; CV.h=nh; CV.fit*=r; cvApply(); }; im.src=full;
+  });
   if(!src){ vPhoto(ph,i); if(img) img.addEventListener('load',function once(){ img.removeEventListener('load',once); if(CV.mode==='photo' && vAt===i) cvShow(img.getAttribute('src')); }); }
   if(ph.length>1){ vPhoto(ph,(i+1)%ph.length); vPhoto(ph,(i-1+ph.length)%ph.length); }
 }
 function cvSharePhoto(){
-  var src=$('cvImg').getAttribute('src'), ph=(VPAGE && VPAGE.photos) || [], cap=ph[vAt] ? ph[vAt].caption : '';
+  var ph=(VPAGE && VPAGE.photos) || [], cap=ph[vAt] ? ph[vAt].caption : '', src=(ph[vAt] && VFULL[ph[vAt].id]) || $('cvImg').getAttribute('src');
   if(!src) return;
   var name=(String(VPAGE && VPAGE.team || 'Peachtree MS')+' '+(VPAGE ? VPAGE.season_year : '')+' photo '+(vAt+1)).replace(/[^A-Za-z0-9 .-]+/g,'').trim()+'.jpg';
   fetch(src).then(function(r){ return r.blob(); }).then(function(b){
@@ -10549,7 +10554,7 @@ function renderVHome(){
   if(ph.length){
     h+='<div class="vcar" id="vCar">'+ph.map(function(p){ return '<figure class="vslide"><img alt=""></figure>'; }).join('')+'</div>';
     h+='<div class="vcap"><span class="c" id="vCapT"></span><span class="n num" id="vCapN"></span></div>';
-    h+='<div class="vdots" id="vDots">'+ph.map(function(){ return '<i></i>'; }).join('')+'</div>';
+    /* 5.54: no dots under the photos; "3 of 50" says where you are */
   }
   h+='<div class="vbody"><div class="vhead"><img class="vlogo" src="'+VLOGO+'" alt="">'+
      '<div><h2 class="vtitle">'+esc(team)+'<br>Cross Country</h2><p class="vsub">The '+esc(String(VPAGE.season_year))+' season</p></div></div>';
@@ -10573,15 +10578,29 @@ function vPhoto(ph,i){
   if(!img || img.getAttribute('data-want')) return;
   img.setAttribute('data-want','1');
   frStyle(img.parentNode,img,ph[i],null);
-  vRpc('viewer_photo',{p_code:VIEW, p_id:ph[i].id}).then(function(r){
+  vSlide(ph[i].id).then(function(r){
     if(r.ok && typeof r.data==='string'){ img.src=r.data; frStyle(img.parentNode,img,ph[i],r.data); } else img.removeAttribute('data-want');
   });
+}
+/* 5.52: the slideshow copy (0036), about 100 KB. A database before it
+   answers 404 once, and the page reads full photos from then on. */
+var VSLIDE_OLD=false, VFULL={};
+function vSlide(id){
+  if(VSLIDE_OLD) return vRpc('viewer_photo',{p_code:VIEW, p_id:id});
+  return fetch(SB_URL+'/rest/v1/rpc/viewer_photo_slide',{method:'POST', headers:{'apikey':SB_KEY,'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify({p_code:VIEW, p_id:id})})
+    .then(function(r){
+      if(r.status===404){ VSLIDE_OLD=true; return vRpc('viewer_photo',{p_code:VIEW, p_id:id}); }
+      return r.ok ? r.json().then(function(d){ return {ok:true, data:d}; }) : {ok:false};
+    }).catch(function(){ return {ok:false}; });
+}
+/* The full photo, fetched once a visit, for full screen and Share. */
+function vFull(id){
+  if(VFULL[id]) return Promise.resolve(VFULL[id]);
+  return vRpc('viewer_photo',{p_code:VIEW, p_id:id}).then(function(r){ if(r.ok && typeof r.data==='string'){ VFULL[id]=r.data; return r.data; } return null; });
 }
 function vMark(ph){
   $('vCapT').textContent=ph[vAt] ? ph[vAt].caption||'' : '';
   $('vCapN').textContent=ph.length>1 ? (vAt+1)+' of '+ph.length : '';
-  var d=$('vDots').children;
-  for(var i=0;i<d.length;i++) d[i].classList.toggle('on', i===vAt);
   vPhoto(ph,vAt); if(vAt+1<ph.length) vPhoto(ph,vAt+1);
 }
 function vCarousel(ph){
@@ -10659,7 +10678,7 @@ function viewerBoot(){
    share, a new link that kills the old one, the coaches' message, and up to
    40 photos (20 before 5.37). Straight to the database, not through the outbox: it is set up
    once, at a desk, and a save that fails says so. */
-var BQ=null, BQ_PH=[], BQ_MSG='', BQ_BUSY=false, BQ_MAX=60, BQ_FRAME=null;  /* 5.37: 40, with migration 0029 (was 20); 5.51: 60, with 0035 */
+var BQ=null, BQ_PH=[], BQ_MSG='', BQ_BUSY=false, BQ_MAX=60, BQ_FRAME=null, BQ_THUMB=null, BQ_PREP=false;  /* 5.37: 40, with migration 0029 (was 20); 5.51: 60, with 0035 */
 function bqCall(path,opts){
   return ensureFresh().then(function(ok){
     if(!ok) return {ok:false, status:401, data:null};
@@ -10683,10 +10702,14 @@ function renderBanquet(){
     if(!BQ){ b.innerHTML='<p class="hint">There is no banquet page for '+esc(yr)+' in the database yet.</p>'; return null; }
     return Promise.all([bqCall('/rest/v1/viewer_photos?select=id,position,caption,created_at&page_id=eq.'+BQ.id+'&order=position.asc,created_at.asc'),
       /* 5.50: read on its own, so a database before 0034 costs only the framing. */
-      bqCall('/rest/v1/viewer_photos?select=id,focus_x,focus_y,fit&page_id=eq.'+BQ.id)]);
+      bqCall('/rest/v1/viewer_photos?select=id,focus_x,focus_y,fit&page_id=eq.'+BQ.id),
+      /* 5.52: every thumbnail in one read (0036), about 10 KB each */
+      bqCall('/rest/v1/viewer_photos?select=id,thumb&page_id=eq.'+BQ.id)]);
   }).then(function(rs){
     if(!rs) return;
-    var res=rs[0], fr=rs[1];
+    var res=rs[0], fr=rs[1], th=rs[2];
+    BQ_THUMB = th && th.ok && Array.isArray(th.data) ? {} : null;
+    if(BQ_THUMB) th.data.forEach(function(x){ if(x.thumb) BQ_THUMB[x.id]=x.thumb; });
     BQ_FRAME = fr && fr.ok && Array.isArray(fr.data) ? {} : null;
     if(BQ_FRAME) fr.data.forEach(function(x){ BQ_FRAME[x.id]=x; });
     BQ_PH=(res.ok && Array.isArray(res.data)) ? res.data : [];
@@ -10709,6 +10732,7 @@ function bqDraw(){
   h+='<div class="btnrow"><button type="button" class="go" id="bqSave">Save message</button></div>';
   h+='<p class="hsect">PHOTOS</p><div class="hint">'+n+' of '+BQ_MAX+'. The first is the one parents see first.</div>';
   if(n) h+='<div class="hint">'+(BQ_FRAME ? 'Tap a photo to choose how it sits in the slideshow.' : 'Framing photos needs a database update. Until then each one is shown from its centre.')+'</div>';
+  if(n) h+='<div class="hint" id="bqPrep">'+(BQ_THUMB ? '' : 'Lighter copies of the photos need a database update. Until then this page and the slideshow load the full photos.')+'</div>';
   h+='<div class="bqphotos">';
   BQ_PH.forEach(function(p,i){
     h+='<div class="bqph" data-i="'+i+'"><img alt=""><input type="text" maxlength="80" placeholder="Caption" value="'+esc(p.caption)+'">'+
@@ -10750,6 +10774,7 @@ function bqDraw(){
   });
   var rows=b.querySelectorAll('.bqph');
   for(var i=0;i<rows.length;i++) bqRow(rows[i]);
+  bqPrep();
   $('bqAdd').addEventListener('click',function(){ $('bqPick').click(); });
   $('bqPick').addEventListener('change',function(){ bqAdd(Array.prototype.slice.call(this.files||[])); this.value=''; });
 }
@@ -10761,7 +10786,10 @@ var BQ_SCREENS=[['home','Home'],['events','Events'],['results','Results'],['runn
   ['cert','Certificates opened'],['certshare','Certificates shared']];
 function bqRow(el){
   var i=+el.getAttribute('data-i'), p=BQ_PH[i], img=el.querySelector('img'), cap=el.querySelector('input');
-  bqCall('/rest/v1/viewer_photos?select=image&id=eq.'+p.id).then(function(res){
+  /* 5.52: the thumbnail; a photo with none is made one by bqPrep, in turn.
+     A database before 0036 has no thumbnails: the full photo, as before. */
+  if(BQ_THUMB){ if(BQ_THUMB[p.id]) img.src=BQ_THUMB[p.id]; }
+  else bqCall('/rest/v1/viewer_photos?select=image&id=eq.'+p.id).then(function(res){
     if(res.ok && res.data && res.data[0]) img.src=res.data[0].image;
   });
   /* 5.50: the thumbnail shows the photo as the slideshow will, and opens framing */
@@ -10884,6 +10912,10 @@ function openFrame(p,thumb){
   img.onload=function(){ var o=frOver(); FR.ox=o.x>1; FR.oy=o.y>1; frDraw(); };
   img.src=thumb.getAttribute('src');
   $('frameSheet').classList.add('on');
+  if(BQ_THUMB) bqCall('/rest/v1/viewer_photos?select=image&id=eq.'+p.id).then(function(res){
+    var src=res.ok && res.data && res.data[0] && res.data[0].image;
+    if(src && FR && FR.id===p.id) img.src=src;
+  });
   requestAnimationFrame(function(){ if(img.complete) img.onload(); });
 }
 (function(){
@@ -10933,17 +10965,70 @@ function bqSwap(i,j){
 }
 /* A photo is shrunk on the phone to 1200 pixels on its long side, as a JPEG,
    and made smaller again until it fits 0021's limit. */
+/* A JPEG of the image no longer than max on its long side, under limit
+   characters as a data URL, lowering the quality until it fits. */
+function bqScale(im,max,q,limit){
+  var k=Math.min(1,max/Math.max(im.naturalWidth,im.naturalHeight)), w=Math.max(1,Math.round(im.naturalWidth*k)), h=Math.max(1,Math.round(im.naturalHeight*k));
+  var c=document.createElement('canvas'); c.width=w; c.height=h;
+  c.getContext('2d').drawImage(im,0,0,w,h);
+  var d=c.toDataURL('image/jpeg',q);
+  while(d.length>limit && q>0.35){ q-=0.1; d=c.toDataURL('image/jpeg',q); }
+  return d.length<=limit ? d : null;
+}
+/* 5.52: the two small copies beside the photo (0036): a thumbnail for the
+   Banquet page, a slideshow copy for parents. */
+/* 5.53: lighter, from the real photos: a thumbnail 160 on its long side,
+   about 12 KB; a slideshow copy 720, about 100 KB. */
+var BQ_THUMB_PX=160;
+function bqCopies(im){ return {thumb:bqScale(im,BQ_THUMB_PX,0.6,16000), slide:bqScale(im,720,0.62,140000)}; }
+/* 5.52: photos added before 0036 get their copies here, one at a time, while
+   the Banquet page is open: fetch the full photo, make both copies, save,
+   show the thumbnail. Once done for a photo, done for every phone. */
+/* 5.53: a photo needs its copies made when it has none, or when its
+   thumbnail is larger than today's (5.52 made them at 240), since its
+   slideshow copy was made with it. */
+function bqStale(p){
+  var t=BQ_THUMB && BQ_THUMB[p.id];
+  if(!t) return Promise.resolve(true);
+  return new Promise(function(ok){ var im=new Image(); im.onload=function(){ ok(Math.max(im.naturalWidth,im.naturalHeight)>BQ_THUMB_PX+8); }; im.onerror=function(){ ok(true); }; im.src=t; });
+}
+function bqPrep(){
+  if(!BQ_THUMB || BQ_PREP) return;
+  BQ_PREP=true;
+  Promise.all(BQ_PH.map(bqStale)).then(function(st){
+    BQ_PREP=false;
+    var todo=BQ_PH.filter(function(p,i){ return st[i]; });
+    if(todo.length) bqPrepRun(todo);
+  });
+}
+function bqPrepRun(todo){
+  if(BQ_PREP) return;
+  BQ_PREP=true;
+  var n=todo.length, k=0, note=function(){ var e=$('bqPrep'); if(e) e.textContent=k<n ? 'Preparing photos, '+k+' of '+n+'…' : ''; };
+  note();
+  seq(todo,function(p){
+    if(!onScreen('banquet') || !BQ_THUMB) return Promise.resolve();
+    return bqCall('/rest/v1/viewer_photos?select=image&id=eq.'+p.id).then(function(res){
+      var src=res.ok && res.data && res.data[0] && res.data[0].image;
+      if(!src) return;
+      return new Promise(function(ok){ var im=new Image(); im.onload=function(){ ok(bqCopies(im)); }; im.onerror=function(){ ok(null); }; im.src=src; }).then(function(c){
+        if(!c || !c.thumb || !c.slide) return;
+        return bqCall('/rest/v1/viewer_photos?id=eq.'+p.id,{method:'PATCH', body:{thumb:c.thumb, slide:c.slide}}).then(function(r2){
+          if(!r2.ok) return;
+          BQ_THUMB[p.id]=c.thumb; k++; note();
+          var i=BQ_PH.indexOf(p), row=document.querySelector('.bqph[data-i="'+i+'"] img'); if(row) row.src=c.thumb;
+        });
+      });
+    });
+  }).then(function(){ BQ_PREP=false; k=n; note(); }, function(){ BQ_PREP=false; });
+}
 function bqShrink(file){
   return new Promise(function(done){
     var url=URL.createObjectURL(file), im=new Image();
     im.onload=function(){
-      var k=Math.min(1,1200/Math.max(im.naturalWidth,im.naturalHeight)), w=Math.round(im.naturalWidth*k), h=Math.round(im.naturalHeight*k);
-      var c=document.createElement('canvas'); c.width=w; c.height=h;
-      c.getContext('2d').drawImage(im,0,0,w,h);
+      var d=bqScale(im,1200,0.82,580000), c=d ? bqCopies(im) : null;
       URL.revokeObjectURL(url);
-      var q=0.82, d=c.toDataURL('image/jpeg',q);
-      while(d.length>580000 && q>0.4){ q-=0.1; d=c.toDataURL('image/jpeg',q); }
-      done(d.length<=580000 ? d : null);
+      done(d ? {image:d, thumb:c.thumb, slide:c.slide} : null);
     };
     im.onerror=function(){ URL.revokeObjectURL(url); done(null); };
     im.src=url;
@@ -10957,9 +11042,10 @@ function bqAdd(files){
   seq(take,function(f){
     return bqShrink(f).then(function(d){
       if(!d){ bad++; return; }
-      var row={id:uid(), page_id:BQ.id, position:BQ_PH.length+1, caption:'', image:d};
+      var row={id:uid(), page_id:BQ.id, position:BQ_PH.length+1, caption:'', image:d.image};
+      if(BQ_THUMB && d.thumb && d.slide){ row.thumb=d.thumb; row.slide=d.slide; }
       return bqCall('/rest/v1/viewer_photos',{method:'POST', body:row, prefer:'return=minimal'}).then(function(res){
-        if(res.ok){ BQ_PH.push({id:row.id, position:row.position, caption:''}); done++; } else bad++;
+        if(res.ok){ BQ_PH.push({id:row.id, position:row.position, caption:''}); if(row.thumb) BQ_THUMB[row.id]=row.thumb; done++; } else bad++;
       });
     });
   }).then(function(){
