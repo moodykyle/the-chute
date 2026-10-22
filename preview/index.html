@@ -1067,6 +1067,12 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 .cvfoot{position:absolute;left:0;right:0;bottom:0;z-index:1;display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px 16px calc(env(safe-area-inset-bottom) + 14px);pointer-events:none}
 .cvfoot>*{pointer-events:auto}
 #certView .btnrow{margin:0}
+.cvcap{display:none;gap:10px;align-items:baseline;max-width:100%;font-size:14px;color:var(--ink);background:rgba(5,8,15,.7);padding:4px 10px;border-radius:8px}
+#certView.photo .cvcap{display:flex}
+.cvcap #cvCapT{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cvcap #cvCapT:empty{display:none}
+.cvcap .num{color:var(--ink-soft);flex:0 0 auto}
+.vslide img{cursor:zoom-in}
 #cvShare{min-width:160px;flex:0 0 auto}
 /* Sideways the picture fills the height: Share moves to the corner, no hint. */
 @media (orientation:landscape){
@@ -1733,7 +1739,7 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
 <div class="cview" id="certView" role="dialog" aria-label="Season certificate">
   <div class="cvbar"><button class="linkbtn" id="cvClose">Close</button></div>
   <div class="cvstage" id="cvStage"><img id="cvImg" alt="Season certificate"></div>
-  <div class="cvfoot">
+  <div class="cvfoot"><div class="cvcap"><span id="cvCapT"></span><span class="num" id="cvCapN"></span></div>
     <div class="btnrow"><button type="button" class="go" id="cvShare">Share</button></div></div>
 </div>
 
@@ -1767,7 +1773,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.48';
+var BUILD='v5.49';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -2168,7 +2174,7 @@ var HOW=[
  {t:'Backup and restore', p:[
   '<b>Settings &gt; Backup and restore</b> copies the whole season as text or saves it as a file, and can read one back in. The database is the main copy of everything now, so this is a safety net rather than something to do every week.']},
  {t:'Banquet page', p:[
-  '<b>Settings &gt; End of season &gt; Banquet page</b> is a link parents open with no sign-in: Events, Runners and Season for the whole team, read only, starting on a thank-you page from the coaches with up to 40 photos. Nothing on it edits, times or opens Settings, and test events, DNFs and who\u2019s here never reach it.',
+  '<b>Settings &gt; End of season &gt; Banquet page</b> is a link parents open with no sign-in: Events, Runners and Season for the whole team, read only, starting on a thank-you page from the coaches with up to 40 photos. A parent can tap a photo to see it full screen, swipe through the rest, zoom in and share it. Nothing on it edits, times or opens Settings, and test events, DNFs and who\u2019s here never reach it.',
   'It works only while <b>Link on</b> is switched on. <b>Share QR code</b> sends the code as a picture for a poster or an email. <b>New link</b> replaces the address, and the old one stops opening.',
   'Every runner\u2019s page has a <b>Season certificate</b>: one page with the runner\u2019s name, the <b>Certificate message</b>, their fastest mile, best 2 miles and how much they improved, and the season\u2019s races. Tapping the picture shows it full screen, to zoom in. <b>Share</b> sends it as a picture, to email, print or keep. <b>Settings &gt; End of season &gt; Runner certificate</b> says where it shows, for the whole team: <b>In the app</b> for coaches, <b>On the banquet page</b> for parents.',
   '<b>Settings &gt; About</b> shows <b>Usage</b> for every coach: how often the app is opened and by how many coaches, and how often the banquet page is opened and on how many phones, and how often certificates are opened and shared. A phone is counted by a random code its browser keeps, nothing else; <b>Forget phone codes</b> deletes the codes and keeps the counts.']},
@@ -10299,7 +10305,7 @@ function cvClamp(){
   CV.x = w<=st.w ? (st.w-w)/2 : Math.min(0, Math.max(st.w-w, CV.x));
   CV.y = h<=st.h ? (st.h-h)/2 : Math.min(0, Math.max(st.h-h, CV.y));
 }
-function cvApply(){ cvClamp(); $('cvImg').style.transform='translate('+CV.x+'px,'+CV.y+'px) scale('+(CV.fit*CV.s)+')'; }
+function cvApply(){ cvClamp(); $('cvImg').style.transform='translate('+(CV.x+(CV.dx||0))+'px,'+CV.y+'px) scale('+(CV.fit*CV.s)+')'; }
 function cvFit(){ var st=cvStage(); CV.fit=Math.min(st.w/CV.w, st.h/CV.h); }
 /* Zoom to s, keeping the screen point (px,py) over the same spot of the page. */
 function cvZoomAt(s,px,py){
@@ -10319,19 +10325,48 @@ function cvResized(){
   var st=cvStage();
   if(Math.abs(st.w-CV.sw)>1 || Math.abs(st.h-CV.sh)>1) cvSnap();
 }
-function openCView(){
-  if(!CERT_URL) return;
+/* 5.49: the same viewer shows the banquet page's photos: swipe between them
+   at fit, a caption and "3 of 40" under, Share on each. */
+function openCView(){ if(CERT_URL){ CV.mode='cert'; cvShow(CERT_URL); } }
+function cvShow(src){
   var v=$('certView'), im=$('cvImg');
-  CV.s=1; CV.pts={}; CV.pinch=null; CV.pan=null;
-  v.classList.add('on');
+  CV.s=1; CV.pts={}; CV.pinch=null; CV.pan=null; CV.dx=0;
+  v.classList.add('on'); v.classList.toggle('photo', CV.mode==='photo');
   CV.sw=0; CV.sh=0;
   var go=function(){ CV.w=im.naturalWidth||2200; CV.h=im.naturalHeight||1700; cvSnap(); };
-  if(im.getAttribute('src')!==CERT_URL){ im.onload=go; im.src=CERT_URL; } else go();
+  im.onload=null;
+  if(!src){ im.removeAttribute('src'); return; }
+  if(im.getAttribute('src')!==src){ im.onload=go; im.src=src; } else go();
   /* 5.48: and again once the screen has settled; a phone opened sideways can
      report its size before the turn has finished. */
   requestAnimationFrame(function(){ requestAnimationFrame(cvSnap); });
 }
-function closeCView(){ $('certView').classList.remove('on'); }
+function closeCView(){
+  var was=CV.mode; $('certView').classList.remove('on'); CV.mode=null;
+  /* back to the slideshow on the photo last looked at, held there a minute */
+  if(was==='photo' && $('vCar')){ var car=$('vCar'); vTouch=Date.now(); car.scrollTo({left:vAt*car.clientWidth, behavior:'auto'}); vMark(VPAGE.photos||[]); }
+}
+function cvPhotoAt(i){
+  var ph=(VPAGE && VPAGE.photos) || [];
+  if(!ph.length) return;
+  i=(i+ph.length)%ph.length; vAt=i; CV.mode='photo';
+  $('cvCapT').textContent=ph[i].caption||'';
+  $('cvCapN').textContent=ph.length>1 ? (i+1)+' of '+ph.length : '';
+  var img=document.querySelectorAll('#vCar img')[i], src=img && img.getAttribute('src');
+  cvShow(src||'');
+  if(!src){ vPhoto(ph,i); if(img) img.addEventListener('load',function once(){ img.removeEventListener('load',once); if(CV.mode==='photo' && vAt===i) cvShow(img.getAttribute('src')); }); }
+  if(ph.length>1){ vPhoto(ph,(i+1)%ph.length); vPhoto(ph,(i-1+ph.length)%ph.length); }
+}
+function cvSharePhoto(){
+  var src=$('cvImg').getAttribute('src'), ph=(VPAGE && VPAGE.photos) || [], cap=ph[vAt] ? ph[vAt].caption : '';
+  if(!src) return;
+  var name=(String(VPAGE && VPAGE.team || 'Peachtree MS')+' '+(VPAGE ? VPAGE.season_year : '')+' photo '+(vAt+1)).replace(/[^A-Za-z0-9 .-]+/g,'').trim()+'.jpg';
+  fetch(src).then(function(r){ return r.blob(); }).then(function(b){
+    var f=null; try{ f=new File([b],name,{type:'image/jpeg'}); }catch(e){}
+    if(f && navigator.share && navigator.canShare && navigator.canShare({files:[f]})){ navigator.share({files:[f], title:cap||name.replace(/\.jpg$/,'')}).catch(function(){}); return; }
+    var a=document.createElement('a'); a.href=src; a.download=name; document.body.appendChild(a); a.click(); a.remove();
+  }).catch(function(){});
+}
 (function(){
   var st=$('cvStage');
   function pt(e){ var r=st.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; }
@@ -10352,11 +10387,14 @@ function closeCView(){ $('certView').classList.remove('on'); }
     if(t && CV.pinch){
       var d=Math.hypot(t[0].x-t[1].x, t[0].y-t[1].y)||1;
       cvZoomAt(CV.pinch.s*d/CV.pinch.d, (t[0].x+t[1].x)/2, (t[0].y+t[1].y)/2);
-    } else if(CV.pan){ CV.x=CV.pan.ox+(p.x-CV.pan.x); CV.y=CV.pan.oy+(p.y-CV.pan.y); cvApply(); }
+    } else if(CV.pan && CV.mode==='photo' && CV.s<=1.01){ CV.dx=p.x-CV.pan.x; cvApply(); }
+    else if(CV.pan){ CV.x=CV.pan.ox+(p.x-CV.pan.x); CV.y=CV.pan.oy+(p.y-CV.pan.y); cvApply(); }
     e.preventDefault();
   });
   function up(e){
-    var p=CV.pts[e.pointerId]; delete CV.pts[e.pointerId];
+    var p=CV.pts[e.pointerId], sw=CV.pan && CV.mode==='photo' && CV.s<=1.01 ? CV.dx||0 : 0; delete CV.pts[e.pointerId];
+    if(CV.dx){ CV.dx=0; cvApply(); }
+    if(e.type==='pointerup' && Math.abs(sw)>50 && !Object.keys(CV.pts).length){ CV.pan=null; cvPhotoAt(vAt+(sw<0 ? 1 : -1)); return; }
     if(Object.keys(CV.pts).length<2) CV.pinch=null;
     var rest=Object.keys(CV.pts);
     CV.pan = rest.length===1 ? {x:CV.pts[rest[0]].x, y:CV.pts[rest[0]].y, ox:CV.x, oy:CV.y} : null;
@@ -10376,7 +10414,7 @@ function closeCView(){ $('certView').classList.remove('on'); }
   if(window.visualViewport) window.visualViewport.addEventListener('resize',function(){ setTimeout(cvResized,60); });
   $('certImg').addEventListener('click',openCView);
   $('cvClose').addEventListener('click',closeCView);
-  $('cvShare').addEventListener('click',shareCert);
+  $('cvShare').addEventListener('click',function(){ if(CV.mode==='photo') cvSharePhoto(); else shareCert(); });
 })();
 
 $('certShare').addEventListener('click',shareCert);
@@ -10523,6 +10561,9 @@ function vCarousel(ph){
     if(i!==vAt && i>=0 && i<ph.length){ vAt=i; vMark(ph); }
   },{passive:true});
   ['touchstart','pointerdown','wheel'].forEach(function(ev){ car.addEventListener(ev,function(){ vTouch=Date.now(); },{passive:true}); });
+  /* 5.49: a tap on a photo opens it full screen */
+  car.addEventListener('click',function(e){ var sl=e.target.closest && e.target.closest('.vslide'); if(!sl) return;
+    cvPhotoAt([].indexOf.call(car.children,sl)); });
   if('IntersectionObserver' in window){
     new IntersectionObserver(function(es){ vSeen=es[0].isIntersecting; },{threshold:0.5}).observe(car);
   } else vSeen=true;
@@ -10530,7 +10571,7 @@ function vCarousel(ph){
      nobody has touched them for a minute. Never with Reduce Motion on. */
   if(vTimer) clearInterval(vTimer);
   vTimer=setInterval(function(){
-    if(ph.length<2 || !vSeen || document.hidden || !onScreen('vhome') || Date.now()-vTouch<VIDLE_MS) return;
+    if(ph.length<2 || !vSeen || document.hidden || !onScreen('vhome') || Date.now()-vTouch<VIDLE_MS || $('certView').classList.contains('on')) return;
     if(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     var n=(vAt+1)%ph.length;
     car.scrollTo({left:n*car.clientWidth, behavior:n ? 'smooth' : 'auto'});
