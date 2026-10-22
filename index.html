@@ -1055,7 +1055,31 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 /* 5.40: the season certificate, a picture in a sheet. */
 .rncert{margin:12px 0 4px}
 #certSheet .sheet-in{max-width:900px}
-#certImg{display:block;width:100%;height:auto;aspect-ratio:11/8.5;background:#fff;border-radius:6px;margin:4px 0 10px}
+#certImg{display:block;width:100%;height:auto;aspect-ratio:11/8.5;background:#fff;border-radius:6px;margin:4px 0 10px;cursor:zoom-in}
+/* 5.47: the certificate full screen, zoomed by its own pinch and double-tap. */
+.cview{position:fixed;inset:0;z-index:40;background:#05080f;display:none;flex-direction:column}
+.cview.on{display:flex}
+/* The picture has the whole screen; Close and Share float over it, so turning
+   the phone sideways makes it as large as the screen allows. */
+.cvstage{position:absolute;inset:0;overflow:hidden;touch-action:none}
+.cvbar{position:absolute;top:0;right:0;z-index:1;padding:calc(env(safe-area-inset-top) + 10px) calc(env(safe-area-inset-right) + 12px) 10px 12px}
+#cvImg{position:absolute;left:0;top:0;transform-origin:0 0;max-width:none;user-select:none;-webkit-user-select:none;-webkit-user-drag:none;pointer-events:none;background:#fff}
+.cvfoot{position:absolute;left:0;right:0;bottom:0;z-index:1;display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px 16px calc(env(safe-area-inset-bottom) + 14px);pointer-events:none}
+.cvfoot>*{pointer-events:auto}
+#certView .btnrow{margin:0}
+.cvcap{display:none;gap:10px;align-items:baseline;max-width:100%;font-size:14px;color:var(--ink);background:rgba(5,8,15,.7);padding:4px 10px;border-radius:8px}
+#certView.photo .cvcap{display:flex}
+.cvcap #cvCapT{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cvcap #cvCapT:empty{display:none}
+.cvcap .num{color:var(--ink-soft);flex:0 0 auto}
+.vslide img{cursor:zoom-in}
+#cvShare{min-width:160px;flex:0 0 auto}
+/* Sideways the picture fills the height: Share moves to the corner, no hint. */
+@media (orientation:landscape){
+  .cvfoot{left:auto;align-items:flex-end;padding-right:calc(env(safe-area-inset-right) + 12px)}
+  #cvShare{min-width:0}
+}
+
 .rnimp{margin:12px 0 4px;padding:12px 14px;border-radius:10px;background:var(--chalk);font-size:15px;line-height:1.4}
 .rnimp{display:flex;flex-direction:column;gap:3px}
 .rnimp .ih{font-size:16px;font-weight:500}
@@ -1100,6 +1124,15 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
 .vcar::-webkit-scrollbar{display:none}
 .vslide{flex:0 0 100%;min-width:0;scroll-snap-align:start;scroll-snap-stop:always;margin:0}
 .vslide img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;background:var(--chalk)}
+/* 5.50: a coach frames each photo (0034): fill the frame on a chosen spot, or
+   show the whole photo over a blurred copy of itself. */
+.vslide,.frbox{position:relative;overflow:hidden}
+.vslide.whole img,.frbox.whole img{position:relative;z-index:1;object-fit:contain;background:transparent}
+.vslide.whole::before,.frbox.whole::before{content:'';position:absolute;inset:-24px;background:inherit;background-size:cover;background-position:center;filter:blur(18px) brightness(.85)}
+.bqph img{cursor:pointer}
+.frbox{width:100%;aspect-ratio:4/3;border-radius:8px;background-color:var(--field);touch-action:none;margin:12px 0 8px}
+.frbox img{display:block;width:100%;height:100%;object-fit:cover;user-select:none;-webkit-user-drag:none;pointer-events:none}
+.frbox:not(.whole){cursor:grab}
 .vcap{display:flex;align-items:center;gap:10px;padding:8px 16px 0;min-height:28px}
 .vcap .c{flex:1;min-width:0;font-size:13px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .vcap .n{flex:0 0 auto;font-size:13px;color:var(--ink-soft)}
@@ -1712,6 +1745,27 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
   </div>
 </div>
 
+<div class="cview" id="certView" role="dialog" aria-label="Season certificate">
+  <div class="cvbar"><button class="linkbtn" id="cvClose">Close</button></div>
+  <div class="cvstage" id="cvStage"><img id="cvImg" alt="Season certificate"></div>
+  <div class="cvfoot"><div class="cvcap"><span id="cvCapT"></span><span class="num" id="cvCapN"></span></div>
+    <div class="btnrow"><button type="button" class="go" id="cvShare">Share</button></div></div>
+</div>
+
+<!-- PHOTO FRAMING, 5.50 -->
+<div class="sheet" id="frameSheet">
+  <div class="sheet-in">
+    <div class="bar"><h1>Frame photo</h1><button class="linkbtn" id="frCancel">Cancel</button></div>
+    <div class="scroll pad">
+      <div class="seg2 fseg"><button type="button" id="frFill" aria-pressed="true">Fill the frame</button><button type="button" id="frWhole" aria-pressed="false">Show the whole photo</button></div>
+      <div class="frbox" id="frBox"><img id="frImg" alt=""></div>
+      <div class="hint" id="frHint">Drag the photo to choose what shows.</div>
+      <div class="btnrow" style="margin-top:14px"><button type="button" class="go" id="frSave">Save</button></div>
+      <div class="hint" id="frNote"></div>
+    </div>
+  </div>
+</div>
+
 <div class="sheet" id="sheet">
   <div class="sheet-in">
     <div class="bar"><h1 id="sheetTitle">Place</h1><button class="linkbtn" id="sheetClose">Close</button></div>
@@ -1742,7 +1796,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.46';
+var BUILD='v5.50';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -2143,9 +2197,9 @@ var HOW=[
  {t:'Backup and restore', p:[
   '<b>Settings &gt; Backup and restore</b> copies the whole season as text or saves it as a file, and can read one back in. The database is the main copy of everything now, so this is a safety net rather than something to do every week.']},
  {t:'Banquet page', p:[
-  '<b>Settings &gt; End of season &gt; Banquet page</b> is a link parents open with no sign-in: Events, Runners and Season for the whole team, read only, starting on a thank-you page from the coaches with up to 40 photos. Nothing on it edits, times or opens Settings, and test events, DNFs and who\u2019s here never reach it.',
+  '<b>Settings &gt; End of season &gt; Banquet page</b> is a link parents open with no sign-in: Events, Runners and Season for the whole team, read only, starting on a thank-you page from the coaches with up to 40 photos. A parent can tap a photo to see it full screen, swipe through the rest, zoom in and share it. Nothing on it edits, times or opens Settings, and test events, DNFs and who\u2019s here never reach it.',
   'It works only while <b>Link on</b> is switched on. <b>Share QR code</b> sends the code as a picture for a poster or an email. <b>New link</b> replaces the address, and the old one stops opening.',
-  'Every runner\u2019s page has a <b>Season certificate</b>: one page with the runner\u2019s name, the <b>Certificate message</b>, their fastest mile, best 2 miles and how much they improved, and the season\u2019s races. <b>Share</b> sends it as a picture, to email, print or keep. <b>Settings &gt; End of season &gt; Runner certificate</b> says where it shows, for the whole team: <b>In the app</b> for coaches, <b>On the banquet page</b> for parents.',
+  'Every runner\u2019s page has a <b>Season certificate</b>: one page with the runner\u2019s name, the <b>Certificate message</b>, their fastest mile, best 2 miles and how much they improved, and the season\u2019s races. Tapping the picture shows it full screen, to zoom in. <b>Share</b> sends it as a picture, to email, print or keep. <b>Settings &gt; End of season &gt; Runner certificate</b> says where it shows, for the whole team: <b>In the app</b> for coaches, <b>On the banquet page</b> for parents.',
   '<b>Settings &gt; About</b> shows <b>Usage</b> for every coach: how often the app is opened and by how many coaches, and how often the banquet page is opened and on how many phones, and how often certificates are opened and shared. A phone is counted by a random code its browser keeps, nothing else; <b>Forget phone codes</b> deletes the codes and keeps the counts.']},
  {t:'Troubleshooting', p:[
   '<b>The build on About doesn\u2019t match what was deployed.</b> The phone is running an old saved copy. Delete the home screen icon and add it again; a reload won\u2019t do it.',
@@ -10245,7 +10299,7 @@ function openCert(r){
       CERT_URL=b ? URL.createObjectURL(b) : cv.toDataURL('image/png');
       $('certImg').src=CERT_URL;
       $('certShare').disabled=false;
-      $('certNote').textContent='Share sends it as a picture: to Mail, Messages, Photos or a printer.';
+      $('certNote').textContent='';   /* 5.48: no instructions; a picture is tapped by instinct */
     },'image/png');
   });
 }
@@ -10262,6 +10316,130 @@ function shareCert(){
   var a=document.createElement('a'); a.href=CERT_URL; a.download=CERT_NAME; document.body.appendChild(a); a.click(); a.remove();
 }
 $('certClose').addEventListener('click',function(){ $('certSheet').classList.remove('on'); });
+/* 5.47: the certificate full screen. The app can't be pinched (the viewport
+   is locked so it never zooms by accident), so the viewer zooms on its own:
+   pinch, drag, double-tap in and out, up to 4x, never past the edges. Turning
+   the phone sideways fills the screen, since the page is landscape. */
+var CV={s:1, x:0, y:0, fit:1, w:2200, h:1700, pts:{}, pinch:null, pan:null, tap:0, tapX:0, tapY:0, moved:false};
+var CV_MAX=4;
+function cvStage(){ var e=$('cvStage'); return {w:e.clientWidth||1, h:e.clientHeight||1}; }
+function cvClamp(){
+  var st=cvStage(), k=CV.fit*CV.s, w=CV.w*k, h=CV.h*k;
+  CV.x = w<=st.w ? (st.w-w)/2 : Math.min(0, Math.max(st.w-w, CV.x));
+  CV.y = h<=st.h ? (st.h-h)/2 : Math.min(0, Math.max(st.h-h, CV.y));
+}
+function cvApply(){ cvClamp(); $('cvImg').style.transform='translate('+(CV.x+(CV.dx||0))+'px,'+CV.y+'px) scale('+(CV.fit*CV.s)+')'; }
+function cvFit(){ var st=cvStage(); CV.fit=Math.min(st.w/CV.w, st.h/CV.h); }
+/* Zoom to s, keeping the screen point (px,py) over the same spot of the page. */
+function cvZoomAt(s,px,py){
+  s=Math.max(1, Math.min(CV_MAX, s));
+  var k0=CV.fit*CV.s, cx=(px-CV.x)/k0, cy=(py-CV.y)/k0;
+  CV.s=s; var k=CV.fit*s; CV.x=px-cx*k; CV.y=py-cy*k; cvApply();
+}
+/* 5.48: the whole page, fitted to the screen as it is now. Any change in the
+   screen's size (a turn, a toolbar) snaps back to this, zoom or not. */
+function cvSnap(){
+  if(!$('certView').classList.contains('on')) return;
+  var st=cvStage(); CV.sw=st.w; CV.sh=st.h;
+  CV.s=1; CV.pts={}; CV.pinch=null; CV.pan=null; cvFit(); cvApply();
+}
+function cvResized(){
+  if(!$('certView').classList.contains('on')) return;
+  var st=cvStage();
+  if(Math.abs(st.w-CV.sw)>1 || Math.abs(st.h-CV.sh)>1) cvSnap();
+}
+/* 5.49: the same viewer shows the banquet page's photos: swipe between them
+   at fit, a caption and "3 of 40" under, Share on each. */
+function openCView(){ if(CERT_URL){ CV.mode='cert'; cvShow(CERT_URL); } }
+function cvShow(src){
+  var v=$('certView'), im=$('cvImg');
+  CV.s=1; CV.pts={}; CV.pinch=null; CV.pan=null; CV.dx=0;
+  v.classList.add('on'); v.classList.toggle('photo', CV.mode==='photo');
+  CV.sw=0; CV.sh=0;
+  var go=function(){ CV.w=im.naturalWidth||2200; CV.h=im.naturalHeight||1700; cvSnap(); };
+  im.onload=null;
+  if(!src){ im.removeAttribute('src'); return; }
+  if(im.getAttribute('src')!==src){ im.onload=go; im.src=src; } else go();
+  /* 5.48: and again once the screen has settled; a phone opened sideways can
+     report its size before the turn has finished. */
+  requestAnimationFrame(function(){ requestAnimationFrame(cvSnap); });
+}
+function closeCView(){
+  var was=CV.mode; $('certView').classList.remove('on'); CV.mode=null;
+  /* back to the slideshow on the photo last looked at, held there a minute */
+  if(was==='photo' && $('vCar')){ var car=$('vCar'); vTouch=Date.now(); car.scrollTo({left:vAt*car.clientWidth, behavior:'auto'}); vMark(VPAGE.photos||[]); }
+}
+function cvPhotoAt(i){
+  var ph=(VPAGE && VPAGE.photos) || [];
+  if(!ph.length) return;
+  i=(i+ph.length)%ph.length; vAt=i; CV.mode='photo';
+  $('cvCapT').textContent=ph[i].caption||'';
+  $('cvCapN').textContent=ph.length>1 ? (i+1)+' of '+ph.length : '';
+  var img=document.querySelectorAll('#vCar img')[i], src=img && img.getAttribute('src');
+  cvShow(src||'');
+  if(!src){ vPhoto(ph,i); if(img) img.addEventListener('load',function once(){ img.removeEventListener('load',once); if(CV.mode==='photo' && vAt===i) cvShow(img.getAttribute('src')); }); }
+  if(ph.length>1){ vPhoto(ph,(i+1)%ph.length); vPhoto(ph,(i-1+ph.length)%ph.length); }
+}
+function cvSharePhoto(){
+  var src=$('cvImg').getAttribute('src'), ph=(VPAGE && VPAGE.photos) || [], cap=ph[vAt] ? ph[vAt].caption : '';
+  if(!src) return;
+  var name=(String(VPAGE && VPAGE.team || 'Peachtree MS')+' '+(VPAGE ? VPAGE.season_year : '')+' photo '+(vAt+1)).replace(/[^A-Za-z0-9 .-]+/g,'').trim()+'.jpg';
+  fetch(src).then(function(r){ return r.blob(); }).then(function(b){
+    var f=null; try{ f=new File([b],name,{type:'image/jpeg'}); }catch(e){}
+    if(f && navigator.share && navigator.canShare && navigator.canShare({files:[f]})){ navigator.share({files:[f], title:cap||name.replace(/\.jpg$/,'')}).catch(function(){}); return; }
+    var a=document.createElement('a'); a.href=src; a.download=name; document.body.appendChild(a); a.click(); a.remove();
+  }).catch(function(){});
+}
+(function(){
+  var st=$('cvStage');
+  function pt(e){ var r=st.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; }
+  function two(){ var k=Object.keys(CV.pts); return k.length>=2 ? [CV.pts[k[0]], CV.pts[k[1]]] : null; }
+  st.addEventListener('pointerdown',function(e){
+    try{ st.setPointerCapture(e.pointerId); }catch(x){}
+    CV.pts[e.pointerId]=pt(e); CV.moved=false;
+    var t=two();
+    if(t){ CV.pinch={d:Math.hypot(t[0].x-t[1].x, t[0].y-t[1].y)||1, s:CV.s}; CV.pan=null; }
+    else CV.pan={x:CV.pts[e.pointerId].x, y:CV.pts[e.pointerId].y, ox:CV.x, oy:CV.y};
+    e.preventDefault();
+  });
+  st.addEventListener('pointermove',function(e){
+    if(!CV.pts[e.pointerId]) return;
+    var p=pt(e), was=CV.pts[e.pointerId]; CV.pts[e.pointerId]=p;
+    if(Math.abs(p.x-was.x)+Math.abs(p.y-was.y)>2) CV.moved=true;
+    var t=two();
+    if(t && CV.pinch){
+      var d=Math.hypot(t[0].x-t[1].x, t[0].y-t[1].y)||1;
+      cvZoomAt(CV.pinch.s*d/CV.pinch.d, (t[0].x+t[1].x)/2, (t[0].y+t[1].y)/2);
+    } else if(CV.pan && CV.mode==='photo' && CV.s<=1.01){ CV.dx=p.x-CV.pan.x; cvApply(); }
+    else if(CV.pan){ CV.x=CV.pan.ox+(p.x-CV.pan.x); CV.y=CV.pan.oy+(p.y-CV.pan.y); cvApply(); }
+    e.preventDefault();
+  });
+  function up(e){
+    var p=CV.pts[e.pointerId], sw=CV.pan && CV.mode==='photo' && CV.s<=1.01 ? CV.dx||0 : 0; delete CV.pts[e.pointerId];
+    if(CV.dx){ CV.dx=0; cvApply(); }
+    if(e.type==='pointerup' && Math.abs(sw)>50 && !Object.keys(CV.pts).length){ CV.pan=null; cvPhotoAt(vAt+(sw<0 ? 1 : -1)); return; }
+    if(Object.keys(CV.pts).length<2) CV.pinch=null;
+    var rest=Object.keys(CV.pts);
+    CV.pan = rest.length===1 ? {x:CV.pts[rest[0]].x, y:CV.pts[rest[0]].y, ox:CV.x, oy:CV.y} : null;
+    if(e.type!=='pointerup' || !p || CV.moved || rest.length) return;
+    var now=Date.now();
+    if(now-CV.tap<320 && Math.abs(p.x-CV.tapX)<30 && Math.abs(p.y-CV.tapY)<30){
+      CV.tap=0;
+      if(CV.s>1.05){ CV.s=1; cvApply(); } else cvZoomAt(2.5, p.x, p.y);
+    } else { CV.tap=now; CV.tapX=p.x; CV.tapY=p.y; }
+  }
+  st.addEventListener('pointerup',up); st.addEventListener('pointercancel',up);
+  /* 5.48: the viewer's own size is the truth, read after layout. resize and
+     orientationchange can fire mid-turn on an iPhone with the old size. */
+  if(window.ResizeObserver) new ResizeObserver(cvResized).observe(st);
+  window.addEventListener('resize',function(){ setTimeout(cvResized,60); setTimeout(cvResized,350); });
+  window.addEventListener('orientationchange',function(){ setTimeout(cvResized,350); setTimeout(cvResized,800); });
+  if(window.visualViewport) window.visualViewport.addEventListener('resize',function(){ setTimeout(cvResized,60); });
+  $('certImg').addEventListener('click',openCView);
+  $('cvClose').addEventListener('click',closeCView);
+  $('cvShare').addEventListener('click',function(){ if(CV.mode==='photo') cvSharePhoto(); else shareCert(); });
+})();
+
 $('certShare').addEventListener('click',shareCert);
 $('rnBack').addEventListener('click',function(){ show(backTo==='vhome' ? 'vhome' : 'runners'); });
 /* ---------- 5.02: the banquet link ----------
@@ -10383,12 +10561,20 @@ function renderVHome(){
   b.innerHTML=h;
   if(ph.length) vCarousel(ph);
 }
+/* 5.50: the coach's framing (0034); a page from before it frames from the centre. */
+function frStyle(fig,img,p,src){
+  var whole=p && p.fit==='whole';
+  fig.classList.toggle('whole', !!whole);
+  img.style.objectPosition=(p && p.focus_x!=null ? p.focus_x : 50)+'% '+(p && p.focus_y!=null ? p.focus_y : 50)+'%';
+  fig.style.backgroundImage = whole && src ? 'url("'+src+'")' : '';
+}
 function vPhoto(ph,i){
   var img=document.querySelectorAll('#vCar img')[i];
   if(!img || img.getAttribute('data-want')) return;
   img.setAttribute('data-want','1');
+  frStyle(img.parentNode,img,ph[i],null);
   vRpc('viewer_photo',{p_code:VIEW, p_id:ph[i].id}).then(function(r){
-    if(r.ok && typeof r.data==='string') img.src=r.data; else img.removeAttribute('data-want');
+    if(r.ok && typeof r.data==='string'){ img.src=r.data; frStyle(img.parentNode,img,ph[i],r.data); } else img.removeAttribute('data-want');
   });
 }
 function vMark(ph){
@@ -10406,6 +10592,9 @@ function vCarousel(ph){
     if(i!==vAt && i>=0 && i<ph.length){ vAt=i; vMark(ph); }
   },{passive:true});
   ['touchstart','pointerdown','wheel'].forEach(function(ev){ car.addEventListener(ev,function(){ vTouch=Date.now(); },{passive:true}); });
+  /* 5.49: a tap on a photo opens it full screen */
+  car.addEventListener('click',function(e){ var sl=e.target.closest && e.target.closest('.vslide'); if(!sl) return;
+    cvPhotoAt([].indexOf.call(car.children,sl)); });
   if('IntersectionObserver' in window){
     new IntersectionObserver(function(es){ vSeen=es[0].isIntersecting; },{threshold:0.5}).observe(car);
   } else vSeen=true;
@@ -10413,7 +10602,7 @@ function vCarousel(ph){
      nobody has touched them for a minute. Never with Reduce Motion on. */
   if(vTimer) clearInterval(vTimer);
   vTimer=setInterval(function(){
-    if(ph.length<2 || !vSeen || document.hidden || !onScreen('vhome') || Date.now()-vTouch<VIDLE_MS) return;
+    if(ph.length<2 || !vSeen || document.hidden || !onScreen('vhome') || Date.now()-vTouch<VIDLE_MS || $('certView').classList.contains('on')) return;
     if(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     var n=(vAt+1)%ph.length;
     car.scrollTo({left:n*car.clientWidth, behavior:n ? 'smooth' : 'auto'});
@@ -10470,7 +10659,7 @@ function viewerBoot(){
    share, a new link that kills the old one, the coaches' message, and up to
    40 photos (20 before 5.37). Straight to the database, not through the outbox: it is set up
    once, at a desk, and a save that fails says so. */
-var BQ=null, BQ_PH=[], BQ_MSG='', BQ_BUSY=false, BQ_MAX=40;  /* 5.37: 40, with migration 0029 (was 20) */
+var BQ=null, BQ_PH=[], BQ_MSG='', BQ_BUSY=false, BQ_MAX=40, BQ_FRAME=null;  /* 5.37: 40, with migration 0029 (was 20) */
 function bqCall(path,opts){
   return ensureFresh().then(function(ok){
     if(!ok) return {ok:false, status:401, data:null};
@@ -10492,10 +10681,14 @@ function renderBanquet(){
     if(!res.ok || !Array.isArray(res.data)){ b.innerHTML='<p class="hint">'+esc(res.offline ? 'No connection. The banquet page needs signal to set up.' : authMessage(res))+'</p>'; return null; }
     BQ=res.data[0]||null;
     if(!BQ){ b.innerHTML='<p class="hint">There is no banquet page for '+esc(yr)+' in the database yet.</p>'; return null; }
-    return Promise.all([bqCall('/rest/v1/viewer_photos?select=id,position,caption,created_at&page_id=eq.'+BQ.id+'&order=position.asc,created_at.asc')]);
+    return Promise.all([bqCall('/rest/v1/viewer_photos?select=id,position,caption,created_at&page_id=eq.'+BQ.id+'&order=position.asc,created_at.asc'),
+      /* 5.50: read on its own, so a database before 0034 costs only the framing. */
+      bqCall('/rest/v1/viewer_photos?select=id,focus_x,focus_y,fit&page_id=eq.'+BQ.id)]);
   }).then(function(rs){
     if(!rs) return;
-    var res=rs[0];
+    var res=rs[0], fr=rs[1];
+    BQ_FRAME = fr && fr.ok && Array.isArray(fr.data) ? {} : null;
+    if(BQ_FRAME) fr.data.forEach(function(x){ BQ_FRAME[x.id]=x; });
     BQ_PH=(res.ok && Array.isArray(res.data)) ? res.data : [];
     BQ_MSG=BQ.message.replace(/\r\n?/g,'\n');
     bqDraw();
@@ -10514,7 +10707,9 @@ function bqDraw(){
   h+='<div class="field"><textarea id="bqMsg" spellcheck="true">'+esc(BQ_MSG)+'</textarea></div>';
   h+='<div class="field"><label for="bqSig">Signed</label><input type="text" id="bqSig" maxlength="120" value="'+esc(BQ.signature)+'"></div>';
   h+='<div class="btnrow"><button type="button" class="go" id="bqSave">Save message</button></div>';
-  h+='<p class="hsect">PHOTOS</p><div class="hint">'+n+' of '+BQ_MAX+'. The first is the one parents see first.</div><div class="bqphotos">';
+  h+='<p class="hsect">PHOTOS</p><div class="hint">'+n+' of '+BQ_MAX+'. The first is the one parents see first.</div>';
+  if(n) h+='<div class="hint">'+(BQ_FRAME ? 'Tap a photo to choose how it sits in the slideshow.' : 'Framing photos needs a database update. Until then each one is shown from its centre.')+'</div>';
+  h+='<div class="bqphotos">';
   BQ_PH.forEach(function(p,i){
     h+='<div class="bqph" data-i="'+i+'"><img alt=""><input type="text" maxlength="80" placeholder="Caption" value="'+esc(p.caption)+'">'+
        '<button type="button" class="bqup"'+(i ? '' : ' disabled')+' aria-label="Move up">\u25b2</button>'+
@@ -10569,6 +10764,9 @@ function bqRow(el){
   bqCall('/rest/v1/viewer_photos?select=image&id=eq.'+p.id).then(function(res){
     if(res.ok && res.data && res.data[0]) img.src=res.data[0].image;
   });
+  /* 5.50: the thumbnail shows the photo as the slideshow will, and opens framing */
+  if(BQ_FRAME){ var f=BQ_FRAME[p.id]; img.style.objectPosition=f ? f.focus_x+'% '+f.focus_y+'%' : ''; img.style.objectFit=f && f.fit==='whole' ? 'contain' : '';
+    img.addEventListener('click',function(){ if(img.getAttribute('src')) openFrame(p, img); }); }
   cap.addEventListener('change',function(){
     var v=cap.value.trim();
     bqCall('/rest/v1/viewer_photos?id=eq.'+p.id,{method:'PATCH', body:{caption:v}}).then(function(res){
@@ -10660,6 +10858,66 @@ function csDraw(){
     });
   });
 }
+/* 5.50: framing one photo. Fill the frame shows it as the slideshow does,
+   cropped to 4:3, and dragging moves which part is in view (only along the
+   side that overflows). Show the whole photo puts it all in the frame over a
+   blurred copy. Save writes the three columns (0034); every parent sees it. */
+var FR=null;
+function frDraw(){
+  var box=$('frBox'), img=$('frImg'), whole=FR.fit==='whole';
+  $('frFill').setAttribute('aria-pressed', whole ? 'false' : 'true');
+  $('frWhole').setAttribute('aria-pressed', whole ? 'true' : 'false');
+  frStyle(box,img,FR,img.getAttribute('src'));
+  $('frHint').textContent = whole ? 'The whole photo shows, with a soft copy of it filling the sides.' :
+    (FR.ox || FR.oy ? 'Drag the photo to choose what shows.' : 'This photo already fills the frame exactly.');
+}
+/* How far the photo overflows the frame, in pixels, across and down. */
+function frOver(){
+  var box=$('frBox'), img=$('frImg'), bw=box.clientWidth, bh=box.clientHeight, iw=img.naturalWidth||1, ih=img.naturalHeight||1;
+  var k=Math.max(bw/iw, bh/ih); return {x:iw*k-bw, y:ih*k-bh};
+}
+function openFrame(p,thumb){
+  var f=(BQ_FRAME && BQ_FRAME[p.id]) || {focus_x:50, focus_y:50, fit:'fill'};
+  FR={id:p.id, focus_x:f.focus_x, focus_y:f.focus_y, fit:f.fit, thumb:thumb};
+  $('frNote').textContent=''; $('frSave').disabled=false;
+  var img=$('frImg');
+  img.onload=function(){ var o=frOver(); FR.ox=o.x>1; FR.oy=o.y>1; frDraw(); };
+  img.src=thumb.getAttribute('src');
+  $('frameSheet').classList.add('on');
+  requestAnimationFrame(function(){ if(img.complete) img.onload(); });
+}
+(function(){
+  var box=$('frBox'), drag=null;
+  $('frFill').addEventListener('click',function(){ FR.fit='fill'; frDraw(); });
+  $('frWhole').addEventListener('click',function(){ FR.fit='whole'; frDraw(); });
+  $('frCancel').addEventListener('click',function(){ $('frameSheet').classList.remove('on'); });
+  box.addEventListener('pointerdown',function(e){
+    if(!FR || FR.fit==='whole') return;
+    try{ box.setPointerCapture(e.pointerId); }catch(x){}
+    drag={x:e.clientX, y:e.clientY, fx:FR.focus_x, fy:FR.focus_y, o:frOver()}; e.preventDefault();
+  });
+  box.addEventListener('pointermove',function(e){
+    if(!drag) return;
+    /* object-position p% puts the photo at (frame - photo) * p%, so a drag of
+       d pixels moves p by d / (frame - photo): the opposite way, as a finger expects. */
+    if(drag.o.x>1) FR.focus_x=Math.round(Math.max(0, Math.min(100, drag.fx - (e.clientX-drag.x)/drag.o.x*100)));
+    if(drag.o.y>1) FR.focus_y=Math.round(Math.max(0, Math.min(100, drag.fy - (e.clientY-drag.y)/drag.o.y*100)));
+    frDraw(); e.preventDefault();
+  });
+  function end(){ drag=null; }
+  box.addEventListener('pointerup',end); box.addEventListener('pointercancel',end);
+  $('frSave').addEventListener('click',function(){
+    var btn=this, body={focus_x:FR.focus_x, focus_y:FR.focus_y, fit:FR.fit}, f=FR;
+    btn.disabled=true;
+    bqCall('/rest/v1/viewer_photos?id=eq.'+f.id,{method:'PATCH', body:body}).then(function(res){
+      btn.disabled=false;
+      if(!res.ok){ $('frNote').textContent='Not saved. '+(res.offline ? 'No connection.' : authMessage(res)); return; }
+      BQ_FRAME[f.id]={id:f.id, focus_x:f.focus_x, focus_y:f.focus_y, fit:f.fit};
+      f.thumb.style.objectPosition=f.focus_x+'% '+f.focus_y+'%'; f.thumb.style.objectFit=f.fit==='whole' ? 'contain' : '';
+      $('frameSheet').classList.remove('on'); bqNote('Framing saved.');
+    });
+  });
+})();
 function armTwoTapOn(btn,text,act){ btn.addEventListener('click',function(){ armTwoTap(btn,text,act); }); }
 /* Positions run 1 to n with no gaps, so the next photo always fits under BQ_MAX. */
 function bqRenumber(){
