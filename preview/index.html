@@ -1043,6 +1043,12 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 /* 5.42: coral, the only colour in the header, so the eye finds it. */
 .rncertbtn{padding:8px 12px;color:var(--tape);border-color:var(--tape);background:rgba(242,102,78,.12)}
 .rncertbtn svg{width:22px;height:22px;display:block}
+/* 5.45: on the banquet link the ribbon pulses twice as a runner page opens,
+   so a parent sees it; a phone set to reduce motion gets one fading ring. */
+@keyframes rnPulse{0%{box-shadow:0 0 0 0 rgba(242,102,78,.8)}70%{box-shadow:0 0 0 12px rgba(242,102,78,0)}100%{box-shadow:0 0 0 0 rgba(242,102,78,0)}}
+@keyframes rnGlow{0%{box-shadow:0 0 0 4px rgba(242,102,78,.7)}100%{box-shadow:0 0 0 4px rgba(242,102,78,0)}}
+.rncertbtn.pulse{animation:rnPulse .75s ease-out 2}
+@media (prefers-reduced-motion:reduce){.rncertbtn.pulse{animation:rnGlow 1.4s ease-out 1}}
 #rnBody>.hsect:first-child{margin-top:8px}
 .rnimps{margin-top:18px}
 /* 5.40: the season certificate, a picture in a sheet. */
@@ -1735,7 +1741,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.44';
+var BUILD='v5.45';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -9982,6 +9988,8 @@ function renderRunner(){
   if(!races.length) h+='<p class="hint">No races this season yet. Test events never count.</p>';
   $('rnBody').innerHTML=h;
   var cb=$('rnCert'); if(cb) cb.addEventListener('click',function(){ openCert(RN); });
+  /* 5.45: parents only; the class goes when the pulse ends, so it runs once a page. */
+  if(cb && VIEW){ cb.classList.add('pulse'); cb.addEventListener('animationend',function(){ cb.classList.remove('pulse'); }); setTimeout(function(){ cb.classList.remove('pulse'); },2500); }
 }
 /* 4.61: the re-check reads splits too, so every phone has the same ones.
    Before, a phone read a race's splits only when its Results was opened.
