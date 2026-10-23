@@ -1074,10 +1074,29 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 .cvcap .num{color:var(--ink-soft);flex:0 0 auto}
 .vslide img{cursor:zoom-in}
 #cvShare{min-width:160px;flex:0 0 auto}
+/* 5.55: Play, for a TV: the photos alone on black, every six seconds,
+   the buttons gone until a tap. Photos only, never the certificate. */
+#cvPlay{flex:0 0 auto;min-width:96px}
+#certView:not(.photo) #cvPlay{display:none}
+#certView.photo #cvShare{min-width:120px}
+#certView.playing{background:#000}
+#certView.playing #cvImg{transition:opacity .6s ease}
+#certView.playing #cvImg.fade{opacity:0}
+/* 5.56: while playing, a blurred, darkened copy of the photo fills the
+   screen behind it, so a TV is full edge to edge and nobody is cropped. */
+.cvback{position:absolute;inset:-60px;background:#000 center/cover no-repeat;filter:blur(30px) brightness(.5) saturate(1.1);opacity:0;transition:opacity .6s ease;pointer-events:none}
+#certView.playing .cvback{opacity:1}
+#certView.playing .cvback.fade{opacity:0}
+#certView.playing .cvbar,#certView.playing .cvfoot{opacity:0;pointer-events:none;transition:opacity .4s ease}
+#certView.playing.ctl .cvbar,#certView.playing.ctl .cvfoot{opacity:1}
+#certView.playing.ctl .cvfoot{pointer-events:none}
+#certView.playing.ctl .cvfoot .btnrow,#certView.playing.ctl .cvbar{pointer-events:auto}
+#certView.playing #cvCapT,#certView.playing #cvShare{display:none}
 /* Sideways the picture fills the height: Share moves to the corner, no hint. */
 @media (orientation:landscape){
   .cvfoot{left:auto;align-items:flex-end;padding-right:calc(env(safe-area-inset-right) + 12px)}
   #cvShare{min-width:0}
+  #cvPlay{min-width:0}
 }
 
 .rnimp{margin:12px 0 4px;padding:12px 14px;border-radius:10px;background:var(--chalk);font-size:15px;line-height:1.4}
@@ -1747,9 +1766,9 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
 
 <div class="cview" id="certView" role="dialog" aria-label="Season certificate">
   <div class="cvbar"><button class="linkbtn" id="cvClose">Close</button></div>
-  <div class="cvstage" id="cvStage"><img id="cvImg" alt="Season certificate"></div>
+  <div class="cvstage" id="cvStage"><div class="cvback" id="cvBack"></div><img id="cvImg" alt="Season certificate"></div>
   <div class="cvfoot"><div class="cvcap"><span id="cvCapT"></span><span class="num" id="cvCapN"></span></div>
-    <div class="btnrow"><button type="button" class="go" id="cvShare">Share</button></div></div>
+    <div class="btnrow"><button type="button" id="cvPlay">Play</button><button type="button" class="go" id="cvShare">Share</button></div></div>
 </div>
 
 <!-- PHOTO FRAMING, 5.50 -->
@@ -1796,7 +1815,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.54';
+var BUILD='v5.56';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -2197,7 +2216,7 @@ var HOW=[
  {t:'Backup and restore', p:[
   '<b>Settings &gt; Backup and restore</b> copies the whole season as text or saves it as a file, and can read one back in. The database is the main copy of everything now, so this is a safety net rather than something to do every week.']},
  {t:'Banquet page', p:[
-  '<b>Settings &gt; End of season &gt; Banquet page</b> is a link parents open with no sign-in: Events, Runners and Season for the whole team, read only, starting on a thank-you page from the coaches with up to 60 photos. A parent can tap a photo to see it full screen, swipe through the rest, zoom in and share it. Nothing on it edits, times or opens Settings, and test events, DNFs and who\u2019s here never reach it.',
+  '<b>Settings &gt; End of season &gt; Banquet page</b> is a link parents open with no sign-in: Events, Runners and Season for the whole team, read only, starting on a thank-you page from the coaches with up to 60 photos. A parent can tap a photo to see it full screen, swipe through the rest, zoom in and share it. Play there runs the photos on their own, every six seconds, for a TV, each over a soft blurred copy of itself so the screen is full: tap to pause. Nothing on it edits, times or opens Settings, and test events, DNFs and who\u2019s here never reach it.',
   'It works only while <b>Link on</b> is switched on. <b>Share QR code</b> sends the code as a picture for a poster or an email. <b>New link</b> replaces the address, and the old one stops opening.',
   'Every runner\u2019s page has a <b>Season certificate</b>: one page with the runner\u2019s name, the <b>Certificate message</b>, their fastest mile, best 2 miles and how much they improved, and the season\u2019s races. Tapping the picture shows it full screen, to zoom in. <b>Share</b> sends it as a picture, to email, print or keep. <b>Settings &gt; End of season &gt; Runner certificate</b> says where it shows, for the whole team: <b>In the app</b> for coaches, <b>On the banquet page</b> for parents.',
   '<b>Settings &gt; About</b> shows <b>Usage</b> for every coach: how often the app is opened and by how many coaches, and how often the banquet page is opened and on how many phones, and how often certificates are opened and shared. A phone is counted by a random code its browser keeps, nothing else; <b>Forget phone codes</b> deletes the codes and keeps the counts.']},
@@ -10365,10 +10384,74 @@ function cvShow(src){
   requestAnimationFrame(function(){ requestAnimationFrame(cvSnap); });
 }
 function closeCView(){
+  cvStop();
   var was=CV.mode; $('certView').classList.remove('on'); CV.mode=null;
   /* back to the slideshow on the photo last looked at, held there a minute */
   if(was==='photo' && $('vCar')){ var car=$('vCar'); vTouch=Date.now(); car.scrollTo({left:vAt*car.clientWidth, behavior:'auto'}); vMark(VPAGE.photos||[]); }
 }
+/* 5.55: the slideshow for a TV. Full photos (a big screen deserves them),
+   each loaded before it's due; a fade to black and back between them; the
+   screen kept awake while it plays. A tap shows Pause, Close and the count for
+   three seconds. */
+var CV_PLAY_MS=6000, CV_CTL_MS=3000, cvPlayT=null, cvCtlT=null, cvWake=null;
+function cvPlaying(){ return $('certView').classList.contains('playing'); }
+function cvCtl(){
+  var v=$('certView'); v.classList.add('ctl');
+  clearTimeout(cvCtlT); cvCtlT=setTimeout(function(){ if(cvPlaying()) v.classList.remove('ctl'); },CV_CTL_MS);
+}
+function cvAwake(on){
+  try{
+    if(on && navigator.wakeLock && !cvWake) navigator.wakeLock.request('screen').then(function(l){ cvWake=l; l.addEventListener('release',function(){ cvWake=null; }); },function(){});
+    if(!on && cvWake){ cvWake.release(); cvWake=null; }
+  }catch(e){}
+}
+function cvPlay(){
+  var ph=(VPAGE && VPAGE.photos) || [];
+  if(CV.mode!=='photo' || ph.length<1) return;
+  var v=$('certView'); v.classList.add('playing'); v.classList.remove('ctl');
+  $('cvPlay').textContent='Pause';
+  cvAwake(true);
+  CV.s=1; cvSnap(); cvBackTo($('cvImg').getAttribute('src'));
+  vFull(ph[vAt].id).then(function(full){ if(full && cvPlaying() && $('cvImg').getAttribute('src')!==full) cvSwap(full); });
+  if(ph.length>1) vFull(ph[(vAt+1)%ph.length].id);
+  cvNext();
+}
+function cvStop(){
+  clearTimeout(cvPlayT); cvPlayT=null; clearTimeout(cvCtlT);
+  var v=$('certView'); v.classList.remove('playing','ctl'); $('cvImg').classList.remove('fade'); cvBackTo('');
+  if($('cvPlay')) $('cvPlay').textContent='Play';
+  cvAwake(false);
+}
+function cvNext(){
+  clearTimeout(cvPlayT);
+  cvPlayT=setTimeout(function(){
+    var ph=(VPAGE && VPAGE.photos) || [];
+    if(!cvPlaying() || ph.length<2) return;
+    var i=(vAt+1)%ph.length, id=ph[i].id;
+    /* waits for the next full photo, however long the signal takes */
+    vFull(id).then(function(full){
+      if(!cvPlaying()) return;
+      var src=full || (document.querySelectorAll('#vCar img')[i] || {}).src;
+      if(!src){ cvNext(); return; }
+      var im=$('cvImg'); im.classList.add('fade'); $('cvBack').classList.add('fade');
+      setTimeout(function(){
+        if(!cvPlaying()) return;
+        vAt=i; $('cvCapN').textContent=(i+1)+' of '+ph.length;
+        cvSwap(src, function(){ im.classList.remove('fade'); });
+        vFull(ph[(i+1)%ph.length].id);
+        cvNext();
+      },600);
+    });
+  },CV_PLAY_MS);
+}
+/* Swap the picture and fit it, keeping the play state. */
+function cvSwap(src,done){
+  var im=$('cvImg');
+  im.onload=function(){ CV.w=im.naturalWidth||CV.w; CV.h=im.naturalHeight||CV.h; CV.s=1; cvSnap(); cvBackTo(src); if(done) done(); };
+  im.src=src;
+}
+function cvBackTo(src){ var b=$('cvBack'); if(b){ b.style.backgroundImage=src ? 'url("'+src+'")' : ''; b.classList.remove('fade'); } }
+document.addEventListener('visibilitychange',function(){ if(!document.hidden && cvPlaying()) cvAwake(true); });
 function cvPhotoAt(i){
   var ph=(VPAGE && VPAGE.photos) || [];
   if(!ph.length) return;
@@ -10400,6 +10483,7 @@ function cvSharePhoto(){
   function pt(e){ var r=st.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; }
   function two(){ var k=Object.keys(CV.pts); return k.length>=2 ? [CV.pts[k[0]], CV.pts[k[1]]] : null; }
   st.addEventListener('pointerdown',function(e){
+    if(cvPlaying()){ cvCtl(); e.preventDefault(); return; }
     try{ st.setPointerCapture(e.pointerId); }catch(x){}
     CV.pts[e.pointerId]=pt(e); CV.moved=false;
     var t=two();
@@ -10443,6 +10527,7 @@ function cvSharePhoto(){
   $('certImg').addEventListener('click',openCView);
   $('cvClose').addEventListener('click',closeCView);
   $('cvShare').addEventListener('click',function(){ if(CV.mode==='photo') cvSharePhoto(); else shareCert(); });
+  $('cvPlay').addEventListener('click',function(){ if(cvPlaying()){ cvStop(); } else cvPlay(); });
 })();
 
 $('certShare').addEventListener('click',shareCert);
