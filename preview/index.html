@@ -864,10 +864,16 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 .rpick{display:inline-flex;align-items:center;gap:3px;padding:12px 6px;margin:-12px -6px;background:none;border:0;
   color:var(--tape);font:inherit;font-weight:600;line-height:1;vertical-align:baseline;cursor:pointer}
 .rpick svg{width:9px;height:9px;flex:0 0 auto}
-.rprow{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:14px 16px;
-  background:none;border:0;border-bottom:1px solid var(--rule);color:var(--ink);font:inherit;text-align:left;cursor:pointer}
-.rprow .rpl{font-size:17px;font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.rprow .rps{display:block;margin-top:2px;font-size:13px;color:var(--ink-soft);white-space:normal}
+.rmenu{position:fixed;z-index:41;display:none;min-width:240px;max-width:calc(100vw - 32px);overflow-y:auto;
+  background:var(--chalk);border:1px solid var(--rule);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.55);padding:4px 0}
+.rmenu.on{display:block}
+.rcatch{position:fixed;inset:0;z-index:40;display:none;background:transparent}
+.rcatch.on{display:block}
+.rprow{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;padding:10px 14px;
+  background:none;border:0;border-top:1px solid var(--rule);color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+.rprow:first-child{border-top:0}
+.rprow .rpl{display:block;font-size:15px;font-weight:500}
+.rprow .rps{display:block;margin-top:1px;font-size:12px;color:var(--ink-soft)}
 .rprow[aria-current] .rpl{font-weight:600}
 .rprow .rpck{color:var(--tape);font-weight:700;flex:0 0 auto}
 .rprow:disabled{cursor:default}
@@ -1777,13 +1783,10 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
   </div>
 </div>
 
-<!-- RACES, 5.61 -->
-<div class="sheet" id="raceSheet">
-  <div class="sheet-in">
-    <div class="bar"><h1>Races</h1><button class="linkbtn" id="raceClose">Close</button></div>
-    <div class="scroll" id="raceList"></div>
-  </div>
-</div>
+<!-- RACES, 5.61: a menu dropped from the race on Results' date line. The
+     catcher under it takes a tap anywhere else and closes it. -->
+<div class="rcatch" id="raceCatch"></div>
+<div class="rmenu" id="raceList" role="menu" aria-label="Races"></div>
 
 <!-- SEASON CERTIFICATE, 5.40 -->
 <div class="sheet" id="certSheet">
@@ -7667,10 +7670,11 @@ function pickSub(r){
   return doneSub(r);
 }
 function openRacePick(){
-  var list=$('raceList'); list.innerHTML='';
+  var list=$('raceList'), btn=this && this.getBoundingClientRect ? this : ($('resPick')||$('splPick'));
+  list.innerHTML='';
   pickRaces().forEach(function(r){
     var b=document.createElement('button'), cur=r.id===S.raceId, ok=raceState(r)==='done';
-    b.type='button'; b.className='rprow';
+    b.type='button'; b.className='rprow'; b.setAttribute('role','menuitem');
     if(cur) b.setAttribute('aria-current','true');
     if(!ok && !cur) b.disabled=true;
     b.innerHTML='<span><span class="rpl">'+esc(raceLabel(r))+'</span><span class="rps">'+esc(pickSub(r))+'</span></span>'+
@@ -7678,10 +7682,19 @@ function openRacePick(){
     b.addEventListener('click',function(){ pickRace(r.id); });
     list.appendChild(b);
   });
-  $('raceSheet').classList.add('on');
+  $('raceCatch').classList.add('on');
+  list.classList.add('on');
+  /* Placed at the tap, under the race name and lined up with it, kept on
+     screen; taller than the room below and it scrolls inside itself. */
+  var at=btn.getBoundingClientRect(), vw=window.innerWidth||document.documentElement.clientWidth,
+      vh=window.innerHeight||document.documentElement.clientHeight, w=list.offsetWidth||240;
+  var top=at.bottom+8;
+  list.style.left=Math.max(16, Math.min(at.left-8, vw-16-w))+'px';
+  list.style.top=top+'px';
+  list.style.maxHeight=Math.max(120, vh-top-16)+'px';
   list.scrollTop=0;
 }
-function closeRacePick(){ $('raceSheet').classList.remove('on'); }
+function closeRacePick(){ $('raceList').classList.remove('on'); $('raceCatch').classList.remove('on'); }
 function pickRace(rid){
   closeRacePick();
   if(!S || rid===S.raceId) return;
@@ -9302,8 +9315,10 @@ $('shiftAll').addEventListener('click',function(){
 $('sheetClose').addEventListener('click',closeSheet);
 $('sheet').addEventListener('click',function(e){ if(e.target===this) closeSheet(); });
 $('hereSheet').addEventListener('click',function(e){ if(e.target===this) closeHere(); });
-$('raceSheet').addEventListener('click',function(e){ if(e.target===this) closeRacePick(); });
-$('raceClose').addEventListener('click',closeRacePick);
+$('raceCatch').addEventListener('click',closeRacePick);
+/* The menu is placed on the screen, not the page, so a scroll would leave it
+   behind: Results scrolling closes it. */
+$('resultBody').addEventListener('scroll',function(){ if($('raceList').classList.contains('on')) closeRacePick(); },{passive:true});
 $('hereDone').addEventListener('click',closeHere);
 $('hereAll').addEventListener('click',function(){ hereAllTo(true); });
 $('hereNone').addEventListener('click',function(){ hereAllTo(false); });
