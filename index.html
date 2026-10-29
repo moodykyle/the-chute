@@ -858,6 +858,27 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
    so Nobody for a top-7 meet is one tap before checking seven. */
 .herehead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px;border-bottom:1px solid var(--rule)}
 .herecount{margin:0;font-size:14px;color:var(--ink-soft);min-width:0}
+/* 5.61: the race picker, the last thing on Results' date line. Coral text at
+   the line's size, no border, like Reload on the status line. The drawn text
+   is small, so the button reaches past it to a thumb-sized target. */
+.rpick{display:inline-flex;align-items:center;gap:3px;padding:12px 6px;margin:-12px -6px;background:none;border:0;
+  color:var(--tape);font:inherit;font-weight:600;line-height:1;vertical-align:baseline;cursor:pointer}
+.rpick svg{width:9px;height:9px;flex:0 0 auto}
+.rmenu{position:fixed;z-index:41;display:none;min-width:240px;max-width:calc(100vw - 32px);overflow-y:auto;
+  background:var(--chalk);border:1px solid var(--rule);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.55);padding:4px 0}
+.rmenu.on{display:block}
+.rcatch{position:fixed;inset:0;z-index:40;display:none;background:transparent}
+.rcatch.on{display:block}
+.rprow{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;padding:10px 14px;
+  background:none;border:0;border-top:1px solid var(--rule);color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+.rprow:first-child{border-top:0}
+.rprow .rpl{display:block;font-size:15px;font-weight:500}
+.rprow .rps{display:block;margin-top:1px;font-size:12px;color:var(--ink-soft)}
+.rprow[aria-current] .rpl{font-weight:600}
+.rprow .rpck{color:var(--tape);font-weight:700;flex:0 0 auto}
+.rprow:disabled{cursor:default}
+.rprow:disabled .rpl{color:var(--ink-soft)}
+.rprow > span:first-child{min-width:0}
 .herebtns{display:flex;gap:8px;flex:0 0 auto}
 .opt.hererow{grid-template-columns:minmax(0,1fr) auto auto;align-items:center}
 .hererow .ck{width:24px;height:24px;border-radius:50%;border:2px solid var(--rule);display:flex;align-items:center;justify-content:center}
@@ -1762,6 +1783,11 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
   </div>
 </div>
 
+<!-- RACES, 5.61: a menu dropped from the race on Results' date line. The
+     catcher under it takes a tap anywhere else and closes it. -->
+<div class="rcatch" id="raceCatch"></div>
+<div class="rmenu" id="raceList" role="menu" aria-label="Races"></div>
+
 <!-- SEASON CERTIFICATE, 5.40 -->
 <div class="sheet" id="certSheet">
   <div class="sheet-in">
@@ -1825,7 +1851,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.60';
+var BUILD='v5.61';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -2214,6 +2240,7 @@ var HOW=[
        '<b>Reopen clock</b> is for an End race tapped by mistake. Hours later it asks first, since a missed finish or a wrong name can be fixed without the clock running.']},
   'A place added with Missed finish can have its time adjusted or be deleted from its name selector.']},
  {t:'Results and sharing', p:[
+  'When an event has more than one race, its race is the last thing on the date line, in coral. Tap it to switch races.',
   '<b>Share Text</b> opens the phone\u2019s share sheet with results written for a group chat or a parents\u2019 email: the score, the places, and every runner with their time. <b>Share CSV</b> sends a spreadsheet file named for the race. Both send what\u2019s on screen, so pick the <b>Team</b>, <b>All</b>, <b>Girls</b> or <b>Boys</b> tab first. Once other schools are in Meet scores, Share Text leads with the team scores. Copy is in the share sheet; on a computer with no share sheet, both buttons copy instead.',
   '<b>Share meet</b>, on a finished meet\u2019s card on Home, sends the girls and the boys in one message: each race\u2019s team scores, then ours.',
   'The line just above the share buttons shows whether the results have reached the database. See Saving and sync.',
@@ -6610,6 +6637,19 @@ function meetCard(m,today){
   return card;
 }
 
+/* A finished race in one line: its score and place, or how many ran. The
+   event card and, from 5.61, the race picker on Results. A time trial has no
+   field and no score: everyone in it is ours, so the only number worth
+   showing is how many ran. */
+function doneSub(r){
+  var n=(r.fin||[]).length, ours=(r.fin||[]).filter(function(f){return f.h;}).length, sc=scoreOf(r);
+  return r.division==='Mixed'
+    ? n+(n===1?' finisher':' finishers')
+    : teamOnlyRace(r) ? 'Team only \u00b7 '+n+(n===1?' finisher':' finishers')
+    : (sc!=null? 'Team score '+sc : ours+' finishers, no score') +
+      (placeLine(meetResult(r)) ? ' \u00b7 '+placeLine(meetResult(r)) : '') + ' \u00b7 '+n+' in field';
+}
+
 function raceRow(m,r){
   var st=raceState(r), row=document.createElement('div');
   row.className='rrace';
@@ -6620,14 +6660,7 @@ function raceRow(m,r){
   else if(st==='live'){ sub=n+' in, '+ours+' ours'; label='Resume'; }
   else if(r.pulled && !r.read){ sub='Loading from the database'; label='Results'; ghost=true; }
   else {
-    var sc=scoreOf(r);
-    /* A time trial has no field and no score: everyone in it is ours, so the
-       only number worth showing is how many ran. */
-    sub = r.division==='Mixed'
-      ? n+(n===1?' finisher':' finishers')
-      : teamOnlyRace(r) ? 'Team only \u00b7 '+n+(n===1?' finisher':' finishers')
-      : (sc!=null? 'Team score '+sc : ours+' finishers, no score') +
-        (placeLine(meetResult(r)) ? ' \u00b7 '+placeLine(meetResult(r)) : '') + ' \u00b7 '+n+' in field';
+    sub=doneSub(r);
     label='Results'; ghost=true;
   }
   if(r.lost) sub='Started on another phone first \u00b7 these taps stay here';
@@ -7510,9 +7543,9 @@ function renderResults(){
      off the bottom of the screen. */
   var h='';
   h+='<div class="rhead">'+
-     '<div class="rid"><span class="ridtext">'+esc(S.name)+'</span>'+
+     '<div class="rid"><span class="ridtext">'+esc(resTitle())+'</span>'+
      '<button type="button" class="info" id="resInfo" aria-label="About this score">i</button></div>'+
-     '<div class="rwhen num">'+esc([S.date?fmtDate(S.date,true):'', meetDist()].filter(Boolean).join(' \u00b7 '))+'</div>'+
+     '<div class="rwhen num">'+esc([S.date?fmtDate(S.date,true):'', meetDist()].filter(Boolean).join(' \u00b7 '))+racePickHtml('resPick')+'</div>'+
      (meIn ? '' : '<div class="rgrid">'+
        '<div class="rscore num">'+(complete?score:(tonly?'':'&#183;'))+(byPlace?'<span class="rbyp">by place</span>':'')+'</div>'+
        '<div class="rside">'+
@@ -7590,6 +7623,7 @@ function renderResults(){
   if(unnamed) resNote.push('<b>'+unnamed+' of your '+(unnamed===1?'places':'places')+' still '+(unnamed===1?'needs':'need')+' a name.</b> The score above is already final, since it only depends on where your runners crossed.');
   if(disp.length && !meIn) resNote.push('The '+(disp.length===1?'one':'two')+' in brackets '+(disp.length===1?'is a <b>displacer</b>. It scores':'are <b>displacers</b>. They score')+' no points of '+(disp.length===1?'its':'their')+' own, '+(disp.length===1?'it pushes':'they push')+' other teams\' runners further back.');
   $('resInfo').addEventListener('click',function(){ infoOpen('About this score',resNote); });
+  if($('resPick')) $('resPick').addEventListener('click',openRacePick);
   /* The scope is named on the button rather than left to the segment above,
      because the copy is the thing you cannot take back once it is pasted. */
   var scope=resFull?'All':'Team';
@@ -7602,6 +7636,77 @@ function renderResults(){
   $('resSegAll').addEventListener('click',function(){ resFull=true; renderResults(); });
 }
 
+/* ---------- 5.61: the race picker ----------
+   Results names its race on the date line, in coral, when the event has more
+   than one race to show; a tap opens the event's races and another one opens
+   in place. Built from the event's own list, so nothing here assumes two: a
+   meet with Varsity and JV of each would list four. Only a finished race can
+   be picked, since Results only shows those, and opening a running one could
+   put the timing phone on the clock. Parents on the banquet link see only
+   what their Events shows: finished races with finishes. */
+function pickRaces(){
+  var f=S && findRace(S.meetId,S.raceId); if(!f) return [];
+  return f.meet.races.filter(function(r){ return !VIEW || (raceState(r)==='done' && (r.fin||[]).length); });
+}
+function raceLabel(r){ return r.division==='Mixed' ? 'Everyone' : r.division; }
+function resTitle(){
+  var f=S && findRace(S.meetId,S.raceId);
+  return (f && pickRaces().length>1) ? f.meet.name : S.name;
+}
+var PICK_CHEV='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+function racePickHtml(id){
+  var f=S && findRace(S.meetId,S.raceId);
+  if(!f || pickRaces().length<2) return '';
+  /* Each id written out whole, so the gate that matches $() to markup finds it. */
+  var open = id==='splPick' ? '<button type="button" class="rpick" id="splPick"' : '<button type="button" class="rpick" id="resPick"';
+  return ' \u00b7 '+open+' aria-haspopup="dialog" aria-label="Race: '+esc(raceLabel(f.race))+'. Change race">'+
+         esc(raceLabel(f.race))+PICK_CHEV+'</button>';
+}
+function pickSub(r){
+  var st=raceState(r);
+  if(st==='new') return 'Not started';
+  if(st==='live') return 'Running';
+  if(r.pulled && !r.read) return 'Loading from the database';
+  if(splitsOnlyRace(r)) return 'Splits only';
+  return doneSub(r);
+}
+function openRacePick(){
+  var list=$('raceList'), btn=this && this.getBoundingClientRect ? this : ($('resPick')||$('splPick'));
+  list.innerHTML='';
+  pickRaces().forEach(function(r){
+    var b=document.createElement('button'), cur=r.id===S.raceId, ok=raceState(r)==='done';
+    b.type='button'; b.className='rprow'; b.setAttribute('role','menuitem');
+    if(cur) b.setAttribute('aria-current','true');
+    if(!ok && !cur) b.disabled=true;
+    b.innerHTML='<span><span class="rpl">'+esc(raceLabel(r))+'</span><span class="rps">'+esc(pickSub(r))+'</span></span>'+
+                (cur?'<span class="rpck" aria-hidden="true">&#10003;</span>':'');
+    b.addEventListener('click',function(){ pickRace(r.id); });
+    list.appendChild(b);
+  });
+  $('raceCatch').classList.add('on');
+  list.classList.add('on');
+  /* Placed at the tap, under the race name and lined up with it, kept on
+     screen; taller than the room below and it scrolls inside itself. */
+  var at=btn.getBoundingClientRect(), vw=window.innerWidth||document.documentElement.clientWidth,
+      vh=window.innerHeight||document.documentElement.clientHeight, w=list.offsetWidth||240;
+  var top=at.bottom+8;
+  list.style.left=Math.max(16, Math.min(at.left-8, vw-16-w))+'px';
+  list.style.top=top+'px';
+  list.style.maxHeight=Math.max(120, vh-top-16)+'px';
+  list.scrollTop=0;
+}
+function closeRacePick(){ $('raceList').classList.remove('on'); $('raceCatch').classList.remove('on'); }
+function pickRace(rid){
+  closeRacePick();
+  if(!S || rid===S.raceId) return;
+  var f=findRace(S.meetId,rid); if(!f || raceState(f.race)!=='done') return;
+  var keep=resFull;
+  openRace(S.meetId,rid);
+  if(!onScreen('results')) return;
+  resFull=keep; renderResults();
+  var sc=$('results').querySelector('.scroll'); if(sc) sc.scrollTop=0;
+}
+
 /* 4.70: Results for a race with splits and no finishes. No score, no Team and
    All, since there is no field: our runners in the order they went through
    the split, with the time there. When the official results are loaded the
@@ -7611,9 +7716,9 @@ function renderSplitsOnly(){
   var r=currentRace(), rows=splitRunners(r), rp=resPrefs();
   var marks=splitMarksIn(r), many=marks.length>1;
   var h='<div class="rhead">'+
-     '<div class="rid"><span class="ridtext">'+esc(S.name)+'</span>'+
+     '<div class="rid"><span class="ridtext">'+esc(resTitle())+'</span>'+
      '<button type="button" class="info" id="splInfo" aria-label="About this race">i</button></div>'+
-     '<div class="rwhen num">'+esc([S.date?fmtDate(S.date,true):'', meetDist()].filter(Boolean).join(' \u00b7 '))+'</div>'+
+     '<div class="rwhen num">'+esc([S.date?fmtDate(S.date,true):'', meetDist()].filter(Boolean).join(' \u00b7 '))+racePickHtml('splPick')+'</div>'+
      '<div class="rgrid"><div class="rside">'+
        '<div class="req wrap">Splits only. Official results not loaded yet.</div>'+
        '<div class="rstat num">'+rows.length+' split at '+esc(marks.map(markLabel).join(', '))+'</div>'+
@@ -7633,6 +7738,7 @@ function renderSplitsOnly(){
   resNote=['No finishes were timed in this race. These are our runners at the split, in the order they went through it, with the time on our clock there.',
            'When the official results are loaded, the finishes, places and score appear here, with each split beside its runner.'];
   $('splInfo').addEventListener('click',function(){ infoOpen('About this race',resNote); });
+  if($('splPick')) $('splPick').addEventListener('click',openRacePick);
   [['copyChat','Share Text - '],['copyCsv','Share CSV - ']].forEach(function(q){
     var b=$(q[0]), t=q[1]+'Team';
     b.setAttribute('data-label',t);
@@ -9210,6 +9316,10 @@ $('shiftAll').addEventListener('click',function(){
 $('sheetClose').addEventListener('click',closeSheet);
 $('sheet').addEventListener('click',function(e){ if(e.target===this) closeSheet(); });
 $('hereSheet').addEventListener('click',function(e){ if(e.target===this) closeHere(); });
+$('raceCatch').addEventListener('click',closeRacePick);
+/* The menu is placed on the screen, not the page, so a scroll would leave it
+   behind: Results scrolling closes it. */
+$('resultBody').addEventListener('scroll',function(){ if($('raceList').classList.contains('on')) closeRacePick(); },{passive:true});
 $('hereDone').addEventListener('click',closeHere);
 $('hereAll').addEventListener('click',function(){ hereAllTo(true); });
 $('hereNone').addEventListener('click',function(){ hereAllTo(false); });
