@@ -1825,7 +1825,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.59';
+var BUILD='v5.60';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -2156,6 +2156,12 @@ var HOW=[
   'When a timing company times the meet, answer <b>How is it timed?</b> with one of the two chip-timed answers, and load their results after the race from the race\u2019s <b>Load results</b> or <b>Official results</b>. A MileSplit link or the copied results both work.',
   '<b>Chip-timed: we record splits.</b> Tap <b>Start clock</b> at the gun; the phone goes straight to the split screen. Nobody taps finishers. End the race, then load the results.',
   '<b>Chip-timed: we just load the results.</b> No clock and no tapping. Each race shows <b>Load results</b>; after the load it opens on Results like any other race.']},
+ {t:'Loading official results', p:[
+  '<b>Official results</b>, at the bottom of a finished race\u2019s Results, loads the meet\u2019s official list. A race nobody timed has <b>Load results</b> on its card instead. End race first on the phone that timed it.',
+  'Paste a MileSplit link, or copy the results table or the Completed text from MileSplit and paste that, then tap <b>Read it</b>. <b>Clear</b> empties the box for a fresh paste.',
+  'Nothing is saved until you check what it read: how many finishers and schools, which school is ours (change <b>Our school on this sheet</b> if it guessed wrong), and each of our runners matched to the roster. A close spelling says Matched as. A runner it couldn\u2019t match is red, with a list to pick from. A runner not on the roster is kept by name. Lines it couldn\u2019t read are red too: <b>Leave out</b> each one or fix the paste. It also says whether the team scores match the sheet\u2019s.',
+  'If we timed the race, it lines our taps up against the official times and says how far our clock was off. A tap with no official time is likely a runner the list missed, and it\u2019s added at our time unless you tap <b>Don\u2019t add</b>.',
+  '<b>Save</b> puts the whole field in, ours by name, and fills Meet scores. Our own taps are set aside, never erased. <b>Unload</b>, from any phone, puts the race back exactly as it was.']},
  {t:'Naming finishers', p:[
   'Every finishing place for your team is populated from the same name selector, whether you do it during the race or after. Tap a place and pick the runner.',
   '<b>With a second coach.</b> Once the timing coach taps Start, the race on your home screen reads <b>Timing on another phone</b> with a <b>Name runners</b> button. That screen fills with places and times as the timer taps. As our runners come through the chute, tap the place on each runner\u2019s popsicle stick and pick their name.',
@@ -2187,7 +2193,7 @@ var HOW=[
   'A runner who started and dropped out, or was expected and never started, can be listed with <b>Didn\u2019t finish</b> in Edit race, on any phone. They show under the placed runners, on Edit race and Results, as DNF or DNS and never change the score, places or PRs. To take one off, tap it in Edit race.']},
  {t:'Time trials', p:[
   'A time trial is one race with everyone in it and a single <b>Finisher</b> button. Everyone is ours, so there\u2019s no Field button and nothing to score.',
-  'Every result carries two places: overall, and within girls or boys. The <b>All</b>, <b>Girls</b> and <b>Boys</b> tabs filter the list, and both copy buttons follow the filter.',
+  'Every result carries two places: overall, and within girls or boys. The <b>All</b>, <b>Girls</b> and <b>Boys</b> tabs filter the list, and both share buttons follow the filter.',
   'In the name selector, a runner who isn\u2019t on the roster is added with <b>Add a girl</b> or <b>Add a boy</b>, since a mixed race can\u2019t tell on its own.',
   '<b>More than one distance.</b> If some runners go a mile and others the 800 from the same start, turn on <b>More than one distance</b> when creating the event and pick the second distance. The name selector adds a second step and asks which distance each runner ran. Results are grouped by distance with places counted within each, since a miler and an 800 runner aren\u2019t racing each other.']},
  {t:'PRs and SRs', p:[
@@ -2207,19 +2213,20 @@ var HOW=[
        '<b>Shift all times</b> moves every time in the race by the same amount, for a clock started late or early. Places don\u2019t change.',
        '<b>Reopen clock</b> is for an End race tapped by mistake. Hours later it asks first, since a missed finish or a wrong name can be fixed without the clock running.']},
   'A place added with Missed finish can have its time adjusted or be deleted from its name selector.']},
- {t:'Results and copying', p:[
+ {t:'Results and sharing', p:[
   '<b>Share Text</b> opens the phone\u2019s share sheet with results written for a group chat or a parents\u2019 email: the score, the places, and every runner with their time. <b>Share CSV</b> sends a spreadsheet file named for the race. Both send what\u2019s on screen, so pick the <b>Team</b>, <b>All</b>, <b>Girls</b> or <b>Boys</b> tab first. Once other schools are in Meet scores, Share Text leads with the team scores. Copy is in the share sheet; on a computer with no share sheet, both buttons copy instead.',
   '<b>Share meet</b>, on a finished meet\u2019s card on Home, sends the girls and the boys in one message: each race\u2019s team scores, then ours.',
-  'The line just above the copy buttons shows whether the results have reached the database. See Saving and sync.',
+  'The line just above the share buttons shows whether the results have reached the database. See Saving and sync.',
   'Grade, displacers, gap to first and records can each be turned off in <b>Settings &gt; Results display</b>. Those choices are per phone.',
   '<b>Settings &gt; Results display</b> picks <b>Tenths</b> or <b>Hundredths</b> for every finished time, for the whole team: every coach\u2019s phone and the banquet page follow it. A time entered to the second reads 7:50 either way. The race clock doesn\u2019t change.']},
  {t:'Saving and sync', p:[
   'Everything is saved on the phone the moment it happens, so a race can be timed with no signal at all. When the phone is signed in and online, it\u2019s sent to the database, where every other phone can see it.',
-  'The line above the copy buttons on results says where things stand. <b>Saved to the database</b> is what you want to see. <b>Not signed in</b> or <b>Offline</b> with a number waiting means the results are safe on this phone, but nobody else has them yet.',
+  'The line above the share buttons on results says where things stand. <b>Saved to the database</b> is what you want to see. <b>Not signed in</b> or <b>Offline</b> with a number waiting means the results are safe on this phone, but nobody else has them yet.',
   'A <b>test event</b> is for trying out the app, or practicing timing and naming with the coaches. It syncs like any other, so phones can rehearse together, but its results never count toward runner or team stats. Any coach can delete it, from every phone and the database.',
   'A <b>live event</b> is the real thing: its results count toward PRs, season bests and team stats, and it can\u2019t be turned into a test. One with no results yet deletes like a test. One with results can be deleted only by the head coach, after a warning, and its results go with it, from every phone. Events hidden before 5.28 are listed under <b>Hidden events</b> at the bottom of Settings, where <b>Show again</b> brings them back.',
   '<b>Show on Season charts</b>, under Live, keeps a race that isn\u2019t a fair comparison, like a short course or bad weather, off Season\u2019s charts. Its results and PRs still count.',
-  'Delete is the trash can at the top of an event\u2019s edit screen. A test event, or a live one with no results, takes a second tap. A live one with results only the head coach can delete, after a warning that names it.']},
+  'Delete is the trash can at the top of an event\u2019s edit screen. A test event, or a live one with no results, takes a second tap. A live one with results only the head coach can delete, after a warning that names it.',
+  '<b>Reload</b>, on the end of the line above the share buttons, reads a finished race fresh from the database, after official results are loaded or someone fixes it on another phone. On the phone that timed the race, it asks first, since the database\u2019s copy replaces this phone\u2019s taps.']},
  {t:'Roster', p:[
   'The roster loads when you sign in, and every signed-in phone keeps it current on its own. <b>Runners &gt; Roster &gt; Load roster from database</b> reloads it by hand.',
   'A runner added at the finish line joins the team roster on every phone once the phone that added them has signal. One added in a test event stays on that phone only.']},
@@ -2227,11 +2234,12 @@ var HOW=[
   '<b>Settings &gt; Backup and restore</b> copies the whole season as text or saves it as a file, and can read one back in. The database is the main copy of everything now, so this is a safety net rather than something to do every week.']},
  {t:'Banquet page', p:[
   '<b>Settings &gt; End of season &gt; Banquet page</b> is a link parents open with no sign-in: Events, Runners and Season for the whole team, read only, starting on a thank-you page from the coaches with up to 100 photos. A parent can tap a photo to see it full screen, swipe through the rest, zoom in and share it. Play there runs the photos on their own, every six seconds, for a TV, each over a soft blurred copy of itself so the screen is full: tap to pause. Nothing on it edits, times or opens Settings, and test events, DNFs and who\u2019s here never reach it.',
-  'It works only while <b>Link on</b> is switched on. <b>Share QR code</b> sends the code as a picture for a poster or an email. <b>New link</b> replaces the address, and the old one stops opening.',
+  'On the coach\u2019s side, <b>Add photos</b> takes them from the phone, up to 100. Each photo has a caption, arrows to move it, and Remove. Tap a photo to frame it: <b>Fill the frame</b> and drag to choose what stays in view, or <b>Show the whole photo</b> over a soft blurred copy.',
+  'It works only while <b>Link on</b> is switched on. <b>Share QR code</b> sends the code as a picture for a poster or an email. <b>New link</b> replaces the address, and the old one stops opening, including the QR on anything already printed.',
   'Every runner\u2019s page has a <b>Season certificate</b>: one page with the runner\u2019s name, the <b>Certificate message</b>, their fastest mile, best 2 miles and how much they improved, and the season\u2019s races. Tapping the picture shows it full screen, to zoom in. <b>Share</b> sends it as a picture, to email, print or keep. <b>Settings &gt; End of season &gt; Runner certificate</b> says where it shows, for the whole team: <b>In the app</b> for coaches, <b>On the banquet page</b> for parents.',
   '<b>Settings &gt; About</b> shows <b>Usage</b> for every coach: how often the app is opened and by how many coaches, and how often the banquet page is opened and on how many phones, and how often certificates are opened and shared. A phone is counted by a random code its browser keeps, nothing else; <b>Forget phone codes</b> deletes the codes and keeps the counts.']},
  {t:'Troubleshooting', p:[
-  '<b>The build on About doesn\u2019t match what was deployed.</b> The phone is running an old saved copy. Delete the home screen icon and add it again; a reload won\u2019t do it.',
+  '<b>The build on About doesn\u2019t match what was deployed.</b> Tap <b>Check for updates</b> on About, then <b>Update</b>. If it still comes up old after closing and reopening the app, delete the home screen icon and add it again.',
   '<b>A naming phone says No update for 30s.</b> It has lost touch with the database. The timer isn\u2019t affected, and names catch up once the signal comes back.',
   '<b>The name selector has no names.</b> The roster isn\u2019t loaded on this phone. Go to <b>Runners &gt; Roster &gt; Load roster from database</b>.',
   '<b>Places look one off.</b> A runner was missed at the line. Go to <b>Edit race &gt; Missed finish</b> to add them at the right place.',
