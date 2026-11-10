@@ -518,6 +518,10 @@ select{min-height:47px}
 .olpick{padding:0 16px 10px calc(16px + 2.2em + 10px)}
 .olpick select{width:100%}
 .olours{padding:12px 16px 4px}
+/* 5.62: a school's name on the read-back, opened to fix it */
+.olrow .olfull{color:var(--ink)}
+.olren{display:flex;gap:8px;align-items:center;padding:0 16px 10px 16px}
+.olren input{flex:1;min-width:0}
 #msActions button:disabled{opacity:.45}
 .copyrow{display:flex;gap:9px;padding:14px 16px 18px}
 /* Pinned below the list now rather than sitting at the end of it. On a hundred
@@ -1851,7 +1855,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.61';
+var BUILD='v5.62';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -5475,7 +5479,8 @@ function pullSplitsSoon(){
 var msOpen={}, msEdit=null, msPaste=false, msMsg='', msText='', msRead=null;
 function msRace(){ return currentRace(); }
 function normSchool(t){ return String(t||'').replace(/\s+/g,' ').trim(); }
-function schoolKey(t){ return normSchool(t).toLowerCase(); }
+/* 5.62: a second schoolKey here was never used; the one beside headToHead,
+   declared later, is the one every caller gets. */
 /* The words that make a school's name longer without telling it apart, so
    \"Peachtree Middle School\" on her sheet is recognised as \"Peachtree MS\". */
 function schoolCore(t){
@@ -7754,6 +7759,10 @@ function renderSplitsOnly(){
    race back from any phone. */
 var OL_TIME=/^(?:\d{1,2}:)?\d{1,2}:\d{2}(?:\.\d{1,3})?$/;
 var olForce=null, olFrom='results', olSrc=null, olText='', olRead=null, olOurs=null, olPick={}, olDrop={}, olAdd={}, olMsg='', olBusy=false, olLoad=undefined, olNoTable=false;
+/* 5.62: school names as they'll be saved. olNames holds a coach's own choice
+   for a sheet's name; olDbSchools every name the database already has, from
+   any season; olRen the sheet name whose editor is open. */
+var olNames={}, olDbSchools=null, olRen=null;
 function olMs(t){
   var p=String(t).split(':'), sec=parseFloat(p.pop()), min=+p.pop(), hr=p.length?+p.pop():0;
   return Math.round(((hr*60+min)*60+sec)*1000);
@@ -7885,6 +7894,43 @@ function olSchoolSame(a,b){
   var n=Math.min(x.length,y.length);
   return n>=6 && x.slice(0,n)===y.slice(0,n);
 }
+/* 5.62: a results sheet can cut school names short (HY-TEK stops at 12
+   letters: "Atlanta Inte", "Galloway Mid"), which would save a second school
+   under the cut name and count it twice on Head to head. A name is taken as
+   cut when it isn't a school we know and is the start of exactly one we do,
+   by its letters or, with a trailing word cut from "Middle" or "School", by
+   the words that tell schools apart. At least six letters, or it's a guess.
+   Known names are every name the database has, from any season, and this
+   phone's. */
+function olKnownNames(){
+  var seen={}, out=[];
+  (olDbSchools||[]).concat(knownSchools()).forEach(function(n){
+    n=normSchool(n); var k=n.toLowerCase(); if(n && !seen[k]){ seen[k]=1; out.push(n); }
+  });
+  return out;
+}
+function olLetters(t){ return String(t||'').toLowerCase().replace(/\bsaint\b/g,'st').replace(/[^a-z0-9 ]/g,'').replace(/\s+/g,' ').trim(); }
+function olCutOf(cut,known){
+  var c=olLetters(cut), k=olLetters(known);
+  if(!c || !k || c===k) return false;
+  if(k.length>c.length && k.slice(0,c.length)===c) return true;
+  var w=c.split(' '), last=w.pop();
+  if(!w.length || !last) return false;
+  if(!['school','academy','community','middle'].some(function(x){ return x.length>last.length && x.slice(0,last.length)===last; })) return false;
+  var a=schoolKey(w.join(' ')); return !!a && a===schoolKey(known);
+}
+function olGuessFull(name){
+  var known=olKnownNames(), key=schoolKey(name);
+  if(olLetters(name).replace(/[^a-z]/g,'').length<6) return name;
+  if(known.some(function(k){ return schoolKey(k)===key; })) return name;
+  var hits={}, list=[];
+  known.forEach(function(k){ if(olCutOf(name,k)){ var kk=schoolKey(k); if(!hits[kk]){ hits[kk]=1; list.push(k); } else if(k.length>list.filter(function(x){ return schoolKey(x)===kk; })[0].length){ list=list.map(function(x){ return schoolKey(x)===kk ? k : x; }); } } });
+  return list.length===1 ? list[0] : name;
+}
+function olFull(name){
+  if(olNames[name]!=null) return olNames[name];
+  return olGuessFull(name);
+}
 function olRace(){ return currentRace(); }
 function olRoster(r){
   var g=divOf(r);
@@ -7981,10 +8027,10 @@ function olBuild(){
   /* The field in order, official lines first on a tie. */
   var all=kept.map(function(x){ return {ms:x.ms, x:x}; }).concat(adds.map(function(m){ return {ms:m.ms, add:m}; }));
   all.sort(function(a,b){ return (a.ms-b.ms) || ((a.add?1:0)-(b.add?1:0)); });
-  var places={}, ourP=[];
+  var places={}, ourP=[], sheetOf={};
   all.forEach(function(e,i){
     var pl=i+1;
-    if(e.x){ if(e.x.ours) ourP.push(pl); else if(e.x.school) (places[e.x.school]=places[e.x.school]||[]).push(pl); }
+    if(e.x){ if(e.x.ours) ourP.push(pl); else if(e.x.school){ var fs=olFull(e.x.school); (places[fs]=places[fs]||[]).push(pl); (sheetOf[fs]=sheetOf[fs]||[]).indexOf(e.x.school)<0 && sheetOf[fs].push(e.x.school); } }
     else if(e.add.f.h) ourP.push(pl);
   });
   var claims=Object.keys(places).map(function(s){ return {s:s, p:places[s].slice(0,25)}; });
@@ -7996,11 +8042,11 @@ function olBuild(){
   });
   var red=unread.filter(function(x){ return !olDrop[x.i]; }).length +
           ours.filter(function(x){ return x.state==='none' || x.state==='many' || x.twice; }).length;
-  return {r:r, ros:ros, rows:rows, kept:kept, all:all, unread:unread, odd:odd, ours:ours, schools:schools, places:places,
+  return {r:r, ros:ros, rows:rows, kept:kept, all:all, unread:unread, odd:odd, ours:ours, schools:schools, places:places, sheetOf:sheetOf,
           claims:claims, res:res, cmp:cmp, taps:taps, wild:wild, adds:adds, red:red};
 }
 function openOffLoad(){
-  olSrc=null; olText=''; olRead=null; olOurs=null; olPick={}; olDrop={}; olAdd={}; olMsg=''; olLoad=undefined; olNoTable=false;
+  olSrc=null; olText=''; olRead=null; olOurs=null; olPick={}; olDrop={}; olAdd={}; olNames={}; olRen=null; olDbSchools=null; olMsg=''; olLoad=undefined; olNoTable=false;
   /* 5.22: also from an untimed race's Start screen, and back to it.
      5.24: and from a "just load" race's card on home. */
   olFrom = olForce || (onScreen('armed') ? 'armed' : 'results'); olForce=null;
@@ -8015,7 +8061,11 @@ function olFetchLoad(){
         if(res.status===404 || (res.data && res.data.code==='42P01')){ olNoTable=true; olLoad=null; }
         else olLoad = (res.ok && res.data && res.data[0]) || null;
         if(onScreen('offload')) renderOffLoad();
-      });
+        /* 5.62: every school name already saved, any season, for full names. */
+        return sbFetch('/rest/v1/race_school_places?select=school',{auth:true}).then(function(res2){
+          if(res2.ok && Array.isArray(res2.data)){ olDbSchools=res2.data.map(function(x){ return x.school; }); if(onScreen('offload') && olRead) renderOffLoad(); }
+        });
+      }).catch(function(){});
   });
 }
 function renderOffLoad(){
@@ -8101,9 +8151,19 @@ function olReadBack(b){
     });
   }
   h+='<div class="hsect rsect">Schools</div>';
+  /* 5.62: each school as it'll be saved. A sheet name taken for a longer one
+     says so, and any name opens to be changed. */
   Object.keys(b.places).sort(function(a,c){ return b.places[a][0]-b.places[c][0]; }).forEach(function(s){
-    var p=b.places[s];
-    h+='<div class="olrow"><span class="oln">'+esc(s)+'<small class="num">'+p.slice(0,7).join(', ')+(p.length>7?' and '+(p.length-7)+' more':'')+'</small></span></div>';
+    var p=b.places[s], from=(b.sheetOf[s]||[s]), sheet=from[0], changed=from.some(function(x){ return x!==s; });
+    h+='<div class="olrow olsch"><span class="oln">'+esc(changed ? from.filter(function(x){ return x!==s; }).join(', ') : s)+
+       (changed ? '<small>Saved as <span class="olfull">'+esc(s)+'</span></small>' : '')+
+       '<small class="num">'+p.slice(0,7).join(', ')+(p.length>7?' and '+(p.length-7)+' more':'')+'</small></span>'+
+       '<button type="button" class="ollink" data-ren="'+esc(sheet)+'">Change</button></div>';
+    if(olRen!=null && from.indexOf(olRen)>=0){
+      h+='<div class="olren"><input type="text" id="olRenIn" autocomplete="off" autocapitalize="words" aria-label="School name for '+esc(olRen)+'" value="'+esc(s)+'">'+
+         '<button type="button" class="ollink" id="olRenUse">Use</button>'+
+         (olFull(olRen)!==olRen || olNames[olRen]!=null ? '<button type="button" class="ollink" id="olRenSheet">Sheet\u2019s</button>' : '')+'</div>';
+    }
   });
   if(olRead.teams.length){
     h+='<div class="note">'+(b.cmp.length
@@ -8120,7 +8180,7 @@ function wireOffLoad(){
     olText=q('olIn').value;
     /* 5.21: a MileSplit link alone in the box is fetched first. */
     if(/^https?:\/\/\S+$/i.test(olText.trim())){ olFetchUrl(olText.trim()); return; }
-    olSrc=null; olRead=offParse(olText); olOurs=null; olPick={}; olDrop={}; olAdd={}; olMsg=''; renderOffLoad();
+    olSrc=null; olRead=offParse(olText); olOurs=null; olPick={}; olDrop={}; olAdd={}; olNames={}; olRen=null; olMsg=''; renderOffLoad();
   });
   if(q('olEdit')) q('olEdit').addEventListener('click',function(){ olRead=null; olMsg=''; renderOffLoad(); });
   /* 5.20: Clear empties the box for a fresh paste. It shows only with
@@ -8131,6 +8191,18 @@ function wireOffLoad(){
     olText=''; olMsg=''; var b=q('olIn'); b.value=''; this.style.display='none'; b.focus();
   });
   if(q('olOursSel')) q('olOursSel').addEventListener('change',function(){ olOurs=this.value; olPick={}; renderOffLoad(); });
+  /* 5.62: change a school's name before saving. Use keeps what's typed (never
+     our own school: our places come from the app); Sheet's goes back to the
+     sheet's spelling. */
+  [].forEach.call(document.querySelectorAll('#olBody [data-ren]'),function(el){
+    el.addEventListener('click',function(){ var n=this.getAttribute('data-ren'); olRen = olRen===n ? null : n; renderOffLoad(); if(q('olRenIn')) q('olRenIn').focus(); });
+  });
+  if(q('olRenUse')) q('olRenUse').addEventListener('click',function(){
+    var v=normSchool(q('olRenIn').value);
+    if(v && !isOurSchool(v)) olNames[olRen]=v;
+    olRen=null; renderOffLoad();
+  });
+  if(q('olRenSheet')) q('olRenSheet').addEventListener('click',function(){ olNames[olRen]=olRen; olRen=null; renderOffLoad(); });
   [].forEach.call($('olBody').querySelectorAll('[data-pick]'),function(s){
     s.addEventListener('change',function(){ var v=s.value; if(v==='') return; olPick[s.getAttribute('data-pick')]= v==='name' ? 'name' : +v; renderOffLoad(); });
   });
@@ -8170,7 +8242,7 @@ function olFetchUrl(url){
       if(res.status===404 && !(res.j && res.j.error)) return fail('Links need the milesplit function set up in Supabase. Paste the results instead.');
       if(!res.ok || !res.j || !res.j.text) return fail((res.j && res.j.error) || 'Couldn\u2019t get that page. Paste the results instead.');
       olBusy=false; olSrc=String(url).slice(0,500);
-      olText=res.j.text; olRead=offParse(olText); olOurs=null; olPick={}; olDrop={}; olAdd={}; olMsg=''; renderOffLoad();
+      olText=res.j.text; olRead=offParse(olText); olOurs=null; olPick={}; olDrop={}; olAdd={}; olNames={}; olRen=null; olMsg=''; renderOffLoad();
     });
   }).catch(function(){ fail('No connection. Try again with signal, or paste the results.'); });
 }
