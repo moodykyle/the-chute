@@ -178,6 +178,31 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
 .pad{padding:20px 16px}
 
 .homebar{position:relative}
+/* 5.63: Home. The team beside the mark, Settings top right, a greeting, one
+   card that changes with the moment and one quiet line under it. */
+.hubbar{justify-content:space-between}
+.hubbrand{display:flex;align-items:center;gap:10px;min-width:0}
+.hubteam{font-family:'Bebas Neue','Saira Condensed',system-ui,sans-serif;font-size:23px;letter-spacing:.06em;line-height:1;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+@media (max-width:340px){.hubteam{font-size:19px;letter-spacing:.03em}.hubbrand{gap:7px}}
+.hubhi{font-family:'Bebas Neue','Saira Condensed',system-ui,sans-serif;font-weight:400;font-size:42px;letter-spacing:.03em;
+  line-height:.95;margin:14px 4px 20px;overflow-wrap:anywhere}
+.hubcard{display:flex;flex-direction:column;gap:9px;width:100%;text-align:left;background:var(--chalk);border-radius:16px;
+  padding:18px;color:var(--ink)}
+.hubcard:active{background:var(--home-wash)}
+.hubcard.today{background:var(--red);color:#fff}
+.hubcard.today:active{background:#A50D26}
+.hubk{font-size:11px;font-weight:600;letter-spacing:.14em;color:var(--ink-soft)}
+.hubcard.today .hubk{color:#fff}
+.hubbig{font-family:'Bebas Neue','Saira Condensed',system-ui,sans-serif;font-size:34px;letter-spacing:.03em;line-height:.95;overflow-wrap:anywhere}
+.hubsub{font-size:15px;color:var(--ink-soft);line-height:1.35}
+.hubcard.today .hubsub{color:#FBE3E6}
+.hubgo{display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid var(--rule);padding-top:11px;font-weight:600;font-size:14px}
+.hubcard.today .hubgo{border-top-color:rgba(255,255,255,.35)}
+.hubgo svg{width:18px;height:18px;color:var(--tape);flex:0 0 auto}
+.hubcard.today .hubgo svg{color:#fff}
+.hubline{font-size:14px;color:var(--ink-soft);margin:14px 4px 0;line-height:1.4}
+
 .mark{height:26px;width:auto;flex:0 0 auto}
 .wordmark{
   position:absolute;left:50%;transform:translateX(-50%);
@@ -696,7 +721,7 @@ input.code{
    at 360 wide; wrapping is still allowed rather than clipping a label. */
 .deck-row{gap:6px}
 .decknote{font-size:12px;line-height:1.3;color:var(--ink-soft);text-align:center;margin:2px 0 6px}
-.deck-row .linkbtn{padding-left:8px;padding-right:8px}
+.deck-row .linkbtn{padding-left:6px;padding-right:6px}
 /* Sits above everything, including the sheet, because it is the one thing that
    must never be missed: a race is running and it is not the one on screen. */
 .livestrip{
@@ -1273,11 +1298,11 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
   <div class="seg2"><button type="button" id="seaG" aria-pressed="true">Girls</button><button type="button" id="seaB" aria-pressed="false">Boys</button></div>
   <div class="scroll pad" id="seasonBody"></div>
   <nav class="tabbar" aria-label="Sections">
-    <button type="button" data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14.5" rx="2"/><line x1="4" y1="10" x2="20" y2="10"/><line x1="8.5" y1="3.5" x2="8.5" y2="7"/><line x1="15.5" y1="3.5" x2="15.5" y2="7"/></svg><span>Events</span></button>
-    <button type="button" data-tab="runners"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="7.5" r="3.5"/><path d="M5 20c.8-4 3.6-6 7-6s6.2 2 7 6"/></svg><span>Runners</span></button>
+    <button type="button" data-tab="hub"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7"/><path d="M6.5 9.5V20h11V9.5"/></svg><span>Home</span></button>
+    <button type="button" data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14.5" rx="2"/><line x1="4" y1="10" x2="20" y2="10"/><line x1="8.5" y1="3.5" x2="8.5" y2="7"/><line x1="15.5" y1="3.5" x2="15.5" y2="7"/></svg><span>Calendar</span></button>
     <button type="button" class="tabplus" data-tab="plus" aria-label="Add event"><span class="pc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg></span></button>
+    <button type="button" data-tab="runners"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="7.5" r="3.5"/><path d="M5 20c.8-4 3.6-6 7-6s6.2 2 7 6"/></svg><span>Runners</span></button>
     <button type="button" data-tab="season" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4,17 9,12 13,15 20,7"/><line x1="4" y1="20" x2="20" y2="20"/></svg><span>Season</span></button>
-    <button type="button" data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><circle cx="15" cy="7" r="2.4"/><line x1="4" y1="12.5" x2="20" y2="12.5"/><circle cx="9" cy="12.5" r="2.4"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="16" cy="18" r="2.4"/></svg><span>Settings</span></button>
   </nav>
 </section>
 <section class="screen" id="runners">
@@ -1294,11 +1319,11 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
     <button class="srow" id="runRoster"><span class="sn">Roster</span><span class="ss" id="subRoster"></span><span class="chev">&#8250;</span></button>
   </div>
   <nav class="tabbar" aria-label="Sections">
-    <button type="button" data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14.5" rx="2"/><line x1="4" y1="10" x2="20" y2="10"/><line x1="8.5" y1="3.5" x2="8.5" y2="7"/><line x1="15.5" y1="3.5" x2="15.5" y2="7"/></svg><span>Events</span></button>
-    <button type="button" data-tab="runners" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="7.5" r="3.5"/><path d="M5 20c.8-4 3.6-6 7-6s6.2 2 7 6"/></svg><span>Runners</span></button>
+    <button type="button" data-tab="hub"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7"/><path d="M6.5 9.5V20h11V9.5"/></svg><span>Home</span></button>
+    <button type="button" data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14.5" rx="2"/><line x1="4" y1="10" x2="20" y2="10"/><line x1="8.5" y1="3.5" x2="8.5" y2="7"/><line x1="15.5" y1="3.5" x2="15.5" y2="7"/></svg><span>Calendar</span></button>
     <button type="button" class="tabplus" data-tab="plus" aria-label="Add event"><span class="pc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg></span></button>
+    <button type="button" data-tab="runners" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="7.5" r="3.5"/><path d="M5 20c.8-4 3.6-6 7-6s6.2 2 7 6"/></svg><span>Runners</span></button>
     <button type="button" data-tab="season"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4,17 9,12 13,15 20,7"/><line x1="4" y1="20" x2="20" y2="20"/></svg><span>Season</span></button>
-    <button type="button" data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><circle cx="15" cy="7" r="2.4"/><line x1="4" y1="12.5" x2="20" y2="12.5"/><circle cx="9" cy="12.5" r="2.4"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="16" cy="18" r="2.4"/></svg><span>Settings</span></button>
   </nav>
 </section>
 
@@ -1308,11 +1333,11 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
   <nav class="vtop" aria-label="Sections"><button type="button" data-tab="vhome">Home</button><button type="button" data-tab="home">Events</button><button type="button" data-tab="runners" aria-current="page">Runners</button><button type="button" data-tab="season">Season</button></nav>
   <div class="scroll pad" id="rnBody"></div>
   <nav class="tabbar" aria-label="Sections">
-    <button type="button" data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14.5" rx="2"/><line x1="4" y1="10" x2="20" y2="10"/><line x1="8.5" y1="3.5" x2="8.5" y2="7"/><line x1="15.5" y1="3.5" x2="15.5" y2="7"/></svg><span>Events</span></button>
-    <button type="button" data-tab="runners"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="7.5" r="3.5"/><path d="M5 20c.8-4 3.6-6 7-6s6.2 2 7 6"/></svg><span>Runners</span></button>
+    <button type="button" data-tab="hub"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7"/><path d="M6.5 9.5V20h11V9.5"/></svg><span>Home</span></button>
+    <button type="button" data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14.5" rx="2"/><line x1="4" y1="10" x2="20" y2="10"/><line x1="8.5" y1="3.5" x2="8.5" y2="7"/><line x1="15.5" y1="3.5" x2="15.5" y2="7"/></svg><span>Calendar</span></button>
     <button type="button" class="tabplus" data-tab="plus" aria-label="Add event"><span class="pc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg></span></button>
+    <button type="button" data-tab="runners"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="7.5" r="3.5"/><path d="M5 20c.8-4 3.6-6 7-6s6.2 2 7 6"/></svg><span>Runners</span></button>
     <button type="button" data-tab="season"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4,17 9,12 13,15 20,7"/><line x1="4" y1="20" x2="20" y2="20"/></svg><span>Season</span></button>
-    <button type="button" data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><circle cx="15" cy="7" r="2.4"/><line x1="4" y1="12.5" x2="20" y2="12.5"/><circle cx="9" cy="12.5" r="2.4"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="16" cy="18" r="2.4"/></svg><span>Settings</span></button>
   </nav>
 </section>
 
@@ -1344,20 +1369,36 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
 </section>
 
 <!-- HOME -->
+<!-- HOME (5.63): the coach's first screen -->
+<section class="screen" id="hub">
+  <div class="bar hubbar">
+    <div class="hubbrand"><svg class="mark" viewBox="0 0 188 72" aria-hidden="true"><path d="M5 5Q20.5 21.0 36 27" fill="none" stroke="#FFFFFF" stroke-width="2.6"/><polygon points="11.9,15.0 19.8,15.0 15.8,26.0" fill="#C8102E"/><polygon points="24.1,22.9 30.6,22.9 27.3,31.9" fill="#FFFFFF"/><path d="M5 0.5V13.5M36 24.5V31.5" stroke="#FFFFFF" stroke-width="3.6" stroke-linecap="round"/><path d="M5 67Q20.5 61.0 36 45" fill="none" stroke="#FFFFFF" stroke-width="2.6"/><polygon points="11.9,61.6 19.8,61.6 15.8,72.6" fill="#C8102E"/><polygon points="24.1,53.2 30.6,53.2 27.3,62.2" fill="#FFFFFF"/><path d="M5 62.5V75.5M36 42.5V49.5" stroke="#FFFFFF" stroke-width="3.6" stroke-linecap="round"/><path d="M36 27H53M36 45H53" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round"/><path d="M26 36H162" fill="none" stroke="#C8102E" stroke-width="3.5" stroke-linecap="round"/><polygon points="160,24 184,36 160,48" fill="#C8102E"/><path d="M42 4H60L98 68H80Z M80 4H98L60 68H42Z M146 6.3A32 32 0 1 0 146 65.7L146 48.04A17 17 0 1 1 146 23.96Z" fill="#FFFFFF" stroke="#0C2340" stroke-width="6" stroke-linejoin="round" paint-order="stroke"/></svg><span class="hubteam" id="hubTeam">Peachtree MS</span></div>
+    <button type="button" class="linkbtn icon" id="hubSet" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><circle cx="15" cy="7" r="2.4"/><line x1="4" y1="12.5" x2="20" y2="12.5"/><circle cx="9" cy="12.5" r="2.4"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="16" cy="18" r="2.4"/></svg></button>
+  </div>
+  <div class="scroll pad" id="hubBody"></div>
+  <nav class="tabbar" aria-label="Sections">
+    <button type="button" data-tab="hub" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7"/><path d="M6.5 9.5V20h11V9.5"/></svg><span>Home</span></button>
+    <button type="button" data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14.5" rx="2"/><line x1="4" y1="10" x2="20" y2="10"/><line x1="8.5" y1="3.5" x2="8.5" y2="7"/><line x1="15.5" y1="3.5" x2="15.5" y2="7"/></svg><span>Calendar</span></button>
+    <button type="button" class="tabplus" data-tab="plus" aria-label="Add event"><span class="pc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg></span></button>
+    <button type="button" data-tab="runners"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="7.5" r="3.5"/><path d="M5 20c.8-4 3.6-6 7-6s6.2 2 7 6"/></svg><span>Runners</span></button>
+    <button type="button" data-tab="season"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4,17 9,12 13,15 20,7"/><line x1="4" y1="20" x2="20" y2="20"/></svg><span>Season</span></button>
+  </nav>
+</section>
+
 <section class="screen on" id="home">
   <div class="bar homebar">
     <svg class="mark" viewBox="0 0 188 72" aria-hidden="true"><path d="M5 5Q20.5 21.0 36 27" fill="none" stroke="#FFFFFF" stroke-width="2.6"/><polygon points="11.9,15.0 19.8,15.0 15.8,26.0" fill="#C8102E"/><polygon points="24.1,22.9 30.6,22.9 27.3,31.9" fill="#FFFFFF"/><path d="M5 0.5V13.5M36 24.5V31.5" stroke="#FFFFFF" stroke-width="3.6" stroke-linecap="round"/><path d="M5 67Q20.5 61.0 36 45" fill="none" stroke="#FFFFFF" stroke-width="2.6"/><polygon points="11.9,61.6 19.8,61.6 15.8,72.6" fill="#C8102E"/><polygon points="24.1,53.2 30.6,53.2 27.3,62.2" fill="#FFFFFF"/><path d="M5 62.5V75.5M36 42.5V49.5" stroke="#FFFFFF" stroke-width="3.6" stroke-linecap="round"/><path d="M36 27H53M36 45H53" fill="none" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round"/><path d="M26 36H162" fill="none" stroke="#C8102E" stroke-width="3.5" stroke-linecap="round"/><polygon points="160,24 184,36 160,48" fill="#C8102E"/><path d="M42 4H60L98 68H80Z M80 4H98L60 68H42Z M146 6.3A32 32 0 1 0 146 65.7L146 48.04A17 17 0 1 1 146 23.96Z" fill="#FFFFFF" stroke="#0C2340" stroke-width="6" stroke-linejoin="round" paint-order="stroke"/></svg>
-    <span class="wordmark">EVENTS</span>
+    <span class="wordmark">CALENDAR</span>
     <span class="season" id="seasonLabel"></span>
   </div>
   <nav class="vtop" aria-label="Sections"><button type="button" data-tab="vhome">Home</button><button type="button" data-tab="home" aria-current="page">Events</button><button type="button" data-tab="runners">Runners</button><button type="button" data-tab="season">Season</button></nav>
   <div class="scroll pad" id="homeBody"></div>
   <nav class="tabbar" aria-label="Sections">
-    <button type="button" data-tab="home" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14.5" rx="2"/><line x1="4" y1="10" x2="20" y2="10"/><line x1="8.5" y1="3.5" x2="8.5" y2="7"/><line x1="15.5" y1="3.5" x2="15.5" y2="7"/></svg><span>Events</span></button>
-    <button type="button" data-tab="runners"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="7.5" r="3.5"/><path d="M5 20c.8-4 3.6-6 7-6s6.2 2 7 6"/></svg><span>Runners</span></button>
+    <button type="button" data-tab="hub"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7"/><path d="M6.5 9.5V20h11V9.5"/></svg><span>Home</span></button>
+    <button type="button" data-tab="home" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14.5" rx="2"/><line x1="4" y1="10" x2="20" y2="10"/><line x1="8.5" y1="3.5" x2="8.5" y2="7"/><line x1="15.5" y1="3.5" x2="15.5" y2="7"/></svg><span>Calendar</span></button>
     <button type="button" class="tabplus" data-tab="plus" aria-label="Add event"><span class="pc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg></span></button>
+    <button type="button" data-tab="runners"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="7.5" r="3.5"/><path d="M5 20c.8-4 3.6-6 7-6s6.2 2 7 6"/></svg><span>Runners</span></button>
     <button type="button" data-tab="season"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4,17 9,12 13,15 20,7"/><line x1="4" y1="20" x2="20" y2="20"/></svg><span>Season</span></button>
-    <button type="button" data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><circle cx="15" cy="7" r="2.4"/><line x1="4" y1="12.5" x2="20" y2="12.5"/><circle cx="9" cy="12.5" r="2.4"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="16" cy="18" r="2.4"/></svg><span>Settings</span></button>
   </nav>
 </section>
 
@@ -1570,11 +1611,11 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
     </div>
   </div>
   <nav class="tabbar" aria-label="Sections">
-    <button type="button" data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14.5" rx="2"/><line x1="4" y1="10" x2="20" y2="10"/><line x1="8.5" y1="3.5" x2="8.5" y2="7"/><line x1="15.5" y1="3.5" x2="15.5" y2="7"/></svg><span>Events</span></button>
-    <button type="button" data-tab="runners"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="7.5" r="3.5"/><path d="M5 20c.8-4 3.6-6 7-6s6.2 2 7 6"/></svg><span>Runners</span></button>
+    <button type="button" data-tab="hub" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7"/><path d="M6.5 9.5V20h11V9.5"/></svg><span>Home</span></button>
+    <button type="button" data-tab="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14.5" rx="2"/><line x1="4" y1="10" x2="20" y2="10"/><line x1="8.5" y1="3.5" x2="8.5" y2="7"/><line x1="15.5" y1="3.5" x2="15.5" y2="7"/></svg><span>Calendar</span></button>
     <button type="button" class="tabplus" data-tab="plus" aria-label="Add event"><span class="pc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="6" x2="12" y2="18"/><line x1="6" y1="12" x2="18" y2="12"/></svg></span></button>
+    <button type="button" data-tab="runners"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="7.5" r="3.5"/><path d="M5 20c.8-4 3.6-6 7-6s6.2 2 7 6"/></svg><span>Runners</span></button>
     <button type="button" data-tab="season"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4,17 9,12 13,15 20,7"/><line x1="4" y1="20" x2="20" y2="20"/></svg><span>Season</span></button>
-    <button type="button" data-tab="settings" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><circle cx="15" cy="7" r="2.4"/><line x1="4" y1="12.5" x2="20" y2="12.5"/><circle cx="9" cy="12.5" r="2.4"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="16" cy="18" r="2.4"/></svg><span>Settings</span></button>
   </nav>
 </section>
 
@@ -1591,6 +1632,12 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
     <p class="lede">Sign in with the email your team added. That loads the roster and season, and shares what you time with the other phones. If you lose signal at a meet, timing keeps working and results send once you&rsquo;re back.</p>
     <div class="acct" id="acctState"></div>
     <div class="btnrow" style="margin-top:14px"><button type="button" id="acctBtn">Sign in</button></div>
+    <div class="field" id="acctNameField" style="margin-top:26px;display:none">
+      <label for="acctName">Your name</label>
+      <input type="text" id="acctName" maxlength="40" autocomplete="name" placeholder="How Home greets you">
+      <div class="btnrow" style="margin-top:10px"><button type="button" id="acctNameSave">Save name</button></div>
+      <div class="hint" id="acctNameMsg"></div>
+    </div>
   </div>
 </section>
 
@@ -1648,7 +1695,7 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
 
 <!-- ARMED -->
 <section class="screen" id="armed">
-  <div class="bar"><button class="linkbtn back" id="backSetup"><span class="bc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5 8 12l7 7"/></svg></span><span class="bl">Events</span></button><span class="count" id="armedCount"></span></div>
+  <div class="bar"><button class="linkbtn back" id="backSetup"><span class="bc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5 8 12l7 7"/></svg></span><span class="bl">Calendar</span></button><span class="count" id="armedCount"></span></div>
   <div class="pad">
     <div class="armed-name" id="armedName"></div>
     <div class="armed-sub" id="armedSub">Hold the phone in your dominant hand and put your thumb on the button.</div>
@@ -1672,7 +1719,7 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
     <div class="decknote" id="deckNote">The clock keeps running until you tap End race.</div>
     <div class="deck-row">
       <button class="linkbtn quiet" id="undo">Undo last</button>
-      <button class="linkbtn quiet back" id="leaveClock"><span class="bc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5 8 12l7 7"/></svg></span><span class="bl">Events</span></button>
+      <button class="linkbtn quiet back" id="leaveClock"><span class="bc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5 8 12l7 7"/></svg></span><span class="bl">Calendar</span></button>
       <button class="linkbtn quiet" id="toSplits">Splits</button>
       <button class="linkbtn quiet" id="stop">End race</button>
     </div>
@@ -1855,7 +1902,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.62';
+var BUILD='v5.63';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -2166,12 +2213,14 @@ var HOW=[
  {t:'About The Chute', p:[
   'The Chute grew out of my first season as an assistant coach on my daughter\u2019s middle school cross country team. One challenge was obvious right away: tracking individual performance in a meaningful way, without pen, paper, and hours of reconciling handwritten lists.',
   'The Chute puts timing and naming on your phone. One coach can run an event alone, or several can split the job. Every event ends with a clean performance report, and the season ends with a record worth keeping.']},
+ {t:'Home', p:[
+  '<b>Home</b> greets you and shows the one thing that matters right now: today\u2019s event on race day, in red; the next event between meets; how the season went once it\u2019s over. Tap the card to go there. Under it, the latest result. Your name for the greeting is in <b>Settings &gt; Account</b>.']},
  {t:'Events', p:[
   'Everything starts with an event, added with the + in the middle of the bar at the bottom. Tap it and pick <b>New meet</b> or <b>New time trial</b>; the kind is chosen once, when the event is created.',
   '<b>A meet</b> holds a girls race and a boys race, each with its own clock and its own results, and is scored.',
   '<b>A time trial</b> holds one race with everyone in it, girls and boys together, and is not scored. It can also run two distances from the same start; see Time trials.',
   'Setting it up goes a step at a time: the basics, the distance, <b>How is it timed?</b>, splits, and <b>Live</b> or <b>Test</b>. <b>Next</b> waits until each step is filled in. The last step shows everything on one card; tap a line to change it, then <b>Create</b>. Live or Test is never pre-picked, since a live event can\u2019t be made a test later. Started one by mistake? <b>Cancel</b>, top left, leaves without saving; once anything is filled in it asks <b>Discard?</b> first.',
-  'To change an event later, tap <b>Edit</b> on it: it opens on that same card. Tap an event on home to open it and see its races.']},
+  'To change an event later, tap <b>Edit</b> on it: it opens on that same card. Tap an event on the Calendar to open it and see its races.']},
  {t:'Timing a race', p:[
   'Open the event on home and tap <b>Start clock</b> on the race when the gun goes. The clock runs on the phone, so no signal is needed.',
   'Tap once for every runner you time. What the buttons are depends on <b>How is it timed?</b>, answered on the event.',
@@ -2181,7 +2230,7 @@ var HOW=[
   'On the Team clock nothing moves on its own: a tapped name stays where it is, showing its place and time. Can\u2019t find a name in time? Tap <b>Name later</b>, and that place goes on the very bottom to name when you can. When the list fills up, tap <b>Tidy</b> in a gap: every name already in moves down to <b>In</b>, and the ones still to come are back at the top.',
   'The count at the top shows how many runners are in, so you can check it against the chute. <b>Undo last</b> takes back a mis-tap. <b>End race</b> needs two taps, so a stray thumb can\u2019t stop the clock.',
   'Start recalled? Until the first finish, Undo last reads <b>Restart</b>. Two taps take the race back to Start, with who\u2019s here kept, and every phone waits for the new gun. A stray tap in the false start comes off with Undo last first.',
-  '<b>Events</b>, bottom left of the clock, takes you to Events while the race keeps running, for when a second race starts before the first one ends. Start the second race from home, and both clocks keep going. A phone can only tap the race on its screen, though, so one coach timing both means switching back and forth. When races overlap, a phone for each is easier. A strip on home shows what is running and allows for easy navigation.']},
+  '<b>Calendar</b>, bottom left of the clock, takes you to the Calendar while the race keeps running, for when a second race starts before the first one ends. Start the second race from the Calendar, and both clocks keep going. A phone can only tap the race on its screen, though, so one coach timing both means switching back and forth. When races overlap, a phone for each is easier. A strip on home shows what is running and allows for easy navigation.']},
  {t:'Chip-timed meets', p:[
   'When a timing company times the meet, answer <b>How is it timed?</b> with one of the two chip-timed answers, and load their results after the race from the race\u2019s <b>Load results</b> or <b>Official results</b>. A MileSplit link or the copied results both work.',
   '<b>Chip-timed: we record splits.</b> Tap <b>Start clock</b> at the gun; the phone goes straight to the split screen. Nobody taps finishers. End the race, then load the results.',
@@ -2232,7 +2281,7 @@ var HOW=[
   'Distances never mix: an 800 only competes with other 800s, and a track mile isn\u2019t a 1600. Time trials count; test events never do. Only results saved to the database count, so every phone shows the same records.',
   'Records show on results as <b>PR \u22120:07.0</b>, the time taken off, and as (PR) in Share Text. They can be turned off in <b>Settings &gt; Results display</b>. The CSV always includes them.']},
  {t:'Season and Runners', p:[
-  'The bar along the bottom has <b>Events</b>, <b>Runners</b>, <b>Season</b> and <b>Settings</b>, with + in the middle for a new event. It isn\u2019t there while you time, name or take splits, so a thumb can\u2019t leave a race by accident.',
+  'The bar along the bottom has <b>Home</b>, <b>Calendar</b>, <b>Runners</b> and <b>Season</b>, with + in the middle for a new event. <b>Settings</b> is the sliders button at the top right of Home. The bar isn\u2019t there while you time, name or take splits, so a thumb can\u2019t leave a race by accident.',
   '<b>Season</b> is how the season is going, for the girls or the boys. Across the top, the meets we\u2019ve been scored in, our best finish, and our record against other schools. <b>Charts</b> swipe left and right: our top 7\u2019s race times, the same as pace per mile so different distances compare, their place on the team race by race (leaving out a race most of the top 7 sat out), how many of ours set a PR at each race, who\u2019s improved most this season, and our team score at each meet. An event with <b>Show on Season charts</b> off shows on none of them. <b>Head to head</b> lists every school we\u2019ve raced once their places are in <b>Meet scores</b>. Under that, the meets themselves; tap one for its Results.',
   '<b>Runners</b> ranks the team by season best at 2 miles, with how many races each has run. Like records, it counts real events the database has, hidden events included.',
   'Tap a runner for their season: their best at each distance, how much they\u2019ve dropped at 2 miles, and every race with their place on the team, overall, and each mile where a splitter was out.',
@@ -2402,15 +2451,15 @@ function $(id){ return document.getElementById(id); }
 /* Where each page's Back goes, named on the button. Home is the house. */
 /* 4.57: the four tab screens, and the one last shown, which Results and the
    event form go back to. Set before the first show() at boot. */
-var TAB_IDS=['home','runners','season','settings','vhome'], lastTab='home';
-var NAV_NAMES={vhome:'Home', banquet:'Banquet page', endseason:'End of season', certset:'Runner certificate', settings:'Settings', account:'Account', rosterEdit:'Roster', home:'Home', results:'Results', runners:'Runners', season:'Season', runner:'Runner', armed:'Race'};
+var TAB_IDS=['hub','home','runners','season','settings','vhome'], lastTab='home';
+var NAV_NAMES={vhome:'Home', banquet:'Banquet page', endseason:'End of season', certset:'Runner certificate', settings:'Settings', account:'Account', rosterEdit:'Roster', home:'Calendar', hub:'Home', results:'Results', runners:'Runners', season:'Season', runner:'Runner', armed:'Race'};
 function navBack(id){
   var b=document.querySelector('#'+id+' .bar.nav .linkbtn.back');
   if(!b || id==='recon') return;
   /* 4.64: Results and the event form go back to the tab they were opened
      from, and say so: "Season", not a house that went to Season anyway. */
   var to = id==='account' ? acctBack : (id==='signin' ? siFrom : ((id==='results' || id==='meet') ? lastTab : backTo));
-  var hm=VIEW ? 'vhome' : 'home';
+  var hm=VIEW ? 'vhome' : 'hub';
   b.classList.toggle('tohome', to===hm);
   b.querySelector('.bl').textContent=NAV_NAMES[to]||'Back';
   b.setAttribute('aria-label', to===hm ? 'Home' : 'Back to '+(NAV_NAMES[to]||''));
@@ -2444,8 +2493,9 @@ function show(id){
   if(id==='season') renderSeason();
   if(id==='runners') renderRunners();
   if(id==='runner'){ markRunnerTab(); renderRunner(); }
-  if(S && ['rosterEdit','home','meet','backup','signin','settings','account','endseason','certset','banquet','about','resPrefs','howto','season','runners','runner'].indexOf(id)<0 && id!=='split' && id!=='mscore' && id!=='offload' && id!=='clockchk') { S.screen=id; save(); }
+  if(S && ['hub','rosterEdit','home','meet','backup','signin','settings','account','endseason','certset','banquet','about','resPrefs','howto','season','runners','runner'].indexOf(id)<0 && id!=='split' && id!=='mscore' && id!=='offload' && id!=='clockchk') { S.screen=id; save(); }
   if(id==='vhome') renderVHome();
+  if(id==='hub'){ renderHub(); hintRoster(); if(Date.now()-lastPull>HOME_PULL_MS){ lastPull=0; setTimeout(pollTick,0); } }
   if(id==='banquet') renderBanquet();
   if(id==='endseason') renderEndSeason();
   if(id==='certset') renderCertSet();
@@ -2511,7 +2561,7 @@ document.addEventListener('visibilitychange',function(){
    lands on a screen. Counted as the coach's account, and About shows numbers,
    never who. Sent and forgotten: with no signal nothing is counted, and
    nothing ever waits on it. */
-var ASCREEN={home:'events', results:'results', runners:'runners', runner:'runner', season:'season', settings:'settings',
+var ASCREEN={hub:'home', home:'events', results:'results', runners:'runners', runner:'runner', season:'season', settings:'settings',
   meet:'event', timing:'clock', recon:'naming', split:'splits', mscore:'meetscores'};
 var aLast=null, aHidAt=0, AOPEN_GAP=30*60000, AOPEN_WAIT=3000;
 function aCount(screen){
@@ -4459,9 +4509,9 @@ function pollTick(){
                  (onScreen('recon') || onScreen('timing') || onScreen('results')));
   /* A meet pulled from the database arrives without its finishes. Read them in
      the background, one race a tick, so home shows real scores. */
-  var fill = watch ? null : (firstUnread() || (onScreen('home') ? firstStale() : null));
+  var fill = watch ? null : (firstUnread() || ((onScreen('home') || onScreen('hub')) ? firstStale() : null));
   var today=todayStr(), hasToday=SEASON.meets.some(function(m){ return m.date===today; });
-  var homeDue = onScreen('home') && Date.now()-lastPull > (hasToday ? HOME_PULL_MS : IDLE_PULL_MS);
+  var homeDue = (onScreen('home') || onScreen('hub')) && Date.now()-lastPull > (hasToday ? HOME_PULL_MS : IDLE_PULL_MS);
   if(!watch && !homeDue && !fill) return;
   pollBusy=true;
   if(fill){ if(fill.read) fill.checkAt=Date.now(); else fill.fillAt=Date.now(); }
@@ -4506,6 +4556,7 @@ function pollTick(){
     /* Every read of a pulled race redraws home, changed or not: a race with no
        finishes reads as unchanged, and its Loading pill would otherwise stay. */
     if((pulled || fill) && onScreen('home')) renderHome();
+    if((pulled || fill) && onScreen('hub')) renderHub();
   }, function(){ pollBusy=false; missed(); });
 }
 
@@ -6200,6 +6251,8 @@ function mergeImport(d){
 }
 
 function renderAccount(){
+  $('acctNameField').style.display = signedIn() ? '' : 'none';
+  if(signedIn()){ $('acctName').value=myName(); nameMsg('',false); }
   if(signedIn()){
     $('acctState').innerHTML='Signed in as <b>'+esc(authEmail())+'</b>.';
     $('acctBtn').textContent='Sign out';
@@ -6299,7 +6352,7 @@ function renderAbout(){
    phones). Numbers only: no account and no phone code reaches a screen.
    VISITS moved here from the Banquet page. */
 var US_APP=null, US_BQ=null, US_OPEN={app:false, bq:false};
-var US_APP_SCREENS=[['events','Events'],['results','Results'],['runners','Runners'],['runner','Runner pages'],['season','Season'],
+var US_APP_SCREENS=[['home','Home'],['events','Calendar'],['results','Results'],['runners','Runners'],['runner','Runner pages'],['season','Season'],
   ['settings','Settings'],['event','Event setup'],['clock','Clock'],['naming','Naming'],['splits','Splits'],['meetscores','Meet scores'],
   /* 5.43: the season certificate, opened and shared (0032) */
   ['cert','Certificates opened'],['certshare','Certificates shared']];
@@ -6473,7 +6526,7 @@ function checkBuild(force,done){
   fetch(location.pathname+'?build='+Date.now(),{cache:'no-store'}).then(function(res){ return res.ok ? res.text() : ''; }).then(function(t){
     var m=/var BUILD='(v[0-9.]+)'/.exec(t||'');
     if(!m){ done('failed'); return; }
-    if(buildNewer(m[1],BUILD)){ NEW_BUILD=m[1]; var h=$('home'); if(h && h.classList.contains('on')) renderHome(); done('new'); }
+    if(buildNewer(m[1],BUILD)){ NEW_BUILD=m[1]; var h=$('home'); if(h && h.classList.contains('on')) renderHome(); if(onScreen('hub')) renderHub(); done('new'); }
     else done('same');
   }).catch(function(){ done('failed'); });
 }
@@ -6571,6 +6624,8 @@ function bigMark(h){
   c.setAttribute('style','height:'+h+'px;width:auto');
   return c.outerHTML;
 }
+/* 5.63: the screen the empty state is on, Home or the Calendar. */
+function esFrom(){ return onScreen('hub') ? 'hub' : 'home'; }
 function emptyState(){
   var runners=parseList(txt(RKEY_G),'F').length+parseList(txt(RKEY_B),'M').length;
   var d=document.createElement('div');
@@ -6594,12 +6649,12 @@ function emptyState(){
   /* A coach installing it fresh lands here first. */
   var how=document.createElement('button');
   how.className='eslink'; how.id='esHow'; how.textContent='New here? See how it works';
-  how.addEventListener('click',function(){ backTo='home'; show('howto'); });
+  how.addEventListener('click',function(){ backTo=esFrom(); show('howto'); });
   d.appendChild(how);
   var go=d.querySelector('#esGo');
   go.addEventListener('click', runners ? function(){ openStart(); }
-                    : !signedIn() ? function(){ siFrom='home'; siPhase='email'; siMsg('',false); show('signin'); }
-                                  : function(){ backTo='home'; show('rosterEdit'); });
+                    : !signedIn() ? function(){ siFrom=esFrom(); siPhase='email'; siMsg('',false); show('signin'); }
+                                  : function(){ backTo=esFrom(); show('rosterEdit'); });
   return d;
 }
 
@@ -8950,7 +9005,8 @@ function pickDigits(v){
 /* Read the team's choice. A database without 0027 answers with an error and
    the phone keeps what it has, hundredths unless told otherwise. */
 function pullDigits(){
-  pullCertApp();   /* 5.44: the certificate's In the app switch rides along */
+  pullCertApp();
+  pullHub();   /* 5.63: the team's name and yours, for Home */   /* 5.44: the certificate's In the app switch rides along */
   return sbFetch('/rest/v1/teams?select=time_digits&is_home=is.true',{auth:true}).then(function(res){
     var v = res && res.ok && Array.isArray(res.data) && res.data[0] ? +res.data[0].time_digits : 0;
     return (v===1 || v===2) && !DIG_BUSY ? setDigits(v) : false;
@@ -9494,7 +9550,7 @@ document.addEventListener('keydown',function(e){
     if(sf && raceState(sf.race)!=='done' && splittable(sf.meet)){ SP=sp; show('split'); return; }
     localStorage.removeItem(SPLIT_KEY);
   }catch(e){}
-  show('home');
+  show('hub');
 })();
 
 /* 4.62: the chevron on a row that opens a page, drawn at the height of the
@@ -9529,10 +9585,148 @@ function fillYears(){
     }
     else if(t==='runners') show('runners');
     else if(t==='season') show('season');
-    else if(t==='settings') show('settings');
+    else if(t==='hub') show('hub');
     else show('home');
   });
 })();
+/* ---------- 5.63: Home ----------
+   The coach's first screen. The team's name from the database beside the
+   mark, Settings top right, a greeting with your name (0046) when you've set
+   one, and one card that changes with the moment: today's event in red, the
+   next event, or how the season went. One quiet line under it. Everything a
+   card leads to is a tap away on Calendar or Season; Home starts nothing. */
+var HUB_KEY='chute.hub.v1';
+function hubInfo(){ try{ return JSON.parse(localStorage.getItem(HUB_KEY)||'{}')||{}; }catch(e){ return {}; } }
+function hubKeep(o){ try{ localStorage.setItem(HUB_KEY,JSON.stringify(o)); }catch(e){} }
+function myName(){ var h=hubInfo(); return (signedIn() && AUTH.uid && h.uid===AUTH.uid && h.name) ? h.name : ''; }
+function hubTeamName(){ return hubInfo().team || txt(TKEY) || 'Peachtree MS'; }
+function pullHub(){
+  if(!signedIn()) return Promise.resolve(false);
+  var me=AUTH.uid||'';
+  return Promise.all([
+    sbFetch('/rest/v1/teams?select=name&is_home=is.true',{auth:true}),
+    me ? sbFetch('/rest/v1/profiles?select=display_name&user_id=eq.'+me,{auth:true}) : Promise.resolve(null)
+  ]).then(function(rs){
+    var h=hubInfo(), was=JSON.stringify(h);
+    if(rs[0] && rs[0].ok && Array.isArray(rs[0].data) && rs[0].data[0] && rs[0].data[0].name) h.team=rs[0].data[0].name;
+    /* A database without 0046 answers with an error: keep what we have. */
+    if(rs[1] && rs[1].ok && Array.isArray(rs[1].data)){ h.uid=me; h.name=rs[1].data[0] ? rs[1].data[0].display_name : ''; }
+    if(JSON.stringify(h)!==was){ hubKeep(h); if(onScreen('hub')) renderHub(); }
+    return true;
+  }, function(){ return false; });
+}
+function nameMsg(m,bad){ var e=$('acctNameMsg'); if(!e) return; e.textContent=m; e.style.color=bad?'var(--danger)':''; }
+function saveName(v){
+  var me=AUTH && AUTH.uid; if(!me) return;
+  nameMsg('Saving…',false);
+  ensureFresh().then(function(){
+    if(!v) return sbFetch('/rest/v1/profiles?user_id=eq.'+me,{method:'DELETE',auth:true});
+    return sbFetch('/rest/v1/profiles?user_id=eq.'+me,{method:'PATCH',auth:true,
+      body:{display_name:v, updated_at:new Date().toISOString()}, prefer:'return=representation'}).then(function(r){
+      if(r && r.ok && Array.isArray(r.data) && !r.data.length)
+        return sbFetch('/rest/v1/profiles',{method:'POST',auth:true,body:{user_id:me, display_name:v},prefer:'return=representation'});
+      return r;
+    });
+  }).then(function(r){
+    if(r && r.ok){
+      var h=hubInfo(); h.uid=me; h.name=v; hubKeep(h);
+      nameMsg(v ? 'Saved. Home says Welcome back, '+v+'.' : 'Cleared. Home says Welcome back.',false);
+      return;
+    }
+    nameMsg(schemaMiss(r) ? 'Not saved: the database needs an update.' : (r && r.offline ? 'No signal, so nothing changed. Try again.' : 'Could not save. Try again.'),true);
+  });
+}
+$('acctNameSave').addEventListener('click',function(){ saveName(String($('acctName').value||'').trim().slice(0,40)); });
+$('hubSet').addEventListener('click',function(){ show('settings'); });
+function hubOpen(m){ openMeet=m.id; openByHand=true; revealOpen=true; show('home'); }
+function hubDays(iso){
+  var a=new Date(todayStr()+'T12:00:00'), b=new Date(iso+'T12:00:00');
+  return Math.round((b-a)/86400000);
+}
+function hubWhen(iso){
+  var n=hubDays(iso);
+  return n===1 ? 'TOMORROW' : n<7 ? 'IN '+n+' DAYS' : fmtDate(iso).toUpperCase();
+}
+function hubRaces(m){
+  if(isTT(m)) return 'Everyone together';
+  var g=(m.races||[]).map(function(r){ return r.division; });
+  return g.join(', then ');
+}
+/* Our latest place at a scored meet, for the girls or the boys. Straight from
+   Meet scores, not through Season's heavier code: Home is the first screen,
+   and nothing on it may stop the app starting. */
+function hubScored(g){
+  var l=seasonEvents();
+  for(var i=0;i<l.length;i++){
+    var m=l[i]; if(isTT(m)) continue;
+    var r=divRace(m,g); if(!r || raceState(r)!=='done') continue;
+    var mr=meetResult(r);
+    if(mr && mr.place!=null) return {m:m, g:g, mr:mr};
+  }
+  return null;
+}
+function hubDiv(x){ return (x.g==='M' ? 'Boys ' : 'Girls ')+placeLine(x.mr); }
+function hubLatest(){
+  var b=hubScored('M'), g=hubScored('F');
+  if(!b) return g; if(!g) return b;
+  return (g.m.date||'')>(b.m.date||'') ? g : b;
+}
+function hubCard(cls,kick,big,sub,go,onTap){
+  var c=document.createElement('button'); c.type='button'; c.className='hubcard'+(cls?' '+cls:'');
+  c.innerHTML='<span class="hubk">'+esc(kick)+'</span><span class="hubbig">'+esc(big)+'</span>'+
+    (sub ? '<span class="hubsub">'+esc(sub)+'</span>' : '')+
+    '<span class="hubgo"><span>'+esc(go)+'</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></span>';
+  c.addEventListener('click',onTap);
+  return c;
+}
+/* Home is where the app starts, so a fault in it must never stop the app:
+   it falls back to the greeting and a way into the Calendar. */
+function renderHub(){
+  try{ renderHubIn(); }
+  catch(e){
+    var b=$('hubBody'); if(!b) return;
+    b.innerHTML='';
+    var hi=document.createElement('h1'); hi.className='hubhi'; hi.textContent='Welcome back'; b.appendChild(hi);
+    b.appendChild(hubCard('','THE '+todayStr().slice(0,4)+' SEASON','Your events','Everything is on the Calendar.','Open the Calendar',function(){ show('home'); }));
+  }
+}
+function renderHubIn(){
+  var b=$('hubBody'); if(!b) return;
+  $('hubTeam').textContent=hubTeamName();
+  b.innerHTML='';
+  var ub=updateBanner(); if(ub) b.appendChild(ub);
+  var today=todayStr(), ms=meetsSorted().filter(function(m){ return !m.test; }), name=myName();
+  var now=ms.filter(function(m){ return m.date===today && (liveNow(m) || !meetFinished(m)); });
+  now.sort(function(a,c){ return (liveNow(c)?1:0)-(liveNow(a)?1:0); });
+  var next=ms.filter(function(m){ return m.date>today; })[0]||null;
+  var hi=document.createElement('h1'); hi.className='hubhi';
+  hi.textContent = !signedIn() ? 'Welcome' : (now.length ? 'Race day' : 'Welcome back')+(name ? ', '+name : '');
+  b.appendChild(hi);
+  if(!meetsSorted().length){ b.appendChild(emptyState()); return; }
+  var line='', latest=hubLatest();
+  function latestLine(){ return latest ? 'Latest: '+latest.m.name+', '+hubDiv(latest)+'.' : ''; }
+  if(now.length){
+    var m=now[0];
+    b.appendChild(hubCard('today','TODAY',m.name,[m.venue,m.dist,hubRaces(m)].filter(Boolean).join(' · '),'Go to the meet',function(){ hubOpen(m); }));
+    line=latestLine();
+  } else if(next){
+    b.appendChild(hubCard('','NEXT · '+hubWhen(next.date),next.name,[fmtDate(next.date),next.venue,next.dist].filter(Boolean).join(' · '),'Open in Calendar',function(){ hubOpen(next); }));
+    line=latestLine();
+  } else if(latest){
+    var other=hubScored(latest.g==='M' ? 'F' : 'M');
+    var sub='At '+latest.m.name+', '+fmtDate(latest.m.date)+'.';
+    if(other) sub+=' '+hubDiv(other)+(other.m.id===latest.m.id ? '.' : ' at '+other.m.name+'.');
+    b.appendChild(hubCard('','HOW THE SEASON WENT',hubDiv(latest),sub,'See the season',function(){ show('season'); }));
+    line='Nothing on the calendar yet.';
+  } else {
+    var n=seasonEvents().length;
+    b.appendChild(hubCard('','THE '+seasonYear()+' SEASON', n ? n+(n===1?' event':' events') : 'Nothing scored yet',
+      n ? 'Times, PRs and charts are in Season.' : 'Add an event with the + below.', n ? 'See the season' : 'Open the Calendar',
+      function(){ show(n ? 'season' : 'home'); }));
+    line='Nothing on the calendar yet.';
+  }
+  if(line){ var p=document.createElement('p'); p.className='hubline'; p.textContent=line; b.appendChild(p); }
+}
 /* Everything here follows the 4.56 rule: real events, results the database
    has, hidden events counted but not listed. This season is the year of the
    event's date. The main distance is two miles, the one the season is run at. */
