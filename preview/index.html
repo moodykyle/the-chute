@@ -2512,6 +2512,8 @@ function show(id){
   closeSheet();
   /* 5.02: the viewer has its four tabs, the runner page, Results and Meet scores. */
   if(VIEW && VIEW_IDS.indexOf(id)<0) id='vhome';
+  /* 5.64: a helper names runners and nothing else. */
+  if(!VIEW && helperNow() && !helperOk(id)) id='hub';
   if(VIEW) vCount(VSCREEN[id]);
   else if(id!==aLast){ aLast=id; aCount((ASCREEN||{})[id]); }
   navBack(id);
@@ -3506,6 +3508,7 @@ function openRace(mid,rid){
   else show('armed');
 }
 function startRace(){
+  if(helperNow()) return;   /* 5.64: the database refuses it anyway */
   S.t0Wall=Date.now(); S.t0Mono=now(); S.fin=[]; S.endedMs=null; S.shift=0; ckReset('gun');
   /* Whoever starts the clock times this race. The claim goes to the database
      with the start, and the first phone to get there keeps it. */
@@ -6963,7 +6966,8 @@ function offDay(){
 function renderArmed(){
   var w=armedWait, off=!w && offDay();
   $('gun').style.display = w ? 'none' : '';
-  $('nameWait').style.display = w ? '' : 'none';
+  $('nameWait').style.display = (w && !helperNow()) ? '' : 'none';   /* 5.64: a helper never times */
+  $('backSetup').querySelector('.bl').textContent = helperNow() ? 'Home' : 'Calendar';
   $('armedSub').classList.toggle('warn', off);
   $('armedSub').textContent = off ? 'This event is dated '+fmtDate(S.date)+', not today. Start takes a second tap.'
     : !w ? 'Hold the phone in your dominant hand and put your thumb on the button.'
@@ -9629,6 +9633,8 @@ function hubMode(){
   if((h.helping||[]).length || AUTH.anon) return 'helper';
   return h.onTeam===false ? 'noteam' : '';
 }
+function helperOk(id){ return ['hub','armed','recon','results','mscore','howto','about','account','signin'].indexOf(id)>=0; }   /* a function: show() runs at boot, before any var here is set */
+function helperNow(){ return document.body.classList.contains('helper'); }
 function coachHere(){ return signedIn() && !AUTH.anon && hubInfo().uid===AUTH.uid && hubInfo().onTeam===true; }
 function markHelper(){
   var md=hubMode(), on=md==='helper';
