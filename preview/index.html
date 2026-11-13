@@ -200,6 +200,10 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;tou
 .hubgo{display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid var(--rule);padding-top:11px;font-weight:600;font-size:14px}
 .hubcard.today .hubgo{border-top-color:rgba(255,255,255,.35)}
 .hubpair{display:flex;gap:12px;margin-top:2px}
+.hcode{font-family:'Bebas Neue','Saira Condensed',system-ui,sans-serif;font-size:46px;letter-spacing:.08em;text-align:center;line-height:1;margin:4px 0 2px;overflow-wrap:anywhere}
+.hbtns{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px}
+.hrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--rule);font-size:15px}
+.rrace .herelink.arm{color:var(--tape);text-decoration:none;font-weight:600}
 .hubside{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:3px}
 .hubdiv{font-size:11px;font-weight:600;letter-spacing:.14em;color:var(--ink-soft)}
 .hubplace{font-family:'Bebas Neue','Saira Condensed',system-ui,sans-serif;font-size:30px;letter-spacing:.03em;line-height:1}
@@ -1198,6 +1202,9 @@ body.haslive .sheet:not(.compact) .sheet-in{max-height:calc(88dvh - var(--striph
 /* 5.05: in a browser the parent's tabs run along the top; Safari has the bottom. */
 .vtop{display:none}
 body.viewer .tabbar{display:none}
+/* 5.64: a helper sees Home and their race, nothing else. */
+body.helper .tabbar, body.helper #hubSet{display:none}
+body.noteam .tabbar{display:none}
 body.viewer .vtop{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));flex:0 0 auto;border-bottom:1px solid var(--rule);background:var(--field)}
 .vtop button{min-width:0;min-height:44px;padding:10px 0 8px;font-size:15px;font-weight:600;color:var(--ink-soft);border-bottom:2px solid transparent;margin-bottom:-1px}
 .vtop button[aria-current=page]{color:var(--ink);border-bottom-color:var(--tape)}
@@ -1689,6 +1696,7 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
     </div>
     <button class="morelink" id="siResendBtn">Send another code</button>
     <button class="morelink" id="siOther">Use a different email</button>
+    <button class="morelink" id="siHelp">I have a helper code</button>
     <div class="report" id="siMsg"></div>
   </div>
   <div class="foot"><button class="primary" id="siGo">Send code</button></div>
@@ -1835,6 +1843,30 @@ body.viewer .msedit,body.viewer #msBody>.pad,body.viewer #runRoster,body.viewer 
   </div>
 </div>
 
+<!-- 5.64: a parent joins one race with the coach's helper code. -->
+<div class="sheet" id="helpSheet">
+  <div class="sheet-in">
+    <div class="bar"><h1>Helper code</h1><button class="linkbtn" id="helpClose">Close</button></div>
+    <div class="scroll pad">
+      <p class="lede">The coach gives you a code for one race. You name runners as they finish, from this phone, until the race is done.</p>
+      <div class="field"><label for="helpCode">Helper code</label>
+        <input type="text" id="helpCode" maxlength="16" autocapitalize="characters" autocorrect="off" autocomplete="off" spellcheck="false" placeholder="From the coach"></div>
+      <div class="field"><label for="helpName">Your first name</label>
+        <input type="text" id="helpName" maxlength="30" autocomplete="given-name" placeholder="So the coach knows who joined"></div>
+      <div class="report" id="helpMsg"></div>
+      <div class="btnrow" style="margin-top:14px"><button type="button" class="primary" id="helpGo">Join</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- 5.64: the coach's helpers for one race: its code, and who joined. -->
+<div class="sheet" id="hcSheet">
+  <div class="sheet-in">
+    <div class="bar"><h1 id="hcTitle">Helpers</h1><button class="linkbtn" id="hcDone">Done</button></div>
+    <div class="scroll pad" id="hcBody"></div>
+  </div>
+</div>
+
 <!-- RACES, 5.61: a menu dropped from the race on Results' date line. The
      catcher under it takes a tap anywhere else and closes it. -->
 <div class="rcatch" id="raceCatch"></div>
@@ -1903,7 +1935,7 @@ var localStorage=VIEW ? (function(){
     get length(){ return Object.keys(d).length; }};
 })() : window.localStorage;
 
-var BUILD='v5.63';
+var BUILD='v5.64';
 var KEY='chute.v1';
 var SKEY='chute.season.v1';
 
@@ -2258,6 +2290,11 @@ var HOW=[
   'Every phone needs the roster before race day, or it has no names to pick from. If it wasn\u2019t loaded when you first signed in, go to <b>Runners &gt; Roster &gt; Load roster from database</b>. A phone without one also gets a reminder with a <b>Load roster</b> button when it opens a race to name.',
   'A meet\u2019s girls and boys races each have their own clock, so two coaches can time overlapping races, one phone each.',
   'Before the gun, each phone picks its job on the event card: <b>Start clock</b> or <b>Name runners</b>, however it\u2019s timed, so a second phone can always join. With one finish button, the namer\u2019s names mark our runners, and Edit race opens on <b>All</b>, since places are unnamed until the namer gets to them.']},
+ {t:'Helpers and Final', p:[
+  'A parent can help name runners on one race, from their own phone. On the event card, tap <b>Helpers</b> under the race, then <b>Get a helper code</b>, or <b>Type my own</b>: 6 to 12 letters or numbers. <b>Text it</b> sends the code and a link.',
+  'The parent opens the link, or taps <b>I have a helper code</b> when signing in, and types the code and their first name. They see that race and nothing else. Who joined shows under <b>Helpers</b>, where you can remove someone or turn the code off.',
+  'When the names are right, tap <b>Mark complete</b> under the race, then tap again. The race shows <b>Final</b>, helpers lose access and the code stops working. A coach can still fix names after. A code also stops at midnight after the event.',
+  'Anyone can sign in, but someone not on a team sees nothing until their head coach adds them.']},
  {t:'Mile splits', p:[
   'A coach out on the course can take splits. On the event, turn on <b>Record splits</b>, and on a race with more than one mile, pick which. On the day, open the meet on home and tap <b>Record splits</b> on the race. It runs on its own phone, beside the timer and the namer, and changes nothing they do.',
   'The timer can take splits too, when the split point is beside the finish. <b>Splits</b> on the clock screen opens them, and the strip at the bottom goes back to the clock in one tap. It turns coral when the leaders are due. The winner is expected about a minute ahead of our fastest runner\u2019s best at the distance, and the warning comes a minute before that, so there\u2019s time to get back to the line. On a chip-timed event nobody is at the line, so there\u2019s no warning.',
@@ -3572,7 +3609,8 @@ function sessionFrom(j,email){
     refresh_token:j.refresh_token||'',
     expires_at:Date.now()+((j.expires_in||3600)*1000),
     email:(j.user&&j.user.email)||email||'',
-    uid:(j.user&&j.user.id)||''
+    uid:(j.user&&j.user.id)||'',
+    anon:!!(j.user&&j.user.is_anonymous)
   };
 }
 
@@ -3617,7 +3655,7 @@ function authMessage(res){
 }
 
 function requestCode(email){
-  return sbFetch('/auth/v1/otp',{method:'POST',body:{email:email,create_user:false}});
+  return sbFetch('/auth/v1/otp',{method:'POST',body:{email:email,create_user:true}});
 }
 function verifyCode(email,token){
   return sbFetch('/auth/v1/verify',{method:'POST',body:{email:email,token:token,type:'email'}});
@@ -4209,6 +4247,11 @@ function applyRaceRow(r,sr){
   if((r.shift||0)!==sh) (r.fin||[]).forEach(function(f){ if(f.raw!=null) f.ms=f.raw+sh; });
   r.t0Wall=t0; r.endedMs=end; r.shift=sh;
   if(tb) r.timedBy=tb; else delete r.timedBy;
+  /* 5.64: Mark complete, from any phone. */
+  if('completed_at' in sr){
+    var ca=sr.completed_at||null;
+    if((r.completedAt||null)!==ca){ ch=true; if(ca) r.completedAt=ca; else delete r.completedAt; }
+  }
   /* the open race too, or the next save would write the old values back */
   if(S && S.raceId===r.id){
     S.t0Wall=t0; S.endedMs=end; S.shift=sh;
@@ -4431,7 +4474,7 @@ function mergeFinishes(r,rows){
   return {changed:changed, added:added};
 }
 
-var RACE_COLS='id,meet_id,division,distance_m,second_distance_m,started_at,ended_at,shift_ms,timed_by,absent';
+var RACE_COLS='id,meet_id,division,distance_m,second_distance_m,started_at,ended_at,shift_ms,timed_by,absent,completed_at';
 function pullMeets(){
   var year=todayStr().slice(0,4), upBefore={};
   SEASON.meets.forEach(function(m){ if(m.up) upBefore[m.id]=true; });
@@ -6085,6 +6128,7 @@ function renderSignin(){
   $('siCodeField').style.display  = code?'':'none';
   $('siResendBtn').style.display  = code?'':'none';
   $('siOther').style.display      = code?'':'none';
+  $('siHelp').style.display       = code?'none':'';
   $('siGo').textContent = code?'Sign in':'Send code';
   $('siLede').textContent = code
     ? 'Enter the six digit code sent to '+siEmail+'. It expires in an hour.'
@@ -6255,7 +6299,7 @@ function renderAccount(){
   $('acctNameField').style.display = signedIn() ? '' : 'none';
   if(signedIn()){ $('acctName').value=myName(); nameMsg('',false); }
   if(signedIn()){
-    $('acctState').innerHTML='Signed in as <b>'+esc(authEmail())+'</b>.';
+    $('acctState').innerHTML = AUTH.anon ? 'Signed in as a helper, with a code from the coach.' : 'Signed in as <b>'+esc(authEmail())+'</b>.';
     $('acctBtn').textContent='Sign out';
   } else {
     $('acctState').textContent='Not signed in.';
@@ -6263,7 +6307,7 @@ function renderAccount(){
   }
 }
 function renderSettings(){
-  $('subAccount').textContent = signedIn() ? authEmail() : 'Not signed in';
+  $('subAccount').textContent = signedIn() ? (authEmail() || 'Helper') : 'Not signed in';
   var g=parseList(txt(RKEY_G),'F').length, b=parseList(txt(RKEY_B),'M').length;
   $('subRoster').textContent = (g+b) ? (g+b)+' runners' : 'Not loaded';
   var st=seasonStats();
@@ -6652,6 +6696,12 @@ function emptyState(){
   how.className='eslink'; how.id='esHow'; how.textContent='New here? See how it works';
   how.addEventListener('click',function(){ backTo=esFrom(); show('howto'); });
   d.appendChild(how);
+  if(!signedIn()){
+    var hc=document.createElement('button');
+    hc.className='eslink'; hc.id='esHelp'; hc.textContent='Helping a coach? Enter your helper code';
+    hc.addEventListener('click',function(){ openHelp(''); });
+    d.appendChild(hc);
+  }
   var go=d.querySelector('#esGo');
   go.addEventListener('click', runners ? function(){ openStart(); }
                     : !signedIn() ? function(){ siFrom=esFrom(); siPhase='email'; siMsg('',false); show('signin'); }
@@ -6721,7 +6771,7 @@ function raceRow(m,r){
   else if(st==='live'){ sub=n+' in, '+ours+' ours'; label='Resume'; }
   else if(r.pulled && !r.read){ sub='Loading from the database'; label='Results'; ghost=true; }
   else {
-    sub=doneSub(r);
+    sub=doneSub(r)+(r.completedAt ? ' \u00b7 Final' : '');
     label='Results'; ghost=true;
   }
   if(r.lost) sub='Started on another phone first \u00b7 these taps stay here';
@@ -6738,6 +6788,15 @@ function raceRow(m,r){
       row.firstChild.appendChild(hl);
     }
   }
+  /* 5.64: helpers for this race, and Mark complete once it is done. */
+  if(hcOk(m,r)){
+    var hp=document.createElement('button'), hn=(HELPERS||{})[r.id];   /* HELPERS is set after boot */
+    hp.type='button'; hp.className='herelink';
+    hp.textContent = hn && hn.length ? 'Helpers: '+hn.join(', ') : 'Helpers';
+    hp.addEventListener('click',function(){ openHelpers(m,r); });
+    row.firstChild.appendChild(hp);
+  }
+  if(st==='done' && mcOk(m,r)) row.firstChild.appendChild(mcLink(r));
   /* Each phone picks its job here, before the gun, so a namer never passes a
      Start button. Once the clock starts, the other phones show Name runners,
      as above. 4.48: offered whatever the Timing. It used to be left off Both,
@@ -7606,7 +7665,7 @@ function renderResults(){
   h+='<div class="rhead">'+
      '<div class="rid"><span class="ridtext">'+esc(resTitle())+'</span>'+
      '<button type="button" class="info" id="resInfo" aria-label="About this score">i</button></div>'+
-     '<div class="rwhen num">'+esc([S.date?fmtDate(S.date,true):'', meetDist()].filter(Boolean).join(' \u00b7 '))+racePickHtml('resPick')+'</div>'+
+     '<div class="rwhen num">'+esc([S.date?fmtDate(S.date,true):'', meetDist(), resFinal()].filter(Boolean).join(' \u00b7 '))+racePickHtml('resPick')+'</div>'+
      (meIn ? '' : '<div class="rgrid">'+
        '<div class="rscore num">'+(complete?score:(tonly?'':'&#183;'))+(byPlace?'<span class="rbyp">by place</span>':'')+'</div>'+
        '<div class="rside">'+
@@ -9554,6 +9613,256 @@ document.addEventListener('keydown',function(e){
   show('hub');
 })();
 
+
+/* ---------- 5.64: helpers and Mark complete ----------
+   A parent helps name runners on one race with a code from the coach (0047).
+   They get a temporary account with no email, see that race and nothing
+   else, and lose it at Mark complete or midnight after the event. The coach
+   makes the code (or types their own), texts it, sees who joined and can
+   remove them. Mark complete puts Final on the race; coaches can still fix
+   names after. */
+function hubMode(){
+  if(!signedIn()) return '';
+  var h=hubInfo();
+  if(!AUTH.uid || h.uid!==AUTH.uid) return AUTH.anon ? 'helper' : '';
+  if(h.onTeam===true) return '';
+  if((h.helping||[]).length || AUTH.anon) return 'helper';
+  return h.onTeam===false ? 'noteam' : '';
+}
+function coachHere(){ return signedIn() && !AUTH.anon && hubInfo().uid===AUTH.uid && hubInfo().onTeam===true; }
+function markHelper(){
+  var md=hubMode(), on=md==='helper';
+  document.body.classList.toggle('helper',on);
+  document.body.classList.toggle('noteam',md==='noteam');
+  if(on) lastTab='hub';
+  return on;
+}
+function helpRaces(){
+  var today=todayStr(), out=[];
+  (hubInfo().helping||[]).forEach(function(x){
+    SEASON.meets.forEach(function(m){
+      (m.races||[]).forEach(function(r){
+        if(r.id===x.race_id && !r.completedAt && (m.date||'')>=today) out.push({m:m, r:r});
+      });
+    });
+  });
+  return out;
+}
+function renderHubOther(b,mode){
+  var hi=document.createElement('h1'); hi.className='hubhi';
+  if(mode==='noteam'){
+    $('hubTeam').textContent='The Chute';
+    hi.textContent='Welcome'+(myName() ? ', '+myName() : ''); b.appendChild(hi);
+    b.appendChild(hubCard('','NOT ON A TEAM YET','Ask your head coach to add you.',
+      authEmail() ? 'You’re signed in as '+authEmail()+'.' : '', 'Have a helper code?', function(){ openHelp(''); }));
+    return;
+  }
+  var first=(hubInfo().helping||[])[0], hs=helpRaces();
+  hi.textContent='Hi'+(first && first.helper_name ? ', '+first.helper_name : ''); b.appendChild(hi);
+  if(!hs.length){
+    b.appendChild(hubCard('','THANKS FOR HELPING','Nothing to do right now.',
+      'The race is done, or its code was turned off. A new code from the coach gets you back in.',
+      'Enter a helper code', function(){ openHelp(''); }));
+    return;
+  }
+  hs.forEach(function(x){
+    b.appendChild(hubCard(x.m.date===todayStr() ? 'today' : '','YOU’RE HELPING',raceLabel(x.r)+' race',
+      [x.m.name, fmtDate(x.m.date)].filter(Boolean).join(' · '),'Name runners',function(){ helpOpen(x.m,x.r); }));
+  });
+}
+/* Before the gun the helper waits for the timer, as a second coach's phone does. */
+function helpOpen(m,r){ openRace(m.id,r.id); if(raceState(r)==='new' && onScreen('armed')) startWait(); }
+
+/* The parent's side: a code and a first name. */
+var helpBusy=false;
+function helpMsg(t,bad){ $('helpMsg').innerHTML = t ? '<span class="'+(bad?'warn':'good')+'">'+esc(t)+'</span>' : ''; }
+function openHelp(code){
+  var first=(hubInfo().helping||[])[0];
+  $('helpCode').value=code||'';
+  if(!$('helpName').value && first) $('helpName').value=first.helper_name||'';
+  helpMsg('',false);
+  $('helpSheet').classList.add('on');
+}
+function helpSession(){
+  if(signedIn()) return Promise.resolve({ok:true});
+  return sbFetch('/auth/v1/signup',{method:'POST',body:{}}).then(function(res){
+    if(res.ok && res.data && res.data.access_token){ saveAuth(sessionFrom(res.data,'')); return {ok:true}; }
+    return res;
+  });
+}
+function helpJoin(){
+  var code=String($('helpCode').value||'').replace(/[\s-]/g,'').toUpperCase();
+  var name=String($('helpName').value||'').trim().slice(0,30);
+  if(!/^[A-Z0-9]{6,12}$/.test(code)){ helpMsg('A helper code is 6 to 12 letters or numbers.',true); return; }
+  if(!name){ helpMsg('Add your first name, so the coach knows who joined.',true); return; }
+  if(helpBusy) return;
+  helpBusy=true; helpMsg('Checking...',false);
+  helpSession().then(function(ss){
+    if(!ss.ok){
+      helpBusy=false;
+      helpMsg(ss.offline ? 'No connection. Try again when you have signal.' : 'Helper codes aren’t switched on yet. Ask the coach.',true);
+      return null;
+    }
+    return ensureFresh().then(function(){
+      return sbFetch('/rest/v1/rpc/redeem_helper_code',{method:'POST',auth:true,body:{p_code:code,p_name:name}});
+    });
+  }).then(function(res){
+    if(!res) return;
+    if(res.ok && res.data){
+      helpMsg('You’re in. Loading the race...',false);
+      var jobs=Promise.all([pullHub(), pullMeets().then(function(ch){ if(ch) saveSeason(); }), autoRoster()]).catch(function(){});
+      var cap=new Promise(function(r){ setTimeout(r,SI_LOAD_MS); });
+      return Promise.race([jobs,cap]).then(function(){
+        helpBusy=false; $('helpSheet').classList.remove('on'); show('hub');
+      });
+    }
+    helpBusy=false;
+    var m=String((res.data && res.data.message) || '');
+    helpMsg(res.offline ? 'No connection. Try again when you have signal.'
+      : res.ok ? 'No race has that code. Check it with the coach.'
+      : /too_many/.test(m) ? 'Too many wrong codes. Try again in an hour.'
+      : /code_ended/.test(m) ? 'That code has ended. The race is done, or its day is over.'
+      : /name_needed/.test(m) ? 'Add your first name, so the coach knows who joined.'
+      : schemaMiss(res) ? 'Helper codes aren’t switched on yet. Ask the coach.'
+      : 'Something went wrong. Try again.', true);
+  });
+}
+$('helpGo').addEventListener('click',helpJoin);
+$('helpClose').addEventListener('click',function(){ $('helpSheet').classList.remove('on'); });
+$('siHelp').addEventListener('click',function(){ openHelp(''); });
+
+/* The coach's side, from the race on the event card. */
+var HC=null, HELPERS={};
+function hcOk(m,r){
+  return !VIEW && coachHere() && !r.completedAt && chipOf(m)!=='chip' && (m.date||'')>=todayStr();
+}
+function openHelpers(m,r){
+  HC={m:m, r:r, code:null, list:null, msg:'', edit:false};
+  $('hcTitle').textContent='Helpers · '+raceLabel(r);
+  renderHC(); $('hcSheet').classList.add('on');
+  loadHC();
+}
+function hcGone(r){ return !HC || HC.r!==r; }
+function loadHC(){
+  var r=HC.r;
+  ensureFresh().then(function(){
+    return Promise.all([
+      sbFetch('/rest/v1/join_codes?select=code&race_id=eq.'+r.id,{auth:true}),
+      sbFetch('/rest/v1/race_helpers?select=user_id,helper_name&race_id=eq.'+r.id+'&order=added_at',{auth:true})
+    ]);
+  }).then(function(rs){
+    if(hcGone(r)) return;
+    if(rs[0].ok && Array.isArray(rs[0].data)) HC.code = rs[0].data[0] ? rs[0].data[0].code : '';
+    else { HC.code=''; HC.msg = rs[0].offline ? 'No signal. Helpers need a connection.' : schemaMiss(rs[0]) ? 'The database needs an update for helpers.' : 'Could not load. Try again.'; HC.bad=true; }
+    if(rs[1].ok && Array.isArray(rs[1].data)){
+      HC.list=rs[1].data;
+      HELPERS[r.id]=rs[1].data.map(function(x){ return x.helper_name; });
+    }
+    renderHC();
+  });
+}
+function hcCall(fn,body,after){
+  var r=HC.r;
+  HC.msg='Saving...'; renderHC();
+  ensureFresh().then(function(){ return sbFetch('/rest/v1/rpc/'+fn,{method:'POST',auth:true,body:body}); }).then(function(res){
+    if(hcGone(r)) return;
+    var m=String((res.data && res.data.message) || '');
+    if(res.ok){ HC.msg=''; HC.edit=false; if(after) after(res.data); }
+    else HC.msg = res.offline ? 'No signal, so nothing changed. Try again.'
+      : /code_format/.test(m) ? 'A code is 6 to 12 letters or numbers.'
+      : /code_taken/.test(m) ? 'That code is taken. Try another.'
+      : /race_closed/.test(m) ? 'This race is complete, so it can’t have helpers.'
+      : 'Could not save. Try again.';
+    renderHC();
+  });
+}
+function hcLink(){ return location.origin+location.pathname+'?help='+HC.code; }
+function hcText(){
+  var t='Can you help name runners at '+HC.m.name+' ('+raceLabel(HC.r)+')? Open '+hcLink()+' and type your first name. Or open The Chute, tap I have a helper code, and enter '+HC.code+'.';
+  if(navigator.share) navigator.share({text:t}).catch(function(){});
+  else location.href='sms:?&body='+encodeURIComponent(t);
+}
+function renderHC(){
+  var b=$('hcBody'); if(!b || !HC) return;
+  var h='';
+  if(HC.code===null) h+='<p class="hint">Loading...</p>';
+  else if(!HC.code && !HC.bad)
+    h+='<p class="lede">A parent with this race’s code names runners on it from their own phone, until you mark it complete or the day ends.</p>'+
+       '<div class="hbtns"><button type="button" class="rbtn" id="hcGet">Get a helper code</button><button type="button" class="rbtn outline" id="hcOwn">Type my own</button></div>';
+  else if(HC.code)
+    h+='<p class="hint" style="text-align:center;margin-top:0">Helper code</p><div class="hcode">'+esc(HC.code)+'</div>'+
+       '<div class="hbtns"><button type="button" class="rbtn" id="hcText">Text it</button><button type="button" class="rbtn outline" id="hcChange">Change code</button><button type="button" class="rbtn outline" id="hcOff">Turn code off</button></div>';
+  if(HC.edit)
+    h+='<div class="field" style="margin-top:16px"><label for="hcIn">Your own code</label>'+
+       '<input type="text" id="hcIn" maxlength="16" autocapitalize="characters" autocorrect="off" autocomplete="off" spellcheck="false" placeholder="6 to 12 letters or numbers" value="'+esc(HC.code||'')+'">'+
+       '<div class="hbtns"><button type="button" class="rbtn" id="hcSave">Save code</button><button type="button" class="rbtn outline" id="hcMake">Make one up</button></div></div>';
+  if(HC.msg) h+='<p class="hint" style="text-align:center">'+esc(HC.msg)+'</p>';
+  if(HC.list){
+    h+='<p class="hsect">JOINED</p>';
+    h+= HC.list.length ? HC.list.map(function(x,i){ return '<div class="hrow"><span>'+esc(x.helper_name)+'</span><button type="button" class="linkbtn quiet" data-i="'+i+'">Remove</button></div>'; }).join('')
+                       : '<p class="hint">Nobody yet.</p>';
+  }
+  b.innerHTML=h;
+  var r=HC.r, set=function(code){ hcCall('set_helper_code',{p_race:r.id, p_code:code},function(c){ HC.code=c; }); };
+  if($('hcGet')) $('hcGet').addEventListener('click',function(){ set(null); });
+  if($('hcOwn')) $('hcOwn').addEventListener('click',function(){ HC.edit=true; renderHC(); try{ $('hcIn').focus(); }catch(e){} });
+  if($('hcText')) $('hcText').addEventListener('click',hcText);
+  if($('hcChange')) $('hcChange').addEventListener('click',function(){ HC.edit=!HC.edit; renderHC(); });
+  if($('hcOff')) $('hcOff').addEventListener('click',function(){ hcCall('helper_code_off',{p_race:r.id},function(){ HC.code=''; }); });
+  if($('hcSave')) $('hcSave').addEventListener('click',function(){ set(String($('hcIn').value||'')); });
+  if($('hcMake')) $('hcMake').addEventListener('click',function(){ set(null); });
+  [].forEach.call(b.querySelectorAll('.hrow .linkbtn'),function(x){
+    x.addEventListener('click',function(){
+      var who=HC.list[+x.getAttribute('data-i')]; if(!who) return;
+      HC.msg='Removing...'; renderHC();
+      ensureFresh().then(function(){
+        return sbFetch('/rest/v1/race_helpers?race_id=eq.'+r.id+'&user_id=eq.'+who.user_id,{method:'DELETE',auth:true,prefer:'return=minimal'});
+      }).then(function(res){
+        if(hcGone(r)) return;
+        HC.msg = res.ok ? '' : res.offline ? 'No signal, so nothing changed. Try again.' : 'Could not remove. Try again.';
+        loadHC();
+      });
+    });
+  });
+}
+$('hcDone').addEventListener('click',function(){ $('hcSheet').classList.remove('on'); HC=null; if(onScreen('home')) renderHome(); });
+
+/* Mark complete: two taps, since helpers lose access. */
+function mcOk(m,r){ return !VIEW && coachHere() && !r.completedAt && !(r.pulled && !r.read) && chipOf(m)!=='chip'; }
+function mcLink(r){
+  var mc=document.createElement('button');
+  mc.type='button'; mc.className='herelink'; mc.textContent='Mark complete';
+  mc.addEventListener('click',function(){
+    if(!mc.classList.contains('arm')){
+      mc.classList.add('arm'); mc.textContent='Tap again: Final, and helpers lose access';
+      setTimeout(function(){ if(mc.classList.contains('arm') && !mc.disabled){ mc.classList.remove('arm'); mc.textContent='Mark complete'; } },4000);
+      return;
+    }
+    mc.disabled=true; mc.textContent='Marking...';
+    markComplete(r).then(function(msg){ if(msg){ mc.disabled=false; mc.classList.remove('arm'); mc.textContent=msg; } });
+  });
+  return mc;
+}
+function markComplete(r){
+  return ensureFresh().then(function(){
+    return sbFetch('/rest/v1/rpc/mark_complete',{method:'POST',auth:true,body:{p_race:r.id}});
+  }).then(function(res){
+    if(res.ok && res.data){ r.completedAt=res.data; saveSeason(); if(onScreen('home')) renderHome(); return ''; }
+    var m=String((res.data && res.data.message) || '');
+    return res.offline ? 'No signal. Tap to try again.'
+      : /race_not_ended/.test(m) ? 'Still sending the finish. Tap again in a minute.'
+      : schemaMiss(res) ? 'The database needs an update.' : 'Could not mark it. Tap to try again.';
+  });
+}
+function resFinal(){ var f=S && findRace(S.meetId,S.raceId); return f && f.race.completedAt ? 'Final' : ''; }
+
+/* A texted link opens the code sheet with the code filled in. */
+(function(){
+  var hm=/[?&]help=([A-Za-z0-9-]{4,16})(?:&|#|$)/.exec(location.search);
+  if(hm && !VIEW && !coachHere()) openHelp(hm[1].toUpperCase());
+  markHelper();
+})();
+
 /* 4.62: the chevron on a row that opens a page, drawn at the height of the
    time rather than a small "›", and near-white rather than coral, which
    means a record or the current tab. */
@@ -9597,8 +9906,8 @@ function fillYears(){
    next event, or how the season went. One quiet line under it. Everything a
    card leads to is a tap away on Calendar or Season; Home starts nothing. */
 var HUB_KEY='chute.hub.v1';
-function hubInfo(){ try{ return JSON.parse(localStorage.getItem(HUB_KEY)||'{}')||{}; }catch(e){ return {}; } }
-function hubKeep(o){ try{ localStorage.setItem(HUB_KEY,JSON.stringify(o)); }catch(e){} }
+function hubInfo(){ try{ return JSON.parse(localStorage.getItem('chute.hub.v1')||'{}')||{}; }catch(e){ return {}; } }
+function hubKeep(o){ try{ localStorage.setItem('chute.hub.v1',JSON.stringify(o)); }catch(e){} }
 function myName(){ var h=hubInfo(); return (signedIn() && AUTH.uid && h.uid===AUTH.uid && h.name) ? h.name : ''; }
 function hubTeamName(){ return hubInfo().team || txt(TKEY) || 'Peachtree MS'; }
 function pullHub(){
@@ -9606,13 +9915,19 @@ function pullHub(){
   var me=AUTH.uid||'';
   return Promise.all([
     sbFetch('/rest/v1/teams?select=name&is_home=is.true',{auth:true}),
-    me ? sbFetch('/rest/v1/profiles?select=display_name&user_id=eq.'+me,{auth:true}) : Promise.resolve(null)
+    me ? sbFetch('/rest/v1/profiles?select=display_name&user_id=eq.'+me,{auth:true}) : Promise.resolve(null),
+    sbFetch('/rest/v1/rpc/on_a_team',{method:'POST',auth:true,body:{}}),
+    me ? sbFetch('/rest/v1/race_helpers?select=race_id,helper_name&user_id=eq.'+me,{auth:true}) : Promise.resolve(null)
   ]).then(function(rs){
     var h=hubInfo(), was=JSON.stringify(h);
+    /* 5.64: another account on this phone before: start clean. */
+    if(h.uid && me && h.uid!==me){ h={}; }
+    if(rs[2] && rs[2].ok && typeof rs[2].data==='boolean'){ h.uid=me; h.onTeam=rs[2].data; }
+    if(rs[3] && rs[3].ok && Array.isArray(rs[3].data)){ h.uid=me; h.helping=rs[3].data; }
     if(rs[0] && rs[0].ok && Array.isArray(rs[0].data) && rs[0].data[0] && rs[0].data[0].name) h.team=rs[0].data[0].name;
     /* A database without 0046 answers with an error: keep what we have. */
     if(rs[1] && rs[1].ok && Array.isArray(rs[1].data)){ h.uid=me; h.name=rs[1].data[0] ? rs[1].data[0].display_name : ''; }
-    if(JSON.stringify(h)!==was){ hubKeep(h); if(onScreen('hub')) renderHub(); }
+    if(JSON.stringify(h)!==was){ hubKeep(h); markHelper(); if(onScreen('hub')) renderHub(); if(onScreen('home')) renderHome(); }
     return true;
   }, function(){ return false; });
 }
@@ -9713,6 +10028,8 @@ function renderHubIn(){
   $('hubTeam').textContent=hubTeamName();
   b.innerHTML='';
   var ub=updateBanner(); if(ub) b.appendChild(ub);
+  var mode=hubMode(); markHelper();
+  if(mode){ renderHubOther(b,mode); return; }
   var today=todayStr(), ms=meetsSorted().filter(function(m){ return !m.test; }), name=myName();
   var now=ms.filter(function(m){ return m.date===today && (liveNow(m) || !meetFinished(m)); });
   now.sort(function(a,c){ return (liveNow(c)?1:0)-(liveNow(a)?1:0); });
