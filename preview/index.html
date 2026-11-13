@@ -9700,7 +9700,11 @@ function helpJoin(){
   helpSession().then(function(ss){
     if(!ss.ok){
       helpBusy=false;
-      helpMsg(ss.offline ? 'No connection. Try again when you have signal.' : 'Helper codes aren’t switched on yet. Ask the coach.',true);
+      /* Say what Supabase said: switched off, or anything else in its own words. */
+      var why=String((ss.data && (ss.data.msg || ss.data.error_description || ss.data.message || ss.data.error_code)) || '');
+      helpMsg(ss.offline ? 'No connection. Try again when you have signal.'
+        : /anonymous.*(disabled|not.*enabled)|signups? not allowed|signup_disabled/i.test(why+' '+String(ss.data && ss.data.error_code || '')) ? 'Helper codes aren’t switched on yet. Ask the coach.'
+        : 'Could not start (status '+ss.status+(why ? ': '+why : '')+'). Try again, or tell the coach.',true);
       return null;
     }
     return ensureFresh().then(function(){
@@ -9724,7 +9728,7 @@ function helpJoin(){
       : /code_ended/.test(m) ? 'That code has ended. The race is done, or its day is over.'
       : /name_needed/.test(m) ? 'Add your first name, so the coach knows who joined.'
       : schemaMiss(res) ? 'Helper codes aren’t switched on yet. Ask the coach.'
-      : 'Something went wrong. Try again.', true);
+      : 'Something went wrong (status '+res.status+(m ? ': '+m : '')+'). Try again.', true);
   });
 }
 $('helpGo').addEventListener('click',helpJoin);
